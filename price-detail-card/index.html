@@ -1,0 +1,3599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price card mockup | OfferLab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary-brew: #342E26;
+    --brand-primary-crisp: #F3F0E8;
+    --brand-secondary-spice: #713636;
+    --brand-secondary-moola: #264339;
+    --brand-secondary-mint: #88A89C;
+    --content-primary: #342E26;
+    --content-secondary: rgba(52, 46, 38, 0.64);
+    --content-tertiary: #342E2670;
+    --content-background-base: #F7F5F0;
+    --content-background-elevated: #FFFFFF;
+    --content-background-neutral: #F3F0E8;
+    --content-border-neutral: #342E2614;
+    --content-border-dark: rgba(52, 46, 38, 0.12);
+    --content-background-overlay: rgba(104, 67, 0, 0.08);
+    --content-background-overlay-hover: rgba(104, 67, 0, 0.16);
+    --brand-shine: #FFED84;
+    --dark-bg: #110F0D;
+    --dark-bg-elevated: #1A1714;
+    --dark-bg-code: #14120F;
+    --dark-border: rgba(255, 255, 255, 0.06);
+    --size-xs: 12px;
+    --size-sm: 14px;
+    --size-base: 16px;
+    --size-lg: 18px;
+    --size-xl: 20px;
+    --size-2xl: 24px;
+    --tracking-normal: 0;
+    --tracking-tight-3: -0.48px;
+    --rounded-md: 8px;
+    --rounded-lg: 10px;
+    --rounded-xl: 12px;
+    --rounded-2xl: 16px;
+    --rounded-full: 99999px;
+    --rounded-5xl: 32px;
+    --shadow-sm: 0px 2px 8px rgba(0, 0, 0, 0.06);
+    /* Using Inter as web-safe fallback for Aktiv Grotesk */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-family);
+    color: var(--content-primary);
+    background: var(--dark-bg);
+    line-height: 1.5;
+    padding: 40px 24px;
+  }
+
+  /* ── App layout: sidebar + main ── */
+  .app-layout {
+    display: flex;
+    min-height: 100vh;
+    margin: -40px -24px;
+  }
+
+  /* ── Sidebar navigation ── */
+  .sidebar {
+    flex-shrink: 0;
+    background: var(--dark-bg);
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    white-space: nowrap;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-collapse-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 99999px;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.56);
+    transition: background 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .sidebar-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .sidebar-collapse-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* ── Collapsed sidebar (logo rail) ── */
+  @keyframes sidebarRevealNav {
+    from { opacity: 0; max-height: 0; }
+    to   { opacity: 1; max-height: 500px; }
+  }
+
+  @keyframes sidebarRevealBtn {
+    from { opacity: 0; width: 0; }
+    to   { opacity: 1; width: 32px; }
+  }
+
+  @keyframes sidebarShadowIn {
+    from { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+    to   { box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4); }
+  }
+
+  .sidebar.collapsed {
+    width: 68px;   /* 28px logo + 20px×2 padding */
+    min-width: 68px;
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed .sidebar-logo {
+    padding: 20px 20px 16px;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar.collapsed .sidebar-collapse-btn {
+    display: none;
+  }
+
+  .sidebar.collapsed .sidebar-nav {
+    display: none;
+  }
+
+  /* Hover-reveal: full sidebar overlays from the rail */
+  .sidebar.collapsed.hover-reveal {
+    width: auto;
+    min-width: auto;
+    overflow-y: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    animation: sidebarShadowIn 0.25s ease forwards;
+  }
+
+  .sidebar.collapsed.hover-reveal .sidebar-logo {
+    justify-content: space-between;
+  }
+
+  .sidebar.collapsed.hover-reveal .sidebar-collapse-btn {
+    display: flex;
+    animation: sidebarRevealBtn 0.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
+  }
+
+  .sidebar.collapsed.hover-reveal .sidebar-nav {
+    display: block;
+    padding: 16px;
+    animation: sidebarRevealNav 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .sidebar-nav {
+    padding: 16px;
+    flex: 1;
+  }
+
+  .sidebar-section {
+    margin-bottom: 4px;
+  }
+
+  .sidebar-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: var(--font-family);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 150ms ease, color 150ms ease;
+  }
+
+  .sidebar-section-header svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .sidebar-section-header:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .sidebar-section-header.active {
+    color: #FFFFFF;
+  }
+
+  .sidebar-section-header.active svg {
+    opacity: 1;
+  }
+
+  .sidebar-subnav {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 0 4px 7px;
+    margin-left: 22px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+  }
+
+  .sidebar-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 150ms ease, color 150ms ease;
+    line-height: 1.5;
+  }
+
+  .sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .sidebar-link.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  /* ── Main content area ── */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .main-content-inner {
+    background: var(--dark-bg);
+    height: 100vh;
+    overflow-y: auto;
+    padding: 40px 32px;
+  }
+
+  /* ── View panels ── */
+  .view-panel {
+    display: none;
+  }
+
+  .view-panel.active {
+    display: block;
+  }
+
+  /* ── Dot-grid showcase panels ── */
+  .view-panel--showcase {
+    margin: -40px -32px;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .view-panel--showcase.active {
+    display: flex;
+  }
+
+  .view-panel--showcase .section {
+    max-width: 480px;
+    margin: 0 auto 48px;
+  }
+
+  .view-panel--showcase .price-card {
+    max-width: 480px;
+  }
+
+  .view-panel--showcase .overview-container {
+    max-width: 480px;
+  }
+
+  .view-panel--showcase .overview-section {
+    max-width: 480px;
+    margin: 0 auto 48px;
+  }
+
+  /* ── Two-column code + preview layout ── */
+  .split-layout {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .split-code {
+    flex: 1 1 0%;
+    min-width: 200px;
+    overflow-y: auto;
+    background: var(--dark-bg-code);
+    padding: 0;
+    position: relative;
+  }
+
+  .split-code-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 16px 24px 12px;
+    background: var(--dark-bg-code);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: var(--font-family);
+  }
+
+  .split-code pre {
+    margin: 0;
+    padding: 16px 24px 40px;
+    overflow-x: auto;
+  }
+
+  .split-code code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #DDD9D0;
+    background: none;
+    padding: 0;
+  }
+
+  .split-code .hl-tag { color: #F07178; }
+  .split-code .hl-attr { color: #FFCB6B; }
+  .split-code .hl-str { color: #C3E88D; }
+  .split-code .hl-cm { color: #546E7A; }
+  .split-code .hl-kw { color: #C792EA; }
+
+  .split-handle {
+    width: 1px;
+    cursor: col-resize;
+    background: rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
+    transition: background 0.15s ease;
+  }
+
+  /* Invisible wider hit area */
+  .split-handle::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -6px;
+    width: 13px;
+    cursor: col-resize;
+  }
+
+  /* Pill drag handle centered vertically */
+  .split-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 24px;
+    border-radius: 99999px;
+    background: var(--dark-bg);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .split-handle:hover,
+  .split-handle.dragging {
+    background: var(--brand-shine);
+  }
+
+  .split-handle:hover::after,
+  .split-handle.dragging::after {
+    background: var(--brand-shine);
+    border-color: var(--brand-shine);
+    box-shadow: 0 0 8px rgba(255, 237, 132, 0.3);
+  }
+
+  .split-preview {
+    flex: 1 1 0%;
+    min-width: 200px;
+    overflow-y: auto;
+    background-color: var(--dark-bg);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    background-size: 16px 16px;
+    padding: 48px 40px;
+  }
+
+  .split-preview .section {
+    max-width: 480px;
+    margin: 0 auto 48px;
+  }
+
+  .split-preview .price-card {
+    max-width: 480px;
+  }
+
+  .split-preview .overview-container {
+    max-width: 480px;
+  }
+
+  .split-preview .overview-section {
+    max-width: 480px;
+    margin: 0 auto 48px;
+  }
+
+  /* ── Section groups ── */
+  .section {
+    margin: 0 0 48px;
+  }
+
+  .section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  .card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── Config annotation ── */
+  .config {
+    font-size: 0.6875rem;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 6px 0 2px 4px;
+    line-height: 1.4;
+  }
+
+  /* ── Price detail card ── */
+  .price-card {
+    display: flex;
+    width: 100%;
+    padding: 24px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-radius: var(--rounded-2xl);
+    border: 1px solid var(--content-border-dark);
+    background: var(--content-background-elevated);
+    transition: box-shadow 150ms ease;
+  }
+
+  .price-card:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ── Left column: details ── */
+  .card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Shortname — body/default semi */
+  .card-shortname {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--content-primary, #342E26);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 150%;
+    letter-spacing: var(--tracking-normal, 0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-shortname .prefix-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--content-primary, #342E26);
+  }
+
+  .card-shortname .prefix-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Interval / description — body/default */
+    color: var(--content-secondary, rgba(52, 46, 38, 0.64));
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 150%;
+    letter-spacing: var(--tracking-normal, 0);
+  }
+
+  /* Badges row */
+  .card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Badge — body/caption */
+  .badge {
+    display: inline-flex;
+    padding: 2px 7px;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    border-radius: var(--rounded-full, 99999px);
+    background: var(--content-background-base, #F7F5F0);
+    color: var(--content-primary, #342E26);
+    font-family: var(--font-family);
+    font-size: var(--size-xs, 12px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: 133%;
+    letter-spacing: var(--tracking-normal, 0);
+  }
+
+  /* ── Right column: price ── */
+  .card-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  .price-current {
+    color: var(--content-primary, #342E26);
+    font-family: var(--font-family);
+    font-size: var(--size-2xl, 24px);
+    font-style: normal;
+    font-weight: 600;
+    line-height: 110%;
+    letter-spacing: var(--tracking-tight-3, -0.48px);
+    white-space: nowrap;
+  }
+
+  .price-current .interval {
+    color: var(--content-primary, #342E26);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 150%;
+    letter-spacing: var(--tracking-normal, 0);
+  }
+
+  .price-current .installments {
+    /* inherits price-current styles — same size/weight as the amount */
+  }
+
+  .price-compare {
+    color: var(--content-secondary, rgba(52, 46, 38, 0.64));
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 150%;
+    letter-spacing: var(--tracking-normal, 0);
+    text-decoration-line: line-through;
+    margin-top: 2px;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--content-border-neutral);
+    margin: 40px 0;
+  }
+
+  /* ── Placeholder for upcoming view ── */
+  .placeholder {
+    margin: 0;
+    padding: 80px 40px;
+    text-align: center;
+    border-radius: var(--rounded-2xl);
+    border: 2px dashed var(--content-border-dark);
+    color: var(--content-tertiary);
+    font-size: var(--size-sm);
+  }
+
+  /* ═══════════════════════════════════════════════ */
+  /* PRICE OVERVIEW DISPLAY                          */
+  /* ═══════════════════════════════════════════════ */
+
+  .overview-container {
+    display: flex;
+    padding: 12px 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0;
+    border-radius: var(--rounded-5xl, 32px);
+    border: 1px solid var(--content-border-neutral, rgba(52, 46, 38, 0.08));
+    background: var(--content-background-elevated, #FFF);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.00), 0 0 0 0 rgba(0, 0, 0, 0.00), 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
+
+  .overview-header {
+    display: flex;
+    padding: 12px 16px;
+    align-items: center;
+    gap: 16px;
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .overview-header h3 {
+    font-family: var(--font-family);
+    font-size: var(--size-lg, 18px);
+    font-weight: 600;
+    color: var(--content-primary);
+    line-height: 130%;
+  }
+
+  .overview-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .overview-dropdown {
+    display: flex;
+    height: 32px;
+    padding: 5px 12px;
+    align-items: center;
+    gap: 4px;
+    border-radius: var(--rounded-full, 99999px);
+    border: 1px solid var(--content-border-neutral, rgba(52, 46, 38, 0.08));
+    background: var(--content-background-elevated, #FFF);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    line-height: 150%;
+    color: var(--content-primary, #342E26);
+    cursor: pointer;
+    transition: background 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .overview-dropdown:hover {
+    background: var(--content-background-neutral, #F3F0E8);
+  }
+
+  .overview-dropdown svg {
+    width: 16px;
+    height: 16px;
+    color: var(--content-primary);
+  }
+
+  .overview-add-btn {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: var(--rounded-full, 99999px);
+    background: var(--content-background-overlay, rgba(104, 67, 0, 0.08));
+    color: var(--content-primary);
+    cursor: pointer;
+    border: none;
+    transition: background 200ms cubic-bezier(0.25, 0.1, 0.25, 1), color 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .overview-add-btn:hover {
+    background: var(--content-background-overlay-hover, rgba(104, 67, 0, 0.16));
+  }
+
+  .overview-add-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .overview-prices {
+    display: flex;
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .overview-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .overview-row + .overview-row {
+    padding-top: 20px;
+    border-top: 1px solid var(--content-border-neutral, rgba(52, 46, 38, 0.08));
+  }
+
+  .overview-row-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .overview-price-amount {
+    color: var(--content-primary, #342E26);
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    letter-spacing: var(--tracking-normal, 0);
+  }
+
+  .overview-price-amount .interval {
+    font-weight: 400;
+  }
+
+  .overview-price-amount .installments {
+    /* inherits parent styles */
+  }
+
+  .overview-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .overview-edit-btn {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: var(--rounded-full, 99999px);
+    background: transparent;
+    color: var(--content-primary);
+    cursor: pointer;
+    border: none;
+    transition: background 200ms cubic-bezier(0.25, 0.1, 0.25, 1), color 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .overview-edit-btn:hover {
+    background: var(--content-background-overlay, rgba(104, 67, 0, 0.08));
+    color: var(--content-primary);
+  }
+
+  .overview-edit-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .overview-add-price-wrapper {
+    display: flex;
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .overview-add-price {
+    display: flex;
+    height: 32px;
+    padding: 5px 12px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px;
+    background: var(--content-background-overlay, rgba(104, 67, 0, 0.08));
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    line-height: 150%;
+    letter-spacing: var(--tracking-normal, 0);
+    color: var(--content-primary, #342E26);
+    cursor: pointer;
+    border: none;
+    transition: background 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .overview-add-price:hover {
+    background: var(--content-background-overlay-hover, rgba(104, 67, 0, 0.16));
+  }
+
+  .overview-add-price svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+
+  /* ── Spec summary view ── */
+  .spec-container {
+    margin: 0 0 48px;
+  }
+
+  .spec-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--rounded-5xl, 32px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .spec-card h2 {
+    font-family: var(--font-family);
+    font-size: var(--size-xl, 20px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 16px;
+    line-height: 130%;
+  }
+
+  .spec-card h3 {
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 24px 0 8px;
+    line-height: 140%;
+  }
+
+  .spec-card h3:first-of-type {
+    margin-top: 0;
+  }
+
+  .spec-card p, .spec-card li {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 170%;
+  }
+
+  .spec-card p {
+    margin-bottom: 12px;
+  }
+
+  .spec-card ul {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+
+  .spec-card li {
+    margin-bottom: 4px;
+  }
+
+  .spec-card code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px;
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+  }
+
+  .spec-table th {
+    text-align: left;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: var(--size-xs, 12px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .spec-table td {
+    padding: 8px 12px;
+    color: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: top;
+  }
+
+  .spec-table td:first-child {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+  }
+
+  .spec-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .spec-note {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--rounded-lg, 10px);
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 170%;
+  }
+
+  .spec-note strong {
+    font-weight: 600;
+  }
+
+  .spec-placement {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .spec-placement:first-of-type {
+    margin-top: 8px;
+  }
+
+  .spec-placement-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .spec-placement-name {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .spec-placement-primitives {
+    font-family: var(--font-family);
+    font-size: var(--size-xs, 12px);
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 150%;
+  }
+
+  .spec-placement-primitives code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* ── Developer docs: code blocks ── */
+  .doc-code-block {
+    background: var(--dark-bg-code);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0;
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .doc-code-header {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: var(--font-family);
+  }
+
+  .doc-code-block pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .doc-code-block code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: #DDD9D0;
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .doc-code-block .hl-kw { color: #C792EA; }
+  .doc-code-block .hl-str { color: #C3E88D; }
+  .doc-code-block .hl-fn { color: #82AAFF; }
+  .doc-code-block .hl-cm { color: #546E7A; }
+  .doc-code-block .hl-type { color: #FFCB6B; }
+  .doc-code-block .hl-num { color: #F78C6C; }
+
+  /* ── Developer docs: primitive blocks ── */
+  .doc-primitive {
+    padding: 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .doc-primitive:first-of-type {
+    margin-top: 8px;
+  }
+
+  .doc-primitive-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .doc-primitive-name {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .doc-primitive-type {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .doc-primitive p {
+    font-size: var(--size-sm, 14px);
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 170%;
+    margin-bottom: 12px;
+  }
+
+  .doc-primitive-output {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 24px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    font-family: var(--font-family);
+    font-size: var(--size-lg, 18px);
+    font-weight: 600;
+    color: var(--content-primary);
+    margin-bottom: 12px;
+  }
+
+  .doc-component-preview {
+    background: #FFFFFF;
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  .overview-section {
+    margin: 0 0 48px;
+  }
+
+  /* ═══════════════════════════════════════════════ */
+  /* PRICE BUILDER                                   */
+  /* ═══════════════════════════════════════════════ */
+
+  .builder-layout {
+    display: flex;
+    gap: 0;
+    margin: -40px -32px;
+    width: calc(100% + 64px);
+    min-height: 100vh;
+  }
+
+  /* ── Form panel ── */
+  .builder-form-panel {
+    width: 400px;
+    flex-shrink: 0;
+    padding: 0;
+    overflow-y: auto;
+    background: var(--dark-bg);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .builder-form-inner {
+    padding: 28px 24px 120px;
+  }
+
+  .builder-form-header {
+    text-align: center;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 24px;
+  }
+
+  .builder-form-title {
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2px;
+  }
+
+  .builder-form-subtitle {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 150%;
+  }
+
+  /* Price type selector — 2×2 grid */
+  .price-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .price-type-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border-radius: var(--rounded-xl, 12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    user-select: none;
+  }
+
+  .price-type-option:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .price-type-option.active {
+    border-color: rgba(255, 255, 255, 0.6);
+    border-width: 2px;
+    padding: 11.5px 7.5px;
+  }
+
+  /* ── Large amount display ── */
+  .form-amount-display {
+    margin-bottom: 24px;
+  }
+
+  .form-amount-label {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+  }
+
+  .form-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+  }
+
+  .form-amount-value {
+    font-family: var(--font-family);
+    font-size: 44px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    letter-spacing: -1.5px;
+    line-height: 1;
+    border: none;
+    outline: none;
+    background: none;
+    width: 100%;
+    padding: 0;
+    min-width: 0;
+  }
+
+  .form-amount-value::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .form-amount-edit-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background 200ms ease;
+  }
+
+  .form-amount-edit-icon:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .form-amount-edit-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ── Card-style inputs with floating label ── */
+  .form-card-input {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--rounded-xl, 12px);
+    padding: 10px 16px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 12px;
+    transition: border-color 150ms ease;
+    cursor: text;
+  }
+
+  .form-card-input:focus-within {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .form-card-input-label {
+    display: block;
+    font-family: var(--font-family);
+    font-size: var(--size-xs, 12px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 2px;
+    pointer-events: none;
+  }
+
+  .form-card-input input,
+  .form-card-input select {
+    display: block;
+    width: 100%;
+    border: none;
+    outline: none;
+    background: none;
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0;
+    line-height: 1.4;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .form-card-input select {
+    cursor: pointer;
+    padding-right: 24px;
+  }
+
+  .form-card-input input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 400;
+  }
+
+  /* Chevron for select cards */
+  .form-card-input .form-card-chevron {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+  }
+
+  /* Floating label interaction */
+  .form-card-input--float .form-card-input-label {
+    transition: all 150ms ease;
+  }
+
+  .form-card-input--float.is-empty .form-card-input-label {
+    font-size: var(--size-base, 16px);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.25);
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
+  .form-card-input--float.is-empty:focus-within .form-card-input-label {
+    font-size: var(--size-xs, 12px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    transform: translateY(0);
+  }
+
+  .form-card-input--float.is-empty input {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    transition: opacity 150ms ease, height 150ms ease;
+  }
+
+  .form-card-input--float.is-empty:focus-within input {
+    opacity: 1;
+    height: auto;
+  }
+
+  .form-card-input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .form-card-input-row .form-card-input {
+    flex: 1;
+  }
+
+  /* ── Shipping amount card with inline free toggle ── */
+  .shipping-amount-card {
+    padding: 0 !important;
+    overflow: hidden;
+    cursor: text;
+  }
+  .shipping-amount-top {
+    padding: 10px 16px 8px;
+    transition: opacity 200ms ease;
+  }
+  .shipping-amount-card.is-free .shipping-amount-top {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .shipping-amount-card.is-free .shipping-amount-top input {
+    text-decoration: line-through;
+    color: var(--content-tertiary);
+  }
+  .shipping-free-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .shipping-free-label {
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* ── Section heading (like "Include any extras") ── */
+  .form-section-heading {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 12px;
+    margin-top: 28px;
+  }
+
+  /* ── Card-style toggle rows ── */
+  .form-toggle-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--rounded-xl, 12px);
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    transition: border-color 150ms ease;
+  }
+
+  .form-toggle-card.active {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .form-toggle-card-label {
+    font-family: var(--font-family);
+    font-size: var(--size-base, 16px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .form-toggle-card-desc {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .form-toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .form-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .form-toggle-track {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    transition: background 200ms ease;
+  }
+
+  .form-toggle-track::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 200ms ease;
+  }
+
+  .form-toggle input:checked + .form-toggle-track {
+    background: #88A89C;
+  }
+
+  .form-toggle input:checked + .form-toggle-track::after {
+    transform: translateX(20px);
+  }
+
+  /* Expanded content below toggle card */
+  .form-toggle-expand {
+    padding: 0 4px;
+    margin-bottom: 12px;
+    margin-top: -4px;
+  }
+
+  /* ── Shortname section ── */
+  .form-shortname-section {
+    margin-top: 28px;
+  }
+
+  .form-shortname-heading {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2px;
+  }
+
+  .form-shortname-desc {
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 150%;
+    margin-bottom: 12px;
+  }
+
+  /* ── Form footer (sticky) ── */
+  .builder-form-footer {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--dark-bg);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-cancel {
+    display: flex;
+    height: 40px;
+    padding: 8px 20px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--rounded-xl, 12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-save {
+    display: flex;
+    height: 40px;
+    padding: 8px 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--rounded-xl, 12px);
+    border: none;
+    background: var(--dark-bg-elevated);
+    font-family: var(--font-family);
+    font-size: var(--size-sm, 14px);
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 150ms ease;
+  }
+
+  .btn-save:hover {
+    opacity: 0.88;
+  }
+
+  .form-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 20px 0;
+  }
+
+  .form-conditional {
+    display: none;
+  }
+
+  .form-conditional.visible {
+    display: block;
+  }
+
+  /* ── Preview panel (Shopify playground-inspired) ── */
+  .builder-preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+    background-color: var(--dark-bg);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    background-size: 16px 16px;
+    min-height: 100%;
+    gap: 48px;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .preview-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .preview-label {
+    font-family: var(--font-family);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    padding-left: 2px;
+  }
+
+  .preview-card-wrapper .price-card {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+    border-color: rgba(52, 46, 38, 0.08);
+  }
+
+  .preview-card-wrapper .price-card:hover {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .preview-row-wrapper {
+    background: var(--content-background-elevated, #FFF);
+    border-radius: var(--rounded-2xl, 16px);
+    padding: 20px 24px;
+    border: 1px solid rgba(52, 46, 38, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .preview-row-wrapper .overview-row {
+    padding-top: 0;
+    border-top: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+
+<!-- ── Sidebar navigation ── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 240 240"><g fill="none" fill-rule="evenodd"><path fill="#FFED84" fill-rule="nonzero" d="M92.047 0h55.905l6.291.008c26.916.067 41.537.693 52.996 6.531 11.29 5.753 20.469 14.931 26.221 26.221 6.213 12.193 6.524 27.966 6.539 58.324l-.004 61.405c-.046 28.04-.571 43.045-6.535 54.75-5.752 11.29-14.931 20.469-26.221 26.221-12.197 6.216-27.978 6.524-58.361 6.54H94.551L202.44 185.777H54.032V37.633L0 145.441V87.51C.046 59.47.575 44.466 6.54 32.76 12.292 21.471 21.471 12.292 32.761 6.54 44.697.458 60.064.032 89.186 0h2.861z"/><path fill="#342E26" d="M94.551 240c-32.64 0-49.141-.095-61.79-6.54C21.471 227.708 12.292 218.529 6.54 207.239.094 194.589 0 178.086 0 145.441l54.098-107.941h119.617c15.898 0 28.785 12.878 28.785 28.776v119.471L94.551 240zm87.727-72.657H72.666V57.722h100.401c5.083 0 9.211 4.12 9.211 9.203v100.418z"/></g></svg>
+    <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse sidebar">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 6C10.4477 6 10 6.44772 10 7V13C10 13.5523 10.4477 14 11 14H13C13.5523 14 14 13.5523 14 13V7C14 6.44772 13.5523 6 13 6H11Z" fill="currentColor"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M7.25 3.5C5.17893 3.5 3.5 5.17893 3.5 7.25V12.75C3.5 14.8211 5.17893 16.5 7.25 16.5H12.75C14.8211 16.5 16.5 14.8211 16.5 12.75V7.25C16.5 5.17893 14.8211 3.5 12.75 3.5H7.25ZM5 7.25C5 6.00736 6.00736 5 7.25 5H12.75C13.9926 5 15 6.00736 15 7.25V12.75C15 13.9926 13.9926 15 12.75 15H7.25C6.00736 15 5 13.9926 5 12.75V7.25Z" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="sidebar-section">
+      <button class="sidebar-section-header active" id="pricing-nav-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M18.856 7.252h.746a2 2 0 0 1 2 2v8.353a2 2 0 0 1-2 2H7.136a2 2 0 0 1-2-2v-.806m-.706.012h12.425a2 2 0 0 0 2-2V6.457a2 2 0 0 0-2-2H4.43a2 2 0 0 0-2 2v8.352a2 2 0 0 0 2 2Z"/><circle cx="10.643" cy="10.634" r="2.075" stroke="currentColor" stroke-width="2"/><circle cx="5.43" cy="7.458" r="1" fill="currentColor"/><circle cx="15.855" cy="13.81" r="1" fill="currentColor"/></svg>
+        <span>Pricing</span>
+      </button>
+      <div class="sidebar-subnav" id="viewToggle">
+        <button class="sidebar-link active" data-view="spec">Docs</button>
+        <button class="sidebar-link" data-view="builder">Playground</button>
+        <button class="sidebar-link" data-view="detail">Price detail card</button>
+        <button class="sidebar-link" data-view="overview">Offer details</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main content ── -->
+<main class="main-content">
+<div class="main-content-inner">
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- VIEW: SPEC SUMMARY                              -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="view-panel active" id="view-spec">
+
+<div class="spec-container">
+
+<!-- Getting started -->
+<div class="spec-card">
+  <h2>PriceFormatter</h2>
+  <p>The price formatter is a pure function that accepts a <code>Price</code> object and returns a <code>PriceViewModel</code> — a flat set of pre-formatted, ready-to-render primitives. Instead of assembling price strings throughout the app, import the formatter once and destructure the values you need.</p>
+
+  <div class="doc-code-block">
+    <div class="doc-code-header">Quick start</div>
+    <pre><code><span class="hl-kw">import</span> { formatPrice } <span class="hl-kw">from</span> <span class="hl-str">'@offerlab/pricing'</span>;
+
+<span class="hl-kw">const</span> vm = <span class="hl-fn">formatPrice</span>(price);
+
+<span class="hl-cm">// Destructure only the primitives you need</span>
+<span class="hl-kw">const</span> { formattedAmountShort, shortname, badges } = vm;</code></pre>
+  </div>
+</div>
+
+<!-- Input: Price anatomy -->
+<div class="spec-card">
+  <h2>Input: Price</h2>
+  <p>The <code>Price</code> interface defines every attribute the formatter can accept. Not all fields are present on every price — the combination depends on the price type.</p>
+
+  <div class="doc-code-block">
+    <div class="doc-code-header">TypeScript</div>
+    <pre><code><span class="hl-kw">interface</span> <span class="hl-type">Interval</span> {
+  value: <span class="hl-type">number</span>;
+  unit: <span class="hl-str">'day'</span> | <span class="hl-str">'week'</span> | <span class="hl-str">'month'</span> | <span class="hl-str">'year'</span>;
+}
+
+<span class="hl-kw">interface</span> <span class="hl-type">Price</span> {
+  amount: <span class="hl-type">number</span>;                          <span class="hl-cm">// Price in dollars. 0 → "Free"</span>
+  compareAtAmount?: <span class="hl-type">number</span> | <span class="hl-type">null</span>;          <span class="hl-cm">// Strikethrough original price</span>
+  shortname?: <span class="hl-type">string</span> | <span class="hl-type">null</span>;               <span class="hl-cm">// Custom tier label. Auto-generated if null</span>
+  billingInterval?: <span class="hl-type">Interval</span> | <span class="hl-type">null</span>;        <span class="hl-cm">// Charge frequency (digital subs)</span>
+  deliveryInterval?: <span class="hl-type">Interval</span> | <span class="hl-type">null</span>;       <span class="hl-cm">// Ship frequency (e-commerce subs)</span>
+  shippingAmount?: <span class="hl-type">number</span> | <span class="hl-type">null</span>;           <span class="hl-cm">// Shipping cost. 0 → "Free shipping"</span>
+  trialDays?: <span class="hl-type">number</span> | <span class="hl-type">null</span>;               <span class="hl-cm">// Free trial days before first charge</span>
+  oneTimeFeeAmount?: <span class="hl-type">number</span> | <span class="hl-type">null</span>;         <span class="hl-cm">// Upfront fee on first billing cycle</span>
+  installmentCount?: <span class="hl-type">number</span> | <span class="hl-type">null</span>;         <span class="hl-cm">// Number of payments (payment plans)</span>
+}</code></pre>
+  </div>
+
+  <table class="spec-table">
+    <thead>
+      <tr><th>Attribute</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>amount</td><td><code>number</code></td><td>The price value in dollars. <code>0</code> renders as "Free".</td></tr>
+      <tr><td>compareAtAmount</td><td><code>number | null</code></td><td>Original price for showing a discount. Rendered with strikethrough.</td></tr>
+      <tr><td>shortname</td><td><code>string | null</code></td><td>Custom label for the price tier. Auto-generated from price type when not set.</td></tr>
+      <tr><td>billingInterval</td><td><code>Interval | null</code></td><td>Charge frequency for digital/service subscriptions.</td></tr>
+      <tr><td>deliveryInterval</td><td><code>Interval | null</code></td><td>Shipment frequency for e-commerce subscriptions.</td></tr>
+      <tr><td>shippingAmount</td><td><code>number | null</code></td><td>Shipping cost. <code>0</code> renders as "Free shipping".</td></tr>
+      <tr><td>trialDays</td><td><code>number | null</code></td><td>Free trial period before billing begins.</td></tr>
+      <tr><td>oneTimeFeeAmount</td><td><code>number | null</code></td><td>Upfront fee charged with the first billing cycle.</td></tr>
+      <tr><td>installmentCount</td><td><code>number | null</code></td><td>Number of payments for payment plans.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Output: PriceViewModel -->
+<div class="spec-card">
+  <h2>Output: PriceViewModel</h2>
+  <p>The formatter returns a flat object with every primitive pre-computed. Components destructure only the fields they need — no formatting logic at the call site.</p>
+
+  <div class="doc-code-block">
+    <div class="doc-code-header">TypeScript</div>
+    <pre><code><span class="hl-kw">interface</span> <span class="hl-type">PriceViewModel</span> {
+  <span class="hl-cm">// Amount primitives</span>
+  formattedAmount: <span class="hl-type">string</span>;                  <span class="hl-cm">// "$49.99"</span>
+  formattedAmountShort: <span class="hl-type">string</span>;             <span class="hl-cm">// "$9.99 / mo"</span>
+  formattedAmountFull: <span class="hl-type">string</span>;              <span class="hl-cm">// "$9.99 / month"</span>
+  formattedAmountWithInstallments: <span class="hl-type">string</span>; <span class="hl-cm">// "$75×3 / mo"</span>
+  formattedCompareAt: <span class="hl-type">string</span> | <span class="hl-type">null</span>;        <span class="hl-cm">// "$12.99" (strikethrough)</span>
+
+  <span class="hl-cm">// Label primitives</span>
+  shortname: <span class="hl-type">string</span>;                         <span class="hl-cm">// "Subscribe &amp; save"</span>
+  priceTypeIcon: <span class="hl-type">IconRef</span> | <span class="hl-type">null</span>;             <span class="hl-cm">// arrows-repeat | calendar-days | null</span>
+
+  <span class="hl-cm">// Badge primitives</span>
+  shippingBadge: <span class="hl-type">string</span> | <span class="hl-type">null</span>;              <span class="hl-cm">// "$5.99 shipping" | "Free shipping"</span>
+  trialBadge: <span class="hl-type">string</span> | <span class="hl-type">null</span>;                 <span class="hl-cm">// "14-day free trial"</span>
+  oneTimeFeeBadge: <span class="hl-type">string</span> | <span class="hl-type">null</span>;            <span class="hl-cm">// "$25.00 one-time fee"</span>
+  badges: <span class="hl-type">string</span>[];                           <span class="hl-cm">// All badges in display order</span>
+}</code></pre>
+  </div>
+</div>
+
+<!-- Primitives reference with code -->
+<div class="spec-card">
+  <h2>Amount primitives</h2>
+  <p>Each amount primitive is tailored for a specific context. The formatter handles all edge cases — decimals, free pricing, installment rounding — so components never need to format numbers themselves.</p>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">formattedAmount</code>
+      <span class="doc-primitive-type">string</span>
+    </div>
+    <p>Standalone price display without interval context. Use for inline mentions, cart line items, or anywhere the billing cycle is shown separately.</p>
+    <div class="doc-primitive-output">$49.99</div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmount } = <span class="hl-fn">formatPrice</span>(price);
+<span class="hl-cm">// → "$49.99"</span>
+<span class="hl-cm">// → "Free" when amount is 0</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">formattedAmountShort</code>
+      <span class="doc-primitive-type">string</span>
+    </div>
+    <p>Compact amount with abbreviated interval suffix. Use in cards, lists, table cells, and other space-constrained placements.</p>
+    <div class="doc-primitive-output">$9.99 <span style="font-weight: 400; opacity: 0.64;">/ mo</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountShort } = <span class="hl-fn">formatPrice</span>(price);
+<span class="hl-cm">// → "$9.99 / mo"</span>
+<span class="hl-cm">// → "$29.99 / yr"</span>
+<span class="hl-cm">// → "$49.99" (no suffix for one-time prices)</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">formattedAmountFull</code>
+      <span class="doc-primitive-type">string</span>
+    </div>
+    <p>Full amount with unabbreviated interval. Use in detail views, summaries, offer detail rows, and anywhere space allows.</p>
+    <div class="doc-primitive-output">$9.99 <span style="font-weight: 400; opacity: 0.64;">/ month</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountFull } = <span class="hl-fn">formatPrice</span>(price);
+<span class="hl-cm">// → "$9.99 / month"</span>
+<span class="hl-cm">// → "$29.99 / year"</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">formattedAmountWithInstallments</code>
+      <span class="doc-primitive-type">string</span>
+    </div>
+    <p>Payment plan format showing per-installment amount and count. Whole dollar amounts drop decimals; fractional amounts keep two decimal places.</p>
+    <div class="doc-primitive-output">$75<span style="opacity: 0.64;">×3</span> <span style="font-weight: 400; opacity: 0.64;">/ mo</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountWithInstallments } = <span class="hl-fn">formatPrice</span>(price);
+<span class="hl-cm">// → "$75×3 / mo"    (whole dollars: no decimals)</span>
+<span class="hl-cm">// → "$66.33×3 / mo" (fractional: keeps .00)</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">formattedCompareAt</code>
+      <span class="doc-primitive-type">string | null</span>
+    </div>
+    <p>The compare-at (original) price, rendered with strikethrough styling. Returns <code>null</code> when no compare-at amount is set.</p>
+    <div class="doc-primitive-output"><span style="text-decoration: line-through; opacity: 0.5;">$12.99</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { formattedCompareAt } = <span class="hl-fn">formatPrice</span>(price);
+
+{formattedCompareAt &amp;&amp; (
+  &lt;<span class="hl-type">Text</span> style={styles.compareAt}&gt;{formattedCompareAt}&lt;/<span class="hl-type">Text</span>&gt;
+)}</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Label primitives -->
+<div class="spec-card">
+  <h2>Label primitives</h2>
+  <p>Labels identify the price tier. Every price always has a shortname — either custom-set by the merchant or auto-generated from the price type.</p>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">shortname</code>
+      <span class="doc-primitive-type">string</span>
+    </div>
+    <p>Always present. Returns the merchant's custom shortname if set, otherwise generates one from the price type.</p>
+    <div class="doc-primitive-output"><span class="prefix-icon" style="vertical-align: middle;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span> Subscribe &amp; save</div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { shortname, priceTypeIcon } = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">View</span> style={styles.shortnameRow}&gt;
+  {priceTypeIcon &amp;&amp; &lt;<span class="hl-type">Icon</span> name={priceTypeIcon} /&gt;}
+  &lt;<span class="hl-type">Text</span>&gt;{shortname}&lt;/<span class="hl-type">Text</span>&gt;
+&lt;/<span class="hl-type">View</span>&gt;</code></pre>
+    </div>
+    <table class="spec-table" style="margin-top: 12px;">
+      <thead><tr><th>Price type</th><th>Auto-generated shortname</th><th>Icon</th></tr></thead>
+      <tbody>
+        <tr><td>One-time</td><td>One-time purchase</td><td><em>none</em></td></tr>
+        <tr><td>Recurring — delivery</td><td>Subscribe &amp; save</td><td><code>arrows-repeat</code></td></tr>
+        <tr><td>Recurring — billed</td><td>Subscribe &amp; save</td><td><code>arrows-repeat</code></td></tr>
+        <tr><td>Payment plan</td><td>Pay in installments</td><td><code>calendar-days</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Badge primitives -->
+<div class="spec-card">
+  <h2>Badge primitives</h2>
+  <p>Badges surface secondary pricing details — shipping, trials, and fees. The <code>badges</code> array contains all applicable badges in display order, so components just need to render the array.</p>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">badges</code>
+      <span class="doc-primitive-type">string[]</span>
+    </div>
+    <p>Pre-sorted array of all applicable badge strings. Render order: shipping → trial → one-time fee. Empty array when none apply.</p>
+    <div class="doc-primitive-output"><span class="badge" style="display: inline-flex;">$5.99 shipping</span> <span class="badge" style="display: inline-flex;">14-day trial</span> <span class="badge" style="display: inline-flex;">$49.99 one-time fee</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Usage</div>
+      <pre><code><span class="hl-kw">const</span> { badges } = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">View</span> style={styles.badgeRow}&gt;
+  {badges.<span class="hl-fn">map</span>((label) =&gt; (
+    &lt;<span class="hl-type">Badge</span> key={label}&gt;{label}&lt;/<span class="hl-type">Badge</span>&gt;
+  ))}
+&lt;/<span class="hl-type">View</span>&gt;</code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">shippingBadge</code>
+      <span class="doc-primitive-type">string | null</span>
+    </div>
+    <p>Rendered when <code>shippingAmount</code> is set. Displays "Free shipping" when amount is <code>0</code>.</p>
+    <div class="doc-primitive-output"><span class="badge" style="display: inline-flex;">Free shipping</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Examples</div>
+      <pre><code><span class="hl-cm">// shippingAmount: 5.99  → "$5.99 shipping"</span>
+<span class="hl-cm">// shippingAmount: 0     → "Free shipping"</span>
+<span class="hl-cm">// shippingAmount: null  → null</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">trialBadge</code>
+      <span class="doc-primitive-type">string | null</span>
+    </div>
+    <p>Rendered when <code>trialDays</code> is set.</p>
+    <div class="doc-primitive-output"><span class="badge" style="display: inline-flex;">14-day free trial</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Examples</div>
+      <pre><code><span class="hl-cm">// trialDays: 14  → "14-day free trial"</span>
+<span class="hl-cm">// trialDays: 7   → "7-day free trial"</span>
+<span class="hl-cm">// trialDays: null → null</span></code></pre>
+    </div>
+  </div>
+
+  <div class="doc-primitive">
+    <div class="doc-primitive-header">
+      <code class="doc-primitive-name">oneTimeFeeBadge</code>
+      <span class="doc-primitive-type">string | null</span>
+    </div>
+    <p>Rendered when <code>oneTimeFeeAmount</code> is set.</p>
+    <div class="doc-primitive-output"><span class="badge" style="display: inline-flex;">$25.00 one-time fee</span></div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Examples</div>
+      <pre><code><span class="hl-cm">// oneTimeFeeAmount: 25    → "$25.00 one-time fee"</span>
+<span class="hl-cm">// oneTimeFeeAmount: 49.99 → "$49.99 one-time fee"</span>
+<span class="hl-cm">// oneTimeFeeAmount: null  → null</span></code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Interval reference -->
+<div class="spec-card">
+  <h2>Interval reference</h2>
+  <p>Intervals are returned in two formats. Use <code>formattedAmountShort</code> for space-constrained placements and <code>formattedAmountFull</code> when space allows.</p>
+  <table class="spec-table">
+    <thead>
+      <tr><th>Period</th><th>Short <code>/ mo</code></th><th>Full <code>/ month</code></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Monthly</td><td>/ mo</td><td>/ month</td></tr>
+      <tr><td>Yearly</td><td>/ yr</td><td>/ year</td></tr>
+      <tr><td>Weekly</td><td>/ wk</td><td>/ week</td></tr>
+      <tr><td>Every 2 weeks</td><td>/ 2 wk</td><td>/ 2 weeks</td></tr>
+      <tr><td>Every 4 weeks</td><td>/ 4 wk</td><td>/ 4 weeks</td></tr>
+      <tr><td>Custom (n days)</td><td>/ 30 days</td><td>/ 30 days</td></tr>
+      <tr><td>Custom (n months)</td><td>/ 3 mo</td><td>/ 3 months</td></tr>
+    </tbody>
+  </table>
+  <div class="doc-code-block">
+    <div class="doc-code-header">Interval mapping</div>
+    <pre><code><span class="hl-kw">const</span> SHORT_INTERVALS = {
+  month: <span class="hl-str">'mo'</span>,  year: <span class="hl-str">'yr'</span>,  week: <span class="hl-str">'wk'</span>,
+  <span class="hl-str">'2 weeks'</span>: <span class="hl-str">'2 wk'</span>,  <span class="hl-str">'4 weeks'</span>: <span class="hl-str">'4 wk'</span>,
+};
+
+<span class="hl-kw">const</span> FULL_INTERVALS = {
+  month: <span class="hl-str">'month'</span>,  year: <span class="hl-str">'year'</span>,  week: <span class="hl-str">'week'</span>,
+  <span class="hl-str">'2 weeks'</span>: <span class="hl-str">'2 weeks'</span>,  <span class="hl-str">'4 weeks'</span>: <span class="hl-str">'4 weeks'</span>,
+};</code></pre>
+  </div>
+</div>
+
+<!-- Usage by placement -->
+<div class="spec-card">
+  <h2>Usage by placement</h2>
+  <p>Different parts of the app need different levels of price detail. Here's how each placement renders using the primitives, with the code to implement it.</p>
+
+  <!-- Price detail card -->
+  <div class="spec-placement">
+    <div class="spec-placement-header">
+      <div class="spec-placement-name">Price detail card</div>
+      <div class="spec-placement-primitives"><code>shortname</code> · <code>priceTypeIcon</code> · <code>formattedAmountShort</code> · <code>formattedCompareAt</code> · <code>badges</code></div>
+    </div>
+    <div class="doc-component-preview">
+      <div class="price-card" style="max-width: 480px;">
+        <div class="card-details">
+          <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+          <div class="card-badges">
+            <span class="badge">14-day trial</span>
+            <span class="badge">Free shipping</span>
+          </div>
+        </div>
+        <div class="card-price">
+          <div class="price-current">$9.99 <span class="interval">/ mo</span></div>
+          <div class="price-compare">$12.99</div>
+        </div>
+      </div>
+    </div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Implementation</div>
+      <pre><code><span class="hl-kw">const</span> {
+  shortname, priceTypeIcon,
+  formattedAmountShort, formattedCompareAt, badges,
+} = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">PriceDetailCard</span>
+  shortname={shortname}
+  icon={priceTypeIcon}
+  amount={formattedAmountShort}
+  compareAt={formattedCompareAt}
+  badges={badges}
+/&gt;</code></pre>
+    </div>
+  </div>
+
+  <!-- Offer details row -->
+  <div class="spec-placement">
+    <div class="spec-placement-header">
+      <div class="spec-placement-name">Offer details row</div>
+      <div class="spec-placement-primitives"><code>formattedAmountFull</code> · <code>badges</code></div>
+    </div>
+    <div class="doc-component-preview">
+      <div class="overview-row" style="max-width: 480px; padding: 0;">
+        <div class="overview-row-content">
+          <div class="overview-price-amount">$9.99 <span class="interval">/ month</span></div>
+          <div class="overview-badges">
+            <span class="badge">14-day trial</span>
+            <span class="badge">Free shipping</span>
+          </div>
+        </div>
+        <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+      </div>
+    </div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Implementation</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountFull, badges } = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">OfferDetailsRow</span>
+  amount={formattedAmountFull}
+  badges={badges}
+  onEdit={() =&gt; openPriceEditor(price.id)}
+/&gt;</code></pre>
+    </div>
+  </div>
+
+  <!-- Payment plan summary -->
+  <div class="spec-placement">
+    <div class="spec-placement-header">
+      <div class="spec-placement-name">Payment plan</div>
+      <div class="spec-placement-primitives"><code>formattedAmountWithInstallments</code></div>
+    </div>
+    <div class="doc-component-preview">
+      <div style="color: var(--content-primary); font-family: var(--font-family); font-size: var(--size-base, 16px); font-weight: 500;">$75<span>&times;3</span> <span style="font-weight: 400;">/ mo</span></div>
+    </div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Implementation</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountWithInstallments } = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">Text</span> style={styles.planAmount}&gt;
+  {formattedAmountWithInstallments}
+&lt;/<span class="hl-type">Text</span>&gt;</code></pre>
+    </div>
+  </div>
+
+  <!-- Cart / checkout -->
+  <div class="spec-placement">
+    <div class="spec-placement-header">
+      <div class="spec-placement-name">Cart / checkout</div>
+      <div class="spec-placement-primitives"><code>formattedAmountFull</code> · <code>formattedCompareAt</code></div>
+    </div>
+    <div class="doc-component-preview">
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <span style="color: var(--content-primary); font-family: var(--font-family); font-size: var(--size-base, 16px); font-weight: 500;">$9.99 <span style="font-weight: 400;">/ month</span></span>
+        <span style="color: var(--content-secondary); font-family: var(--font-family); font-size: var(--size-base, 16px); font-weight: 400; text-decoration: line-through;">$12.99</span>
+      </div>
+    </div>
+    <div class="doc-code-block">
+      <div class="doc-code-header">Implementation</div>
+      <pre><code><span class="hl-kw">const</span> { formattedAmountFull, formattedCompareAt } = <span class="hl-fn">formatPrice</span>(price);
+
+&lt;<span class="hl-type">View</span> style={styles.cartPrice}&gt;
+  &lt;<span class="hl-type">Text</span>&gt;{formattedAmountFull}&lt;/<span class="hl-type">Text</span>&gt;
+  {formattedCompareAt &amp;&amp; (
+    &lt;<span class="hl-type">Text</span> style={styles.compareAt}&gt;{formattedCompareAt}&lt;/<span class="hl-type">Text</span>&gt;
+  )}
+&lt;/<span class="hl-type">View</span>&gt;</code></pre>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- VIEW: PRICE BUILDER                             -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="view-panel" id="view-builder">
+<div class="builder-layout">
+
+  <!-- ── Form panel ── -->
+  <div class="builder-form-panel">
+    <div class="builder-form-inner">
+
+    <!-- Header -->
+    <div class="builder-form-header">
+      <div class="builder-form-title">Price</div>
+      <div class="builder-form-subtitle">Configure and preview</div>
+    </div>
+
+    <!-- Price type — 2×2 grid -->
+    <div class="price-type-selector" id="priceTypeSelector">
+      <div class="price-type-option active" data-type="one-time">One-time</div>
+      <div class="price-type-option" data-type="recurring-delivery">Recurring</div>
+      <div class="price-type-option" data-type="payment-plan">Payment plan</div>
+      <div class="price-type-option" data-type="recurring-billed">Subscription</div>
+    </div>
+
+    <!-- Large amount display -->
+    <div class="form-amount-display">
+      <div class="form-amount-label">Price</div>
+      <div class="form-amount-row">
+        <input class="form-amount-value" type="text" id="bf-amount" value="$44.99" placeholder="$0.00">
+        <div class="form-amount-edit-icon" onclick="document.getElementById('bf-amount').focus()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare-at price -->
+    <div class="form-card-input form-card-input--float" onclick="this.querySelector('input').focus()">
+      <span class="form-card-input-label" id="bf-compare-at-label">Compare-at price</span>
+      <input type="text" id="bf-compare-at" placeholder="Compare-at price" value="$58.49">
+    </div>
+
+    <!-- Billing/Delivery interval (conditional) -->
+    <div class="form-conditional" id="bf-interval-section">
+
+      <div class="form-conditional" id="bf-delivery-interval-group">
+        <div class="form-card-input">
+          <span class="form-card-input-label">Delivery</span>
+          <select id="bf-delivery-interval">
+            <option value="month">Every month</option>
+            <option value="year">Every year</option>
+            <option value="week">Every week</option>
+            <option value="2 weeks">Every 2 weeks</option>
+            <option value="4 weeks">Every 4 weeks</option>
+          </select>
+          <svg class="form-card-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+
+      <div class="form-conditional" id="bf-billing-interval-group">
+        <div class="form-card-input">
+          <span class="form-card-input-label">Billing</span>
+          <select id="bf-billing-interval">
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+            <option value="week">Weekly</option>
+          </select>
+          <svg class="form-card-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Installments (conditional) -->
+    <div class="form-conditional" id="bf-installments-section">
+      <div class="form-card-input" onclick="this.querySelector('input').focus()">
+        <span class="form-card-input-label">Number of payments</span>
+        <input type="number" id="bf-installments" value="3" min="2" max="24">
+      </div>
+    </div>
+
+    <!-- Include any extras -->
+    <div class="form-section-heading">Include any extras</div>
+
+    <!-- Shipping toggle card -->
+    <div class="form-toggle-card" id="bf-shipping-card">
+      <span class="form-toggle-card-label">Shipping</span>
+      <label class="form-toggle">
+        <input type="checkbox" id="bf-shipping-toggle">
+        <span class="form-toggle-track"></span>
+      </label>
+    </div>
+    <div class="form-conditional" id="bf-shipping-group">
+      <div class="form-toggle-expand">
+        <div class="form-card-input shipping-amount-card" id="bf-shipping-amount-card" onclick="if(!document.getElementById('bf-shipping-free').checked) this.querySelector('#bf-shipping-amount').focus()">
+          <div class="shipping-amount-top">
+            <span class="form-card-input-label">Shipping amount</span>
+            <input type="text" id="bf-shipping-amount" placeholder="0.00" value="5.99">
+          </div>
+          <div class="shipping-free-row">
+            <span class="shipping-free-label">Free shipping</span>
+            <label class="form-toggle" style="margin: 0;" onclick="event.stopPropagation()">
+              <input type="checkbox" id="bf-shipping-free">
+              <span class="form-toggle-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- One-time fee toggle card (conditional) -->
+    <div class="form-conditional" id="bf-onetime-fee-row">
+      <div class="form-toggle-card" id="bf-fee-card">
+        <span class="form-toggle-card-label">One-time fee</span>
+        <label class="form-toggle">
+          <input type="checkbox" id="bf-fee-toggle">
+          <span class="form-toggle-track"></span>
+        </label>
+      </div>
+      <div class="form-conditional" id="bf-fee-group">
+        <div class="form-toggle-expand">
+          <div class="form-card-input" onclick="this.querySelector('input').focus()">
+            <span class="form-card-input-label">Fee amount</span>
+            <input type="text" id="bf-fee-amount" placeholder="0.00" value="49.99">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Free trial toggle card (conditional) -->
+    <div class="form-conditional" id="bf-trial-row">
+      <div class="form-toggle-card" id="bf-trial-card">
+        <span class="form-toggle-card-label">Free trial</span>
+        <label class="form-toggle">
+          <input type="checkbox" id="bf-trial-toggle">
+          <span class="form-toggle-track"></span>
+        </label>
+      </div>
+      <div class="form-conditional" id="bf-trial-group">
+        <div class="form-toggle-expand">
+          <div class="form-card-input" onclick="this.querySelector('input').focus()">
+            <span class="form-card-input-label">Trial days</span>
+            <input type="number" id="bf-trial-days" value="14" min="1" max="365">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shortname -->
+    <div class="form-shortname-section">
+      <div class="form-shortname-heading">Shortname</div>
+      <div class="form-shortname-desc">This will show on your sales page and checkout.</div>
+      <div class="form-card-input" onclick="this.querySelector('input').focus()">
+        <span class="form-card-input-label">Price name</span>
+        <input type="text" id="bf-shortname" placeholder="Auto-generated if empty">
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <!-- ── Preview panel ── -->
+  <div class="builder-preview-panel">
+
+    <!-- Price detail card preview -->
+    <div class="preview-block">
+      <div class="preview-label">Price detail card</div>
+      <div class="preview-card-wrapper">
+        <div class="price-card" id="preview-card">
+          <div class="card-details">
+            <div class="card-shortname" id="preview-card-shortname">One-time purchase</div>
+            <div class="card-interval" id="preview-card-interval" style="display:none;"></div>
+            <div class="card-badges" id="preview-card-badges"></div>
+          </div>
+          <div class="card-price">
+            <div class="price-current" id="preview-card-amount">$9.99</div>
+            <div class="price-compare" id="preview-card-compare" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Offer details row preview -->
+    <div class="preview-block">
+      <div class="preview-label">Offer details row</div>
+      <div class="preview-row-wrapper">
+        <div class="overview-row">
+          <div class="overview-row-content">
+            <div class="overview-price-amount" id="preview-row-amount">$9.99</div>
+            <div class="overview-badges" id="preview-row-badges"></div>
+          </div>
+          <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- VIEW: PRICE DETAIL CARD                        -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="view-panel view-panel--showcase" id="view-detail">
+<div class="split-layout">
+
+<div class="split-code" id="split-code-detail">
+  <div class="split-code-header">Price detail card — HTML</div>
+  <pre><code><!-- The code will be injected by JS --></code></pre>
+</div>
+
+<div class="split-handle" data-split="detail"></div>
+
+<div class="split-preview" id="split-preview-detail">
+
+<!-- ── ONE-TIME ── -->
+
+<div class="section">
+  <div class="section-label">One-time</div>
+  <div class="card-stack">
+
+    <!-- 1. amount (auto shortname: "One-time purchase") -->
+    <div class="config">amount</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$49.99</div>
+      </div>
+    </div>
+
+    <!-- 2. shortname · amount -->
+    <div class="config">shortname · amount</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">Best value</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$49.99</div>
+      </div>
+    </div>
+
+    <!-- 3. amount · compare-at (auto shortname) -->
+    <div class="config">amount · compare-at</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$34.99</div>
+        <div class="price-compare">$49.99</div>
+      </div>
+    </div>
+
+    <!-- 4. shortname · amount · compare-at -->
+    <div class="config">shortname · amount · compare-at</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">Flash sale</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$34.99</div>
+        <div class="price-compare">$49.99</div>
+      </div>
+    </div>
+
+    <!-- 5. amount · shipping (paid) (auto shortname) -->
+    <div class="config">amount · shipping (paid)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+        <div class="card-badges">
+          <span class="badge">$5.99 shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$24.99</div>
+      </div>
+    </div>
+
+    <!-- 6. amount · free shipping (auto shortname) -->
+    <div class="config">amount · shipping (free)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+        <div class="card-badges">
+          <span class="badge">Free shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$39.99</div>
+      </div>
+    </div>
+
+    <!-- 7. shortname · amount · compare-at · shipping (paid) -->
+    <div class="config">shortname · amount · compare-at · shipping (paid)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">Try it</div>
+        <div class="card-badges">
+          <span class="badge">$5.99 shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$19.99</div>
+        <div class="price-compare">$24.99</div>
+      </div>
+    </div>
+
+    <!-- 8. shortname · amount · compare-at · free shipping -->
+    <div class="config">shortname · amount · compare-at · shipping (free)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">Starter kit</div>
+        <div class="card-badges">
+          <span class="badge">Free shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$29.99</div>
+        <div class="price-compare">$44.99</div>
+      </div>
+    </div>
+
+    <!-- 9. amount = $0 · shipping (paid) (auto shortname) -->
+    <div class="config">amount ($0) · shipping (paid)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+        <div class="card-badges">
+          <span class="badge">$3.99 shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">Free</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── RECURRING — DELIVERY (e-commerce) ── -->
+
+<div class="section">
+  <div class="section-label">Recurring — delivery (e-commerce products)</div>
+  <div class="card-stack">
+
+    <!-- 22. amount · delivery interval (auto shortname: "Subscribe & save") -->
+    <div class="config">amount · delivery interval (every month)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$29.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 23. shortname · amount · delivery interval -->
+    <div class="config">shortname · amount · delivery interval (every month)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Monthly refill</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$9.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 24. amount · delivery interval (every 4 weeks) (auto shortname) -->
+    <div class="config">amount · delivery interval (every 4 weeks)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$24.99 <span class="interval">/ 4 wk</span></div>
+      </div>
+    </div>
+
+    <!-- 25. shortname · amount · compare-at · delivery interval -->
+    <div class="config">shortname · amount · compare-at · delivery interval</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save 15%</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$9.99 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$11.99</div>
+      </div>
+    </div>
+
+    <!-- 26. amount · compare-at · delivery interval · shipping (paid) (auto shortname) -->
+    <div class="config">amount · compare-at · delivery interval · shipping (paid)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+        <div class="card-badges">
+          <span class="badge">$4.99 shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$19.99 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$24.99</div>
+      </div>
+    </div>
+
+    <!-- 27. shortname · amount · compare-at · delivery interval · free shipping -->
+    <div class="config">shortname · amount · compare-at · delivery interval · shipping (free)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save 20%</div>
+        <div class="card-badges">
+          <span class="badge">Free shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$15.99 <span class="interval">/ 2 wk</span></div>
+        <div class="price-compare">$19.99</div>
+      </div>
+    </div>
+
+    <!-- 28. shortname · amount · compare-at · delivery interval · trial · free shipping -->
+    <div class="config">shortname · amount · compare-at · delivery interval · trial · shipping (free)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Try it free</div>
+        <div class="card-badges">
+          <span class="badge">14-day trial</span>
+          <span class="badge">Free shipping</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$34.99 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$44.99</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── RECURRING — BILLED (digital / services) ── -->
+
+<div class="section">
+  <div class="section-label">Recurring — billed (digital / services)</div>
+  <div class="card-stack">
+
+    <!-- 10. amount · billing interval (auto shortname: "Subscribe & save") -->
+    <div class="config">amount · billing interval (monthly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$9.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 11. shortname · amount · billing interval -->
+    <div class="config">shortname · amount · billing interval (monthly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Most popular</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$9.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 12. amount · billing interval (yearly) (auto shortname) -->
+    <div class="config">amount · billing interval (yearly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$99.99 <span class="interval">/ yr</span></div>
+      </div>
+    </div>
+
+    <!-- 13. shortname · amount · compare-at · billing interval (yearly) -->
+    <div class="config">shortname · amount · compare-at · billing interval (yearly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Best value</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$99.99 <span class="interval">/ yr</span></div>
+        <div class="price-compare">$119.88</div>
+      </div>
+    </div>
+
+    <!-- 14. amount · billing interval (weekly) (auto shortname) -->
+    <div class="config">amount · billing interval (weekly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$4.99 <span class="interval">/ wk</span></div>
+      </div>
+    </div>
+
+    <!-- 15. amount · compare-at · billing interval (auto shortname) -->
+    <div class="config">amount · compare-at · billing interval (monthly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$15.99 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$19.99</div>
+      </div>
+    </div>
+
+    <!-- 16. amount · billing interval · trial (auto shortname) -->
+    <div class="config">amount · billing interval · trial</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+        <div class="card-badges">
+          <span class="badge">14-day trial</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$19.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 17. shortname · amount · billing interval · trial -->
+    <div class="config">shortname · amount · billing interval · trial</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Try it free</div>
+        <div class="card-badges">
+          <span class="badge">14-day trial</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$19.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 18. amount · billing interval · one-time fee (auto shortname) -->
+    <div class="config">amount · billing interval · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+        <div class="card-badges">
+          <span class="badge">$49.99 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$79.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 19. shortname · amount · billing interval · one-time fee -->
+    <div class="config">shortname · amount · billing interval · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Premium</div>
+        <div class="card-badges">
+          <span class="badge">$49.99 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$79.99 <span class="interval">/ mo</span></div>
+      </div>
+    </div>
+
+    <!-- 20. amount · compare-at · billing interval · trial (auto shortname) -->
+    <div class="config">amount · compare-at · billing interval · trial</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Subscribe &amp; save</div>
+        <div class="card-badges">
+          <span class="badge">7-day trial</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$15.99 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$19.99</div>
+      </div>
+    </div>
+
+    <!-- 21. shortname · amount · compare-at · billing interval · trial · one-time fee (max) -->
+    <div class="config">shortname · amount · compare-at · billing interval · trial · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>All-inclusive</div>
+        <div class="card-badges">
+          <span class="badge">7-day trial</span>
+          <span class="badge">$99 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$149.00 <span class="interval">/ mo</span></div>
+        <div class="price-compare">$199.00</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── PAYMENT PLAN ── -->
+
+<div class="section">
+  <div class="section-label">Payment plan</div>
+  <div class="card-stack">
+
+    <!-- 29. amount · installments · billing interval (auto shortname: "Pay in installments") -->
+    <div class="config">amount · installments · billing interval</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Pay in installments</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$75<span class="installments">&times;3</span></div>
+      </div>
+    </div>
+
+    <!-- 30. shortname · amount (cents) · installments · billing interval -->
+    <div class="config">shortname · amount (cents) · installments · billing interval</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Split it up</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$66.33<span class="installments">&times;3</span></div>
+      </div>
+    </div>
+
+    <!-- 31. amount (cents) · compare-at · installments · billing interval (auto shortname) -->
+    <div class="config">amount (cents) · compare-at · installments · billing interval</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Pay in installments</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$83.25<span class="installments">&times;4</span></div>
+        <div class="price-compare">$99.75&times;4</div>
+      </div>
+    </div>
+
+    <!-- 32. shortname · amount · compare-at · installments · billing interval -->
+    <div class="config">shortname · amount · compare-at · installments · billing interval</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Best deal</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$75<span class="installments">&times;3</span></div>
+        <div class="price-compare">$99&times;3</div>
+      </div>
+    </div>
+
+    <!-- 33. amount (cents) · installments · billing interval · one-time fee (auto shortname) -->
+    <div class="config">amount (cents) · installments · billing interval · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Pay in installments</div>
+        <div class="card-badges">
+          <span class="badge">$49.99 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$166.50<span class="installments">&times;6</span></div>
+      </div>
+    </div>
+
+    <!-- 34. amount · installments · billing interval · trial (auto shortname) -->
+    <div class="config">amount · installments · billing interval · trial</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Pay in installments</div>
+        <div class="card-badges">
+          <span class="badge">7-day trial</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$125<span class="installments">&times;4</span></div>
+      </div>
+    </div>
+
+    <!-- 35. shortname · amount (cents) · installments · billing interval · trial -->
+    <div class="config">shortname · amount (cents) · installments · billing interval · trial</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Try before you buy</div>
+        <div class="card-badges">
+          <span class="badge">7-day trial</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$124.75<span class="installments">&times;4</span></div>
+      </div>
+    </div>
+
+    <!-- 36. amount (cents) · installments · billing interval (weekly) (auto shortname) -->
+    <div class="config">amount (cents) · installments · billing interval (weekly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>Pay in installments</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$24.99<span class="installments">&times;12</span></div>
+      </div>
+    </div>
+
+    <!-- 37. shortname · amount · compare-at · installments · billing interval · trial · one-time fee (max) -->
+    <div class="config">shortname · amount · compare-at · installments · billing interval · trial · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>VIP access</div>
+        <div class="card-badges">
+          <span class="badge">14-day trial</span>
+          <span class="badge">$149 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$299<span class="installments">&times;12</span></div>
+        <div class="price-compare">$399&times;12</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── STRESS TEST ── -->
+
+<div class="section">
+  <div class="section-label">Stress test — large prices, long shortnames</div>
+  <div class="card-stack">
+
+    <div class="config">shortname · amount · compare-at · billing interval (yearly)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Enterprise</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$2,499.99 <span class="interval">/ yr</span></div>
+        <div class="price-compare">$2,999.99</div>
+      </div>
+    </div>
+
+    <div class="config">shortname (long) · amount · compare-at · installments · billing interval · trial · one-time fee</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname"><span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>Lifetime access — limited enrollment</div>
+        <div class="card-badges">
+          <span class="badge">30-day trial</span>
+          <span class="badge">$499 one-time fee</span>
+        </div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$1,299<span class="installments">&times;12</span></div>
+        <div class="price-compare">$1,599&times;12</div>
+      </div>
+    </div>
+
+    <div class="config">amount · compare-at (minimal, auto shortname)</div>
+    <div class="price-card">
+      <div class="card-details">
+        <div class="card-shortname">One-time purchase</div>
+      </div>
+      <div class="card-price">
+        <div class="price-current">$3.00</div>
+        <div class="price-compare">$5.00</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /split-preview -->
+
+</div>
+</div><!-- /view-detail -->
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- VIEW: PRICE OVERVIEW DISPLAY                   -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="view-panel view-panel--showcase" id="view-overview">
+<div class="split-layout">
+
+<div class="split-code" id="split-code-overview">
+  <div class="split-code-header">Offer details — HTML</div>
+  <pre><code><!-- The code will be injected by JS --></code></pre>
+</div>
+
+<div class="split-handle" data-split="overview"></div>
+
+<div class="split-preview" id="split-preview-overview">
+
+<div class="overview-section">
+  <div class="section-label">One-time</div>
+  <div class="overview-container">
+    <div class="overview-header">
+      <h3>Pricing</h3>
+      <div class="overview-header-actions">
+        <button class="overview-dropdown">Simple <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="overview-add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg></button>
+      </div>
+    </div>
+    <div class="overview-prices">
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$49.99</div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$24.99</div>
+      <div class="overview-badges">
+        <span class="badge">$5.99 shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$39.99</div>
+      <div class="overview-badges">
+        <span class="badge">Free shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">Free</div>
+      <div class="overview-badges">
+        <span class="badge">$3.99 shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    </div>
+    <div class="overview-add-price-wrapper"><div class="overview-add-price"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg> Add price</div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="overview-section">
+  <div class="section-label">Recurring — delivery (e-commerce products)</div>
+  <div class="overview-container">
+    <div class="overview-header">
+      <h3>Pricing</h3>
+      <div class="overview-header-actions">
+        <button class="overview-dropdown">Simple <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="overview-add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg></button>
+      </div>
+    </div>
+    <div class="overview-prices">
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$29.99 <span class="interval">/ month</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$24.99 <span class="interval">/ 4 weeks</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$19.99 <span class="interval">/ month</span></div>
+      <div class="overview-badges">
+        <span class="badge">$4.99 shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$15.99 <span class="interval">/ 2 weeks</span></div>
+      <div class="overview-badges">
+        <span class="badge">Free shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$34.99 <span class="interval">/ month</span></div>
+      <div class="overview-badges">
+        <span class="badge">14-day trial</span>
+        <span class="badge">Free shipping</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    </div>
+    <div class="overview-add-price-wrapper"><div class="overview-add-price"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg> Add price</div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="overview-section">
+  <div class="section-label">Recurring — billed (digital / services)</div>
+  <div class="overview-container">
+    <div class="overview-header">
+      <h3>Pricing</h3>
+      <div class="overview-header-actions">
+        <button class="overview-dropdown">Simple <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="overview-add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg></button>
+      </div>
+    </div>
+    <div class="overview-prices">
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$9.99 <span class="interval">/ month</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$99.99 <span class="interval">/ year</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$4.99 <span class="interval">/ week</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$19.99 <span class="interval">/ month</span></div>
+      <div class="overview-badges">
+        <span class="badge">14-day trial</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$79.99 <span class="interval">/ month</span></div>
+      <div class="overview-badges">
+        <span class="badge">$49.99 one-time fee</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$149.00 <span class="interval">/ month</span></div>
+      <div class="overview-badges">
+        <span class="badge">7-day trial</span>
+        <span class="badge">$99 one-time fee</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    </div>
+    <div class="overview-add-price-wrapper"><div class="overview-add-price"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg> Add price</div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="overview-section">
+  <div class="section-label">Payment plan</div>
+  <div class="overview-container">
+    <div class="overview-header">
+      <h3>Pricing</h3>
+      <div class="overview-header-actions">
+        <button class="overview-dropdown">Simple <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="overview-add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg></button>
+      </div>
+    </div>
+    <div class="overview-prices">
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$75<span class="installments">&times;3</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$66.33<span class="installments">&times;3</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$166.50<span class="installments">&times;6</span></div>
+      <div class="overview-badges">
+        <span class="badge">$49.99 one-time fee</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$125<span class="installments">&times;4</span></div>
+      <div class="overview-badges">
+        <span class="badge">7-day trial</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$299<span class="installments">&times;12</span></div>
+      <div class="overview-badges">
+        <span class="badge">14-day trial</span>
+        <span class="badge">$149 one-time fee</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    </div>
+    <div class="overview-add-price-wrapper"><div class="overview-add-price"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg> Add price</div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="overview-section">
+  <div class="section-label">Stress test — large prices, long shortnames</div>
+  <div class="overview-container">
+    <div class="overview-header">
+      <h3>Pricing</h3>
+      <div class="overview-header-actions">
+        <button class="overview-dropdown">Simple <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="overview-add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg></button>
+      </div>
+    </div>
+    <div class="overview-prices">
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$2,499.99 <span class="interval">/ year</span></div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$1,299<span class="installments">&times;12</span></div>
+      <div class="overview-badges">
+        <span class="badge">30-day trial</span>
+        <span class="badge">$499 one-time fee</span>
+      </div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    <div class="overview-row">
+      <div class="overview-row-content">
+        <div class="overview-price-amount">$3.00</div>
+      </div>
+      <div class="overview-edit-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m13.5 6 1.75-1.75a3.182 3.182 0 0 1 4.5 4.5L18 10.5M13.5 6 3.293 16.207a1 1 0 0 0-.293.707V21h4.086a1 1 0 0 0 .707-.293L18 10.5M13.5 6l4.5 4.5"/></svg></div>
+    </div>
+    </div>
+    <div class="overview-add-price-wrapper"><div class="overview-add-price"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14"/></svg> Add price</div></div>
+  </div>
+</div>
+
+</div><!-- /split-preview -->
+
+</div>
+</div><!-- /view-overview -->
+
+<!-- ── Toggle script ── -->
+</div><!-- /main-content-inner -->
+</main>
+</div>
+
+<script>
+  const toggle = document.getElementById('viewToggle');
+  const segments = toggle.querySelectorAll('.sidebar-link');
+  const panels = document.querySelectorAll('.view-panel');
+
+  segments.forEach(seg => {
+    seg.addEventListener('click', () => {
+      segments.forEach(s => s.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      seg.classList.add('active');
+      document.getElementById('view-' + seg.dataset.view).classList.add('active');
+    });
+  });
+
+  /* ═══════════════════════════════════════════════ */
+  /* PRICE BUILDER LOGIC                             */
+  /* ═══════════════════════════════════════════════ */
+
+  const ICONS = {
+    recurring: '<span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m17.5 3 2.293 2.293a1 1 0 0 1 0 1.414L17.5 9M4 11V9a3 3 0 0 1 3-3h12M6.5 21l-2.293-2.293a1 1 0 0 1 0-1.414L6.5 15M5 18h12a3 3 0 0 0 3-3v-2"/></svg></span>',
+    calendar: '<span class="prefix-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M9.25 12a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm8 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm-4 4a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm4 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Z"/><path stroke="currentColor" stroke-width="2" d="M4 8h16M7 19.985h10a3 3 0 0 0 3-3v-10a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3Z"/></svg></span>'
+  };
+
+  const SHORT_INTERVALS = { month: 'mo', year: 'yr', week: 'wk', '2 weeks': '2 wk', '4 weeks': '4 wk' };
+  const FULL_INTERVALS = { month: 'month', year: 'year', week: 'week', '2 weeks': '2 weeks', '4 weeks': '4 weeks' };
+  const BILLED_LABELS = { month: 'Billed monthly', year: 'Billed yearly', week: 'Billed weekly' };
+
+  const DEFAULT_SHORTNAMES = {
+    'one-time': 'One-time purchase',
+    'recurring-delivery': 'Subscribe & save',
+    'recurring-billed': 'Subscribe & save',
+    'payment-plan': 'Pay in installments'
+  };
+
+  // Elements
+  const $ = id => document.getElementById(id);
+  const el = {
+    type: null, // set by selector
+    shortname: $('bf-shortname'),
+    amount: $('bf-amount'),
+    compareAt: $('bf-compare-at'),
+    deliveryInterval: $('bf-delivery-interval'),
+    billingInterval: $('bf-billing-interval'),
+    installments: $('bf-installments'),
+    shippingToggle: $('bf-shipping-toggle'),
+    shippingAmount: $('bf-shipping-amount'),
+    shippingFree: $('bf-shipping-free'),
+    trialToggle: $('bf-trial-toggle'),
+    trialDays: $('bf-trial-days'),
+    feeToggle: $('bf-fee-toggle'),
+    feeAmount: $('bf-fee-amount'),
+    // Conditional sections
+    intervalSection: $('bf-interval-section'),
+    deliveryGroup: $('bf-delivery-interval-group'),
+    billingGroup: $('bf-billing-interval-group'),
+    installmentsSection: $('bf-installments-section'),
+    shippingGroup: $('bf-shipping-group'),
+    trialRow: $('bf-trial-row'),
+    trialGroup: $('bf-trial-group'),
+    feeRow: $('bf-onetime-fee-row'),
+    feeGroup: $('bf-fee-group'),
+    // Preview
+    cardShortname: $('preview-card-shortname'),
+    cardBadges: $('preview-card-badges'),
+    cardInterval: $('preview-card-interval'),
+    cardAmount: $('preview-card-amount'),
+    cardCompare: $('preview-card-compare'),
+    rowAmount: $('preview-row-amount'),
+    rowBadges: $('preview-row-badges')
+  };
+
+  let currentType = 'one-time';
+
+  // ── Price type selector ──
+  const typeOptions = document.querySelectorAll('#priceTypeSelector .price-type-option');
+  typeOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      typeOptions.forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      currentType = opt.dataset.type;
+      updateFormVisibility();
+      updatePreview();
+    });
+  });
+
+  // ── Toggle handlers ──
+  el.shippingToggle.addEventListener('change', () => {
+    el.shippingGroup.classList.toggle('visible', el.shippingToggle.checked);
+    document.getElementById('bf-shipping-card').classList.toggle('active', el.shippingToggle.checked);
+    updatePreview();
+  });
+  el.shippingFree.addEventListener('change', () => {
+    const card = document.getElementById('bf-shipping-amount-card');
+    card.classList.toggle('is-free', el.shippingFree.checked);
+    el.shippingAmount.disabled = el.shippingFree.checked;
+    updatePreview();
+  });
+  el.trialToggle.addEventListener('change', () => {
+    el.trialGroup.classList.toggle('visible', el.trialToggle.checked);
+    document.getElementById('bf-trial-card').classList.toggle('active', el.trialToggle.checked);
+    updatePreview();
+  });
+  el.feeToggle.addEventListener('change', () => {
+    el.feeGroup.classList.toggle('visible', el.feeToggle.checked);
+    document.getElementById('bf-fee-card').classList.toggle('active', el.feeToggle.checked);
+    updatePreview();
+  });
+
+  // ── Make select containers fully clickable ──
+  document.querySelectorAll('.form-card-input select').forEach(sel => {
+    sel.closest('.form-card-input').addEventListener('click', (e) => {
+      if (e.target !== sel) {
+        sel.focus();
+        // Trigger native dropdown on click
+        if (typeof sel.showPicker === 'function') {
+          try { sel.showPicker(); } catch(ex) {}
+        }
+      }
+    });
+    sel.closest('.form-card-input').style.cursor = 'pointer';
+  });
+
+  // ── Input handlers — update preview on every change ──
+  [el.shortname, el.amount, el.compareAt, el.deliveryInterval, el.billingInterval,
+   el.installments, el.shippingAmount, el.trialDays, el.feeAmount].forEach(input => {
+    input.addEventListener('input', updatePreview);
+    input.addEventListener('change', updatePreview);
+  });
+
+  function updateFormVisibility() {
+    const isRecDel = currentType === 'recurring-delivery';
+    const isRecBill = currentType === 'recurring-billed';
+    const isPP = currentType === 'payment-plan';
+    const hasInterval = isRecDel || isRecBill || isPP;
+
+    el.intervalSection.classList.toggle('visible', hasInterval);
+    el.deliveryGroup.classList.toggle('visible', isRecDel);
+    el.billingGroup.classList.toggle('visible', isRecBill || isPP);
+    el.installmentsSection.classList.toggle('visible', isPP);
+    el.trialRow.classList.toggle('visible', isRecBill || isPP);
+    el.feeRow.classList.toggle('visible', isRecBill || isPP);
+  }
+
+  function stripDollar(v) { return String(v).replace(/[^0-9.]/g, ''); }
+
+  function formatAmount(val) {
+    const n = parseFloat(stripDollar(val));
+    if (isNaN(n) || n === 0) return 'Free';
+    return '$' + n.toFixed(2).replace(/\.00$/, '');
+  }
+
+  function formatAmountFull(val) {
+    const n = parseFloat(stripDollar(val));
+    if (isNaN(n) || n === 0) return 'Free';
+    return '$' + n.toFixed(2);
+  }
+
+  function formatInstallmentAmount(val) {
+    const n = parseFloat(stripDollar(val));
+    if (isNaN(n) || n === 0) return 'Free';
+    // Whole dollars drop decimals, cents keep them
+    if (n === Math.floor(n)) return '$' + n.toFixed(0);
+    return '$' + n.toFixed(2);
+  }
+
+  function updatePreview() {
+    const isRecDel = currentType === 'recurring-delivery';
+    const isRecBill = currentType === 'recurring-billed';
+    const isPP = currentType === 'payment-plan';
+    const isOneTime = currentType === 'one-time';
+
+    const shortname = el.shortname.value.trim() || DEFAULT_SHORTNAMES[currentType];
+    const amount = el.amount.value.trim();
+    const compareAt = el.compareAt.value.trim();
+    const hasShipping = el.shippingToggle.checked;
+    const isFreeShipping = el.shippingFree.checked;
+    const shippingAmt = el.shippingAmount.value.trim();
+    const hasTrial = el.trialToggle.checked && (isRecBill || isPP);
+    const trialDays = el.trialDays.value;
+    const hasFee = el.feeToggle.checked && (isRecBill || isPP);
+    const feeAmt = el.feeAmount.value.trim();
+    const installments = el.installments.value;
+
+    // ── Icon ──
+    let icon = '';
+    if (isRecDel || isRecBill) icon = ICONS.recurring;
+    if (isPP) icon = ICONS.calendar;
+
+    // ── Shortname ──
+    el.cardShortname.innerHTML = icon + shortname;
+
+    // ── Card interval line (hidden on recurring cards — interval shown via price suffix) ──
+    if (el.cardInterval) {
+      el.cardInterval.textContent = '';
+      el.cardInterval.style.display = 'none';
+    }
+
+    // ── Card amount ──
+    let cardAmountHTML = '';
+    let shortInt = '';
+    let fullInt = '';
+
+    if (isRecDel) {
+      shortInt = SHORT_INTERVALS[el.deliveryInterval.value];
+      fullInt = FULL_INTERVALS[el.deliveryInterval.value];
+    } else if (isRecBill || isPP) {
+      shortInt = SHORT_INTERVALS[el.billingInterval.value];
+      fullInt = FULL_INTERVALS[el.billingInterval.value];
+    }
+
+    if (isPP) {
+      const fmtAmt = formatInstallmentAmount(amount);
+      cardAmountHTML = fmtAmt + '<span class="installments">&times;' + installments + '</span>';
+      if (shortInt) cardAmountHTML += ' <span class="interval">/ ' + shortInt + '</span>';
+    } else {
+      const fmtAmt = formatAmount(amount);
+      cardAmountHTML = fmtAmt;
+      if (shortInt) cardAmountHTML += ' <span class="interval">/ ' + shortInt + '</span>';
+    }
+    el.cardAmount.innerHTML = cardAmountHTML;
+
+    // ── Card compare-at ──
+    if (compareAt && parseFloat(stripDollar(compareAt)) > 0) {
+      el.cardCompare.textContent = '$' + parseFloat(stripDollar(compareAt)).toFixed(2);
+      el.cardCompare.style.display = '';
+    } else {
+      el.cardCompare.style.display = 'none';
+    }
+
+    // ── Badges (shared logic) ──
+    let badgesHTML = '';
+    if (hasTrial) badgesHTML += '<span class="badge">' + trialDays + '-day trial</span>';
+    if (hasFee) badgesHTML += '<span class="badge">$' + parseFloat(stripDollar(feeAmt) || 0).toFixed(2) + ' one-time fee</span>';
+    if (hasShipping) {
+      if (isFreeShipping) {
+        badgesHTML += '<span class="badge">Free shipping</span>';
+      } else if (shippingAmt && parseFloat(stripDollar(shippingAmt)) > 0) {
+        badgesHTML += '<span class="badge">$' + parseFloat(stripDollar(shippingAmt)).toFixed(2) + ' shipping</span>';
+      }
+    }
+    el.cardBadges.innerHTML = badgesHTML;
+    el.rowBadges.innerHTML = badgesHTML;
+
+    // ── Row amount (full interval) ──
+    let rowAmountHTML = '';
+    if (isPP) {
+      const fmtAmt = formatInstallmentAmount(amount);
+      rowAmountHTML = fmtAmt + '<span class="installments">&times;' + installments + '</span>';
+      if (fullInt) rowAmountHTML += ' <span class="interval">/ ' + fullInt + '</span>';
+    } else {
+      rowAmountHTML = formatAmountFull(amount);
+      if (fullInt) rowAmountHTML += ' <span class="interval">/ ' + fullInt + '</span>';
+    }
+    el.rowAmount.innerHTML = rowAmountHTML;
+  }
+
+  // ── Floating label interaction for compare-at ──
+  function updateFloatLabel() {
+    const input = el.compareAt;
+    const wrapper = input.closest('.form-card-input--float');
+    if (!wrapper) return;
+    const val = input.value.trim();
+    const numVal = parseFloat(stripDollar(val));
+    wrapper.classList.toggle('is-empty', !val || isNaN(numVal) || numVal === 0);
+  }
+  el.compareAt.addEventListener('input', updateFloatLabel);
+  el.compareAt.addEventListener('blur', updateFloatLabel);
+  el.compareAt.addEventListener('focus', () => {
+    // When focusing into an empty float field, keep label small
+  });
+
+  // ── Init ──
+  updateFormVisibility();
+  updatePreview();
+  updateFloatLabel();
+
+  // ── Split panel drag-to-resize ──
+  document.querySelectorAll('.split-handle').forEach(handle => {
+    let startX, startCodeFlex, startPreviewFlex, codePanel, previewPanel, totalWidth;
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      codePanel = handle.previousElementSibling;
+      previewPanel = handle.nextElementSibling;
+      const container = handle.parentElement;
+      const handleW = handle.offsetWidth;
+      totalWidth = container.offsetWidth - handleW;
+      startX = e.clientX;
+      startCodeFlex = codePanel.offsetWidth / totalWidth;
+      startPreviewFlex = previewPanel.offsetWidth / totalWidth;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const onMove = (e) => {
+        const delta = e.clientX - startX;
+        const pct = delta / totalWidth;
+        const newCodeFlex = Math.max(0.15, Math.min(startCodeFlex + pct, 0.85));
+        const newPreviewFlex = 1 - newCodeFlex;
+        codePanel.style.flex = newCodeFlex + ' 1 0%';
+        previewPanel.style.flex = newPreviewFlex + ' 1 0%';
+      };
+
+      const onUp = () => {
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+
+  // ── Inject source code into split-code panels ──
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function highlightHtml(src) {
+    // Simple HTML syntax highlighter
+    return src
+      .replace(/(&lt;\/?)([\w-]+)/g, '$1<span class="hl-tag">$2</span>')
+      .replace(/([\w-]+)(=)/g, '<span class="hl-attr">$1</span>$2')
+      .replace(/("([^"]*)")/g, '<span class="hl-str">$1</span>')
+      .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="hl-cm">$1</span>');
+  }
+
+  function injectCodePanels() {
+    // Detail view
+    const detailPreview = document.getElementById('split-preview-detail');
+    const detailCode = document.querySelector('#split-code-detail code');
+    if (detailPreview && detailCode) {
+      const raw = detailPreview.innerHTML;
+      const formatted = escapeHtml(raw.trim());
+      detailCode.innerHTML = highlightHtml(formatted);
+    }
+
+    // Overview view
+    const overviewPreview = document.getElementById('split-preview-overview');
+    const overviewCode = document.querySelector('#split-code-overview code');
+    if (overviewPreview && overviewCode) {
+      const raw = overviewPreview.innerHTML;
+      const formatted = escapeHtml(raw.trim());
+      overviewCode.innerHTML = highlightHtml(formatted);
+    }
+  }
+
+  // Run after a tick to ensure DOM is fully painted
+  requestAnimationFrame(() => injectCodePanels());
+
+  // ── Sidebar collapse / expand / hover-reveal ──
+  (function() {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    let isPinned = true;
+    let hoverTimeout = null;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isPinned) {
+        // Collapse the sidebar
+        isPinned = false;
+        sidebar.classList.add('collapsed');
+        sidebar.classList.remove('hover-reveal');
+        btn.title = 'Pin sidebar';
+      } else {
+        // Pin it open again
+        isPinned = true;
+        sidebar.classList.remove('collapsed', 'hover-reveal');
+        btn.title = 'Collapse sidebar';
+      }
+    });
+
+    // Hover-reveal when collapsed
+    sidebar.addEventListener('mouseenter', () => {
+      if (!isPinned && sidebar.classList.contains('collapsed')) {
+        clearTimeout(hoverTimeout);
+        sidebar.classList.add('hover-reveal');
+      }
+    });
+
+    sidebar.addEventListener('mouseleave', () => {
+      if (!isPinned && sidebar.classList.contains('collapsed')) {
+        hoverTimeout = setTimeout(() => {
+          sidebar.classList.remove('hover-reveal');
+        }, 300);
+      }
+    });
+
+    // Click anywhere on the collapsed rail to re-pin
+    sidebar.addEventListener('click', (e) => {
+      if (!isPinned && sidebar.classList.contains('collapsed') && !sidebar.classList.contains('hover-reveal')) {
+        isPinned = true;
+        sidebar.classList.remove('collapsed', 'hover-reveal');
+        btn.title = 'Collapse sidebar';
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
