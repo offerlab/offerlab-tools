@@ -147,8 +147,8 @@ app.post('/api/gemini', express.json(), async (req, res) => {
     return res.status(500).json({ error: 'Server misconfiguration: GEMINI_API_KEY required' });
   }
 
-  // Support dynamic model selection via query param (default: gemini-2.0-flash)
-  const model = req.query.model || 'gemini-2.0-flash';
+  // Support dynamic model selection via query param (default: gemini-2.5-flash)
+  const model = req.query.model || 'gemini-2.5-flash';
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {

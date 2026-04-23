@@ -1007,8 +1007,7 @@ let isPitchGenerating = false;
 const pitchCache = new Map();
 
 const PITCH_MODELS = [
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Fast)' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Balanced)' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Fast)' },
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Best)' }
 ];
 
@@ -2128,7 +2127,8 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
         temperature: 0.3,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 2048
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingBudget: 0 }
       }
     })
   });
@@ -2139,7 +2139,7 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   return parseJsonResponse(text);
 }
 
@@ -2269,7 +2269,8 @@ CRITICAL INSTRUCTIONS:
         temperature: 0.85,
         topK: 50,
         topP: 0.97,
-        maxOutputTokens: 6144
+        maxOutputTokens: 8192,
+        thinkingConfig: { thinkingBudget: 0 }
       }
     })
   });
@@ -2280,7 +2281,7 @@ CRITICAL INSTRUCTIONS:
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   
   // Store grounding metadata for later use
   const results = parseJsonResponse(text);
@@ -3129,6 +3130,19 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
   }
   
   throw lastError || new Error('Request failed after retries');
+}
+
+// ============================================
+// UTILITY: Extract text from Gemini response
+// Concatenates all non-thought text parts — Gemini 2.5 sometimes splits
+// long outputs across multiple parts (especially with google_search grounding).
+// ============================================
+function extractText(data) {
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return parts
+    .filter(p => p && typeof p.text === 'string' && !p.thought)
+    .map(p => p.text)
+    .join('');
 }
 
 // ============================================
