@@ -616,7 +616,7 @@ function catalogThumbUrl(src, width = 160) {
 
 const CATALOG_SOURCES = {
   shopify: { label: 'Shopify', icon: 'shopify' },
-  serp: { label: 'Google Shopping', icon: 'globus' }
+  serp: { label: 'Google Shopping', icon: 'google' }
 };
 
 // Thumbnail row inside the card. Loading shows a shimmer; no products shows nothing.
