@@ -4,6 +4,8 @@
 
 import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
+import { initPicker, openPicker, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
+
 const CONFIG = {
   // All API keys are now server-side for security
   // Gemini, SerpAPI, and OpenGraph are all proxied through /api/* endpoints
@@ -30,6 +32,7 @@ const CONFIG = {
 // State
 let currentSearchId = null;
 let currentResults = null;
+function getResults() { return currentResults; }
 let searchAbortController = null;
 let isSearchCancelled = false;
 
@@ -70,6 +73,7 @@ const elements = {
   // Results
   searchedBrandCardContainer: document.getElementById('searchedBrandCardContainer'),
   brandsGrid: document.getElementById('brandsGrid'),
+  pickerSection: document.getElementById('pickerSection'),
 
   // Loading
   loadingText: document.getElementById('loadingText'),
@@ -127,6 +131,7 @@ function clearSearchFromUrl() {
   const url = new URL(window.location.href);
   url.searchParams.delete(SEARCH_PARAM);
   url.searchParams.delete('pitch');
+  url.searchParams.delete('pick');
   history.replaceState(null, '', url.toString());
 }
 
@@ -419,6 +424,7 @@ function showSection(sectionName) {
   elements.landingSection.classList.add('hidden');
   elements.loadingSection.classList.add('hidden');
   elements.resultsSection.classList.add('hidden');
+  if (elements.pickerSection) elements.pickerSection.classList.add('hidden');
   elements.emptySection.classList.add('hidden');
   elements.errorSection.classList.add('hidden');
 
@@ -459,6 +465,17 @@ function showSection(sectionName) {
       if (elements.siteHeader) {
         elements.siteHeader.classList.add('header-nav--results');
         // Remove loading state to fade in back/start over buttons
+        elements.siteHeader.classList.remove('header-nav--loading');
+      }
+      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      break;
+    case 'picker':
+      elements.pickerSection.classList.remove('hidden');
+      document.querySelector('.app-container').classList.add('showing-results');
+      document.body.classList.add('showing-results');
+      resetTileTilt();
+      if (elements.siteHeader) {
+        elements.siteHeader.classList.add('header-nav--results');
         elements.siteHeader.classList.remove('header-nav--loading');
       }
       if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
@@ -636,9 +653,18 @@ function renderCatalogBlock(catalog) {
 }
 
 function updateCardCatalog(domain, catalog) {
+  const buildable = (catalog?.products?.length || 0) > 0;
   document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(slot => {
     slot.innerHTML = renderCatalogBlock(catalog);
+    const card = slot.closest('.result-card');
+    if (!card) return;
+    card.dataset.buildable = buildable ? 'true' : 'false';
+    card.querySelector('.build-bundle-btn')?.classList.toggle('hidden', !buildable);
   });
+}
+
+function brandForCard(card) {
+  return currentResults?.brands?.find(b => extractDomain(b.url || '') === card.dataset.domain) || null;
 }
 
 async function fetchCatalog(domain) {
@@ -736,7 +762,9 @@ function createBrandCard(brand, index) {
   card.className = 'result-card';
   card.style.animationDelay = `${index * 0.05}s`;
   card.dataset.url = fullUrl;
+  card.dataset.domain = domain;
   card.dataset.social = JSON.stringify(brand.social || {});
+  if (canBuildWith(brand)) card.dataset.buildable = 'true';
 
   const showMenu = hasAnySocialLink(brand.social);
   card.innerHTML = `
@@ -761,6 +789,7 @@ function createBrandCard(brand, index) {
     <div class="card-body">
       ${brand.reason ? `<div class="card-reason-bubble"><p class="card-reason">${brand.reason}</p></div>` : ''}
       <div class="card-actions">
+        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Build bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
         </div>
@@ -2735,11 +2764,13 @@ function syncResultsSearchDisplay() {
   if (display.dataset.domain !== domain) {
     display.dataset.domain = domain;
     display.innerHTML = '';
-    const avatar = document.createElement('img');
+    const avatar = document.createElement('span');
     avatar.className = 'search-display-avatar';
-    avatar.alt = '';
-    avatar.src = getFaviconUrl(domain);
-    avatar.onerror = () => { avatar.src = CONFIG.FAVICON_FALLBACK(domain); avatar.onerror = null; };
+    const favicon = document.createElement('img');
+    favicon.alt = '';
+    favicon.src = getFaviconUrl(domain);
+    favicon.onerror = () => { favicon.src = CONFIG.FAVICON_FALLBACK(domain); favicon.onerror = null; };
+    avatar.append(favicon);
     display.append(avatar, document.createTextNode(domain));
   }
 }
@@ -2793,6 +2824,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       showSection('results');
       // Restore pitch modal if pitch param present in URL
       restorePitchFromUrl();
+      restorePickerFromUrl();
       return;
     }
     
@@ -2876,8 +2908,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         if (!fromUrlRestore) updateUrlForSearch(domain);
         showSection('results');
         brandsShown = true;
-        // Restore pitch modal if pitch param present in URL
+        // Restore pitch modal or picker if present in URL
         restorePitchFromUrl();
+        restorePickerFromUrl();
       },
       // Called per brand as its catalog resolves
       onCatalog: (brand) => {
@@ -3120,6 +3153,15 @@ function initEventListeners() {
       return;
     }
 
+    // Handle build bundle button click
+    const buildBtn = e.target.closest('.build-bundle-btn');
+    if (buildBtn) {
+      e.stopPropagation();
+      const brand = brandForCard(buildBtn.closest('.result-card'));
+      if (brand) openPicker(brand);
+      return;
+    }
+
     // Handle visit button click
     const visitBtn = e.target.closest('.visit-btn');
     if (visitBtn) {
@@ -3133,6 +3175,10 @@ function initEventListeners() {
 
     // Handle card click (open URL) - but not if clicking buttons
     if (card && !e.target.closest('.card-menu-btn') && !e.target.closest('.card-actions')) {
+      if (card.dataset.buildable === 'true') {
+        const brand = brandForCard(card);
+        if (brand && openPicker(brand)) return;
+      }
       const url = card.dataset.url;
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -3274,6 +3320,7 @@ function initEventListeners() {
    -------------------------------------------------------------------------- */
 
 function init() {
+  initPicker();
   console.log('[init] Starting...');
   console.log('[init] elements.searchInput:', elements.searchInput);
   console.log('[init] elements.typingPlaceholder:', elements.typingPlaceholder);
@@ -3299,6 +3346,7 @@ function init() {
   window.addEventListener('popstate', () => {
     const q = getSearchFromUrl();
     const pitchParam = getPitchFromUrl();
+    syncPickerWithUrl();
 
     // Handle pitch modal state
     if (!pitchParam && currentPitchBrand) {
@@ -3340,3 +3388,5 @@ try {
 } catch (error) {
   console.error('=== APP INITIALIZATION ERROR ===', error);
 }
+
+export { elements, CONFIG, getResults, extractDomain, getFaviconUrl, renderFaviconDuo, escapeHtml, parseJsonResponse, extractText, fetchCatalog, catalogThumbUrl, showSection };
