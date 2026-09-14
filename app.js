@@ -616,9 +616,7 @@ function catalogThumbUrl(src, width = 160) {
 
 const CATALOG_SOURCES = {
   shopify: { label: 'Shopify', icon: 'shopify' },
-  serp: { label: 'Google Shopping', icon: 'globus' },
-  error: { label: 'Catalog unreachable', icon: 'slash-stop' },
-  none: { label: 'No public catalog', icon: 'slash-stop' }
+  serp: { label: 'Google Shopping', icon: 'globus' }
 };
 
 // Thumbnail row inside the card. Loading shows a shimmer; no products shows nothing.
@@ -639,16 +637,18 @@ function renderCatalogThumbs(catalog) {
 }
 
 // The chinstrap tucked under the card: source on the left, product count on the right.
+// Only while the catalog is loading or once it has products; a brand without one gets no strip.
 function renderCatalogChinstrap(catalog, radius = 36) {
   let source;
   let count = '';
   if (!catalog) {
     source = `${icon('spinner', { class: 'icon-spin', size: 14 })} Checking catalog`;
   } else {
-    const meta = CATALOG_SOURCES[catalog.status] || CATALOG_SOURCES.none;
-    source = `${icon(meta.icon, { size: 14 })} ${meta.label}`;
     const n = catalog.count || (catalog.products || []).length;
-    if (n > 0) count = `${n} ${n === 1 ? 'product' : 'products'}`;
+    if (n === 0) return '';
+    const meta = CATALOG_SOURCES[catalog.status] || CATALOG_SOURCES.serp;
+    source = `${icon(meta.icon, { size: 14 })} ${meta.label}`;
+    count = `${n} ${n === 1 ? 'product' : 'products'}`;
   }
   return `<div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--${catalog ? catalog.status : 'loading'}" style="--tuck-radius: ${radius}px">
     <span class="card-chinstrap-source">${source}</span>
@@ -663,8 +663,9 @@ function updateCardCatalog(domain, catalog) {
   document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(group => {
     const slot = group.querySelector('.card-catalog-slot');
     if (slot) slot.innerHTML = renderCatalogThumbs(catalog);
-    const chinstrap = group.querySelector('.card-chinstrap');
-    if (chinstrap) chinstrap.outerHTML = renderCatalogChinstrap(catalog);
+    group.querySelector('.card-chinstrap')?.remove();
+    const chinstrap = renderCatalogChinstrap(catalog);
+    if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
     const card = group.querySelector('.result-card');
     if (!card) return;
     card.dataset.buildable = buildable ? 'true' : 'false';
