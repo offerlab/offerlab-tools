@@ -663,6 +663,11 @@ function updateCardCatalog(domain, catalog) {
   document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(group => {
     const slot = group.querySelector('.card-catalog-slot');
     if (slot) slot.innerHTML = renderCatalogThumbs(catalog);
+    const linkSlot = group.querySelector('.searched-brand-card-link-slot');
+    if (linkSlot) {
+      linkSlot.innerHTML = renderSearchedBrandLink(catalog);
+      return;
+    }
     group.querySelector('.card-chinstrap')?.remove();
     const chinstrap = renderCatalogChinstrap(catalog);
     if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
@@ -709,6 +714,16 @@ function trimCatalogForCache(brand) {
   return { ...brand, catalog: { ...rest, products: products.slice(0, CONFIG.CACHED_PRODUCTS_PER_BRAND), truncated: products.length > CONFIG.CACHED_PRODUCTS_PER_BRAND } };
 }
 
+// Searched brand's visit control: the platform mark (when known) beside the external-link icon,
+// styled as an elevated button. The whole card is the link, so this is a span, not a button.
+function renderSearchedBrandLink(catalog) {
+  const platform = CATALOG_SOURCES[catalog?.status] && catalog.status === 'shopify'
+    ? icon(CATALOG_SOURCES.shopify.icon, { size: 14 }) : '';
+  return `<span class="btn btn--md btn--secondary searched-brand-card-link" aria-hidden="true">
+    ${platform}${icon('square-arrow-top-right-2')}
+  </span>`;
+}
+
 function createSearchedBrandCard(searchedBrand) {
   const url = searchedBrand?.url || '';
   const domain = extractDomain(url);
@@ -749,20 +764,15 @@ function createSearchedBrandCard(searchedBrand) {
             <div class="searched-brand-card-name">${searchedBrand.name}</div>
             <div class="searched-brand-card-url">${domain}</div>
           </div>
+          <div class="searched-brand-card-link-slot">${renderSearchedBrandLink(searchedBrand.catalog)}</div>
         </div>
         <p class="searched-brand-card-description">${searchedBrand.description}</p>
         <div class="card-catalog-slot">${renderCatalogThumbs(searchedBrand.catalog)}</div>
-      </div>
-      <div class="searched-brand-card-external-wrapper">
-        <span class="icon-button icon-button--medium searched-brand-card-external" aria-label="Open in new tab">
-          ${icon('square-arrow-top-right-2')}
-        </span>
       </div>
     </div>
   `;
 
   group.append(card);
-  group.insertAdjacentHTML('beforeend', renderCatalogChinstrap(searchedBrand.catalog));
   return group;
 }
 

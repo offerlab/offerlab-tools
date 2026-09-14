@@ -1984,15 +1984,21 @@ position: absolute;
   margin-top: 2px;
 }
 
-.searched-brand-card-external-wrapper {
+/* Visit control in the name row: platform mark + external-link icon, as one elevated button.
+   Decorative only; the card itself is the link. */
+.searched-brand-card-link-slot {
   flex-shrink: 0;
+  margin-left: auto;
 }
 
-.searched-brand-card-external {
+.searched-brand-card-link {
   pointer-events: none;
-  background: var(--content-background-base);
-  box-shadow: none;
-  border: none;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.searched-brand-card-group:hover .searched-brand-card-link {
+  background: var(--content-background-overlay);
 }
 
 .searched-brand-card-description {
