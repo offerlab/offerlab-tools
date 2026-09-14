@@ -1,6 +1,7 @@
 /**
- * Bundle picker: both catalogs side by side, multi-select across them, and Gemini bundle
- * concepts. Opened from a recommended brand card once its catalog has products.
+ * Bundle picker: one catalog column per brand (the searched brand first, then partners),
+ * multi-select across them, and Gemini bundle concepts. Tiles and the floating selection
+ * tray follow the main app's collab-builder catalog picker (OL-3571).
  */
 import {
   elements, CONFIG, getResults, extractDomain, getFaviconUrl, renderFaviconDuo, escapeHtml,
@@ -12,18 +13,21 @@ const PICK_PARAM = 'pick';
 const CONCEPT_MODEL = 'gemini-2.5-flash';
 const CONCEPT_COUNT = 4;
 const MAX_PRODUCTS_IN_PROMPT = 60;
-const FOOTER_THUMBS = 6;
+const MAX_PICKS_PER_BRAND = 3;
 const CONCEPT_THUMBS = 4;
+const TRAY_THUMBS = 3;
+// A thumb's tilt is fixed by its selection sequence, so the pile never rearranges itself.
+const THUMB_TILTS = [{ rotate: 10, shift: 2 }, { rotate: -10, shift: -2 }, { rotate: 0, shift: 0 }];
 
 const state = {
-  searched: null,
-  partner: null,
-  selection: new Map(),   // key "searched:123" -> { side, product }
-  concepts: [],
+  brands: [],             // [{ domain, brand }], the searched brand first
+  selection: new Map(),   // "domain:id" -> { domain, product, sequence }
+  sequence: 0,
+  concepts: [],           // [{ name, hook, why, picks: [{ domain, product }], discountPercent, edited }]
   activeConcept: -1,
   conceptsStatus: 'idle', // idle | loading | ready | error
   conceptsError: null,
-  filters: { searched: '', partner: '' },
+  filters: {},            // domain -> text
   abort: null
 };
 
@@ -34,43 +38,61 @@ export function initPicker() {
   if (!dom.section) return;
   dom.header = document.getElementById('pickerHeader');
   dom.concepts = document.getElementById('pickerConcepts');
+  dom.rail = document.getElementById('pickerRail');
   dom.columns = document.getElementById('pickerColumns');
-  dom.footer = document.getElementById('pickerFooter');
+  dom.tray = document.getElementById('pickerTray');
+  dom.popover = document.getElementById('pickerAddPopover');
+  dom.dialog = document.getElementById('pickerUrlDialog');
+  // The app container carries a perspective for the tile tilt, which would make these fixed
+  // layers position against it instead of the viewport. They live on body, like the social popover.
+  document.body.append(dom.tray, dom.dialog);
 
   dom.section.addEventListener('click', onSectionClick);
+  dom.tray.addEventListener('click', onSectionClick);
   dom.section.addEventListener('input', onSectionInput);
+  dom.columns.addEventListener('keydown', onRailKeydown);
+  dom.columns.addEventListener('scroll', updateRailControls, { passive: true });
+  window.addEventListener('resize', updateRailControls);
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#pickerAddPopover') && !e.target.closest('[data-action="add-brand"]')) hideAddPopover();
+  });
+  dom.dialog.addEventListener('submit', onUrlSubmit);
+  dom.dialog.addEventListener('click', (e) => {
+    if (e.target === dom.dialog || e.target.closest('[data-action="close-dialog"]')) hideUrlDialog();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { hideAddPopover(); hideUrlDialog(); }
+  });
 }
 
 export function canBuildWith(brand) {
   return (brand?.catalog?.products?.length || 0) > 0;
 }
 
-export async function openPicker(partner, { skipUrlUpdate = false } = {}) {
-  const searched = getResults()?.searchedBrand;
-  if (!searched || !canBuildWith(searched) || !canBuildWith(partner)) return false;
+export function isPickerOpen() {
+  return !!dom.section && !dom.section.classList.contains('hidden');
+}
+
+export function openPicker(partner, { skipUrlUpdate = false } = {}) {
+  return openPickerWith([partner], { skipUrlUpdate });
+}
+
+async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
+  const seller = getResults()?.searchedBrand;
+  const usable = partners.filter(canBuildWith);
+  if (!seller || !canBuildWith(seller) || usable.length === 0) return false;
 
   resetState();
-  state.searched = searched;
-  state.partner = partner;
-
-  if (!skipUrlUpdate) {
-    const url = new URL(window.location.href);
-    url.searchParams.set(PICK_PARAM, extractDomain(partner.url || ''));
-    history.pushState(null, '', url.toString());
-  }
+  state.brands = [seller, ...usable].map(brand => ({ domain: extractDomain(brand.url || ''), brand }));
+  if (!skipUrlUpdate) pushPickUrl();
 
   renderAll();
   showSection('picker');
   window.scrollTo({ top: 0 });
 
   // Cached catalogs are trimmed for localStorage; the picker wants the whole thing.
-  await Promise.all([ensureFullCatalog(searched), ensureFullCatalog(partner)]);
-  if (state.partner === partner) renderColumns();
+  await Promise.all(state.brands.map(entry => ensureFullCatalog(entry.brand).then(() => renderColumn(entry.domain))));
   return true;
-}
-
-export function isPickerOpen() {
-  return !!dom.section && !dom.section.classList.contains('hidden');
 }
 
 export function closePicker() {
@@ -80,30 +102,34 @@ export function closePicker() {
     url.searchParams.delete(PICK_PARAM);
     history.pushState(null, '', url.toString());
   }
+  hideAddPopover();
+  hideUrlDialog();
   resetState();
+  renderTray();
   showSection('results');
 }
 
 // Browser back/forward: the URL is the source of truth for whether the picker is open.
 export function syncPickerWithUrl() {
-  const domain = new URLSearchParams(window.location.search).get(PICK_PARAM);
-  const isOpen = dom.section && !dom.section.classList.contains('hidden');
-  if (!domain && isOpen) {
+  const param = new URLSearchParams(window.location.search).get(PICK_PARAM);
+  if (!param && isPickerOpen()) {
     resetState();
+    renderTray();
     showSection('results');
-  } else if (domain && !isOpen) {
+  } else if (param && !isPickerOpen()) {
     restorePickerFromUrl();
   }
 }
 
-// After results render, reopen the picker named in the URL.
+// After results render, reopen the picker with the partners named in the URL.
 export function restorePickerFromUrl() {
-  const domain = new URLSearchParams(window.location.search).get(PICK_PARAM);
+  const param = new URLSearchParams(window.location.search).get(PICK_PARAM);
   const brands = getResults()?.brands;
-  if (!domain || !brands) return;
-  const match = brands.find(b => extractDomain(b.url || '') === domain);
-  if (match && canBuildWith(match)) {
-    openPicker(match, { skipUrlUpdate: true });
+  if (!param || !brands) return;
+  const wanted = param.split(',').filter(Boolean);
+  const matches = wanted.map(domain => brands.find(b => extractDomain(b.url || '') === domain)).filter(canBuildWith);
+  if (matches.length) {
+    openPickerWith(matches, { skipUrlUpdate: true });
   } else {
     const url = new URL(window.location.href);
     url.searchParams.delete(PICK_PARAM);
@@ -111,16 +137,22 @@ export function restorePickerFromUrl() {
   }
 }
 
+function pushPickUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.set(PICK_PARAM, state.brands.slice(1).map(e => e.domain).join(','));
+  history.pushState(null, '', url.toString());
+}
+
 function resetState() {
   if (state.abort) state.abort.abort();
-  state.searched = null;
-  state.partner = null;
+  state.brands = [];
   state.selection = new Map();
+  state.sequence = 0;
   state.concepts = [];
   state.activeConcept = -1;
   state.conceptsStatus = 'idle';
   state.conceptsError = null;
-  state.filters = { searched: '', partner: '' };
+  state.filters = {};
   state.abort = null;
 }
 
@@ -133,36 +165,79 @@ async function ensureFullCatalog(brand) {
 }
 
 /* ---------------------------------------------------------------------------
+   Brands (columns)
+   --------------------------------------------------------------------------- */
+
+function entryFor(domain) {
+  return state.brands.find(e => e.domain === domain) || null;
+}
+
+function sellerEntry() {
+  return state.brands[0];
+}
+
+async function addBrand(brand) {
+  const domain = extractDomain(brand.url || '');
+  if (!domain || !canBuildWith(brand)) return;
+  const existing = entryFor(domain);
+  if (existing) {
+    scrollToColumn(domain);
+    return;
+  }
+  state.brands.push({ domain, brand });
+  pushPickUrl();
+  renderHeader();
+  renderColumns();
+  scrollToColumn(domain);
+  await ensureFullCatalog(brand);
+  renderColumn(domain);
+}
+
+function removeBrand(domain) {
+  if (domain === sellerEntry()?.domain) return;
+  state.brands = state.brands.filter(e => e.domain !== domain);
+  [...state.selection.keys()].filter(key => key.startsWith(`${domain}:`)).forEach(key => state.selection.delete(key));
+  // Concepts referenced that catalog; start those over.
+  state.concepts = [];
+  state.activeConcept = -1;
+  state.conceptsStatus = 'idle';
+  pushPickUrl();
+  renderAll();
+}
+
+// Brands from the results list that can be added: buildable and not already a column.
+function addableBrands() {
+  const taken = new Set(state.brands.map(e => e.domain));
+  return (getResults()?.brands || []).filter(b => canBuildWith(b) && !taken.has(extractDomain(b.url || '')));
+}
+
+/* ---------------------------------------------------------------------------
    Selection
    --------------------------------------------------------------------------- */
 
-function brandFor(side) {
-  return side === 'searched' ? state.searched : state.partner;
+function productKey(domain, id) {
+  return `${domain}:${id}`;
 }
 
-function productKey(side, id) {
-  return `${side}:${id}`;
+function findProduct(domain, id) {
+  return entryFor(domain)?.brand.catalog?.products?.find(p => String(p.id) === String(id)) || null;
 }
 
-function findProduct(side, id) {
-  return brandFor(side)?.catalog?.products?.find(p => String(p.id) === String(id)) || null;
-}
-
-function toggleProduct(side, id) {
-  const key = productKey(side, id);
+function toggleProduct(domain, id) {
+  const key = productKey(domain, id);
   if (state.selection.has(key)) {
     state.selection.delete(key);
   } else {
-    const product = findProduct(side, id);
+    const product = findProduct(domain, id);
     if (!product) return;
-    state.selection.set(key, { side, product });
+    state.selection.set(key, { domain, product, sequence: state.sequence++ });
   }
   if (state.activeConcept >= 0) syncActiveConceptToSelection();
   renderSelectionState();
 }
 
-function selectedBySide(side) {
-  return [...state.selection.values()].filter(s => s.side === side).map(s => s.product);
+function selectedFor(domain) {
+  return [...state.selection.values()].filter(s => s.domain === domain).map(s => s.product);
 }
 
 function selectionTotal() {
@@ -180,20 +255,20 @@ function clearSelection() {
    --------------------------------------------------------------------------- */
 
 function conceptSeparatePrice(concept) {
-  return [...concept.searched, ...concept.partner].reduce((sum, p) => sum + (p.price || 0), 0);
+  return concept.picks.reduce((sum, p) => sum + (p.product.price || 0), 0);
 }
 
 function conceptBundlePrice(concept) {
-  const separate = conceptSeparatePrice(concept);
-  return Math.round(separate * (1 - concept.discountPercent / 100) * 100) / 100;
+  return Math.round(conceptSeparatePrice(concept) * (1 - concept.discountPercent / 100) * 100) / 100;
 }
 
 function applyConcept(index) {
   const concept = state.concepts[index];
   if (!concept) return;
   state.selection = new Map();
-  concept.searched.forEach(p => state.selection.set(productKey('searched', p.id), { side: 'searched', product: p }));
-  concept.partner.forEach(p => state.selection.set(productKey('partner', p.id), { side: 'partner', product: p }));
+  concept.picks.forEach(({ domain, product }) => {
+    state.selection.set(productKey(domain, product.id), { domain, product, sequence: state.sequence++ });
+  });
   state.activeConcept = index;
   renderSelectionState();
 }
@@ -201,17 +276,17 @@ function applyConcept(index) {
 function syncActiveConceptToSelection() {
   const concept = state.concepts[state.activeConcept];
   if (!concept) return;
-  concept.searched = selectedBySide('searched');
-  concept.partner = selectedBySide('partner');
+  concept.picks = [...state.selection.values()].map(s => ({ domain: s.domain, product: s.product }));
   concept.edited = true;
 }
 
 function promptCatalog(brand) {
-  const products = [...brand.catalog.products]
+  return [...brand.catalog.products]
     .filter(p => p.image)
     .sort((a, b) => Number(b.available) - Number(a.available))
-    .slice(0, MAX_PRODUCTS_IN_PROMPT);
-  return products.map(p => `${p.id} | ${p.title} | ${p.price !== null && p.price !== undefined ? `$${p.price}` : 'price n/a'}${p.productType ? ` | ${p.productType}` : ''}`).join('\n');
+    .slice(0, MAX_PRODUCTS_IN_PROMPT)
+    .map(p => `${p.id} | ${p.title} | ${p.price !== null && p.price !== undefined ? `$${p.price}` : 'price n/a'}${p.productType ? ` | ${p.productType}` : ''}`)
+    .join('\n');
 }
 
 function promptProfile(brand) {
@@ -224,26 +299,23 @@ function promptProfile(brand) {
 }
 
 function buildConceptPrompt() {
-  const a = state.searched;
-  const b = state.partner;
-  return `Design ${CONCEPT_COUNT} co-branded product bundles that ${a.name} could sell on its own storefront, each pairing its products with products from ${b.name}.
+  const seller = sellerEntry();
+  const partners = state.brands.slice(1);
+  const partnerNames = partners.map(e => e.brand.name).join(', ');
+  const sections = state.brands.map((entry, i) => {
+    const role = i === 0 ? 'SELLER' : `PARTNER ${i}`;
+    return `=== ${role}: ${entry.brand.name} (key: ${entry.domain}) ===\n${promptProfile(entry.brand)}\n\n--- catalog (id | title | price | type) ---\n${promptCatalog(entry.brand)}`;
+  }).join('\n\n');
 
-=== BRAND A (the seller) ===
-${promptProfile(a)}
+  return `Design ${CONCEPT_COUNT} co-branded product bundles that ${seller.brand.name} could sell on its own storefront, pairing its products with products from ${partnerNames}.
 
-=== BRAND B (the partner) ===
-${promptProfile(b)}
-
-=== BRAND A CATALOG (id | title | price | type) ===
-${promptCatalog(a)}
-
-=== BRAND B CATALOG (id | title | price | type) ===
-${promptCatalog(b)}
+${sections}
 
 Rules:
-- Every bundle uses 1 to 3 products from EACH brand, 2 to 5 products total, chosen from the catalogs above by id.
+- Every bundle includes at least one product from the seller and at least one from a partner. With several partners, spread the bundles so each partner appears in at least one, and combine partners when the products genuinely belong together.
+- 1 to ${MAX_PICKS_PER_BRAND} products from any one brand, 2 to 6 products total, chosen from the catalogs above by id.
 - Bundles should feel like one purchase with a clear use occasion, not a random pairing. Avoid gift cards, subscriptions, and duplicate variants of the same item.
-- Make the four bundles distinct from each other: different occasions, price points, or customer moments.
+- Make the bundles distinct from each other: different occasions, price points, or customer moments.
 - discountPercent is the bundle discount versus buying separately, an integer from 10 to 25.
 
 Return JSON only:
@@ -253,8 +325,7 @@ Return JSON only:
       "name": "Bundle name, 5 words or fewer",
       "hook": "One customer-facing sentence selling the bundle",
       "why": "One sentence for the merchandiser on why these products belong together",
-      "brandAProductIds": ["id"],
-      "brandBProductIds": ["id"],
+      "products": { "<brand key>": ["id"] },
       "discountPercent": 15
     }
   ]
@@ -262,12 +333,13 @@ Return JSON only:
 }
 
 async function generateConcepts() {
-  if (!state.searched || !state.partner) return;
+  if (state.brands.length < 2) return;
   if (state.abort) state.abort.abort();
   state.abort = new AbortController();
   state.conceptsStatus = 'loading';
   state.conceptsError = null;
   renderConcepts();
+  renderTray();
 
   try {
     const response = await fetch(`${CONFIG.GEMINI_PROXY}?model=${encodeURIComponent(CONCEPT_MODEL)}`, {
@@ -285,10 +357,8 @@ async function generateConcepts() {
       throw new Error(err.error || `Request failed (${response.status})`);
     }
     const data = await response.json();
-    const parsed = parseJsonResponse(extractText(data));
-    const concepts = normalizeConcepts(parsed?.concepts);
+    const concepts = normalizeConcepts(parseJsonResponse(extractText(data))?.concepts);
     if (concepts.length === 0) throw new Error('No usable bundles came back. Try again.');
-
     state.concepts = concepts;
     state.activeConcept = -1;
     state.conceptsStatus = 'ready';
@@ -301,35 +371,38 @@ async function generateConcepts() {
     state.abort = null;
   }
   renderConcepts();
+  renderTray();
 }
 
-// Keeps only concepts whose ids resolve to real products, with at least one from each brand.
+// Keeps only concepts whose ids resolve to real products, with the seller and at least one partner.
 function normalizeConcepts(raw) {
   if (!Array.isArray(raw)) return [];
+  const seller = sellerEntry().domain;
   return raw.map(c => {
-    const searched = uniqueProducts('searched', c.brandAProductIds);
-    const partner = uniqueProducts('partner', c.brandBProductIds);
-    if (searched.length === 0 || partner.length === 0) return null;
-    const discount = Math.min(25, Math.max(10, parseInt(c.discountPercent, 10) || 15));
+    const byBrand = c.products && typeof c.products === 'object' ? c.products : {};
+    const picks = [];
+    for (const [domain, ids] of Object.entries(byBrand)) {
+      if (!entryFor(domain)) continue;
+      const seen = new Set();
+      for (const id of Array.isArray(ids) ? ids : []) {
+        const product = findProduct(domain, id);
+        if (!product || seen.has(product.id) || seen.size >= MAX_PICKS_PER_BRAND) continue;
+        seen.add(product.id);
+        picks.push({ domain, product });
+      }
+    }
+    const hasSeller = picks.some(p => p.domain === seller);
+    const hasPartner = picks.some(p => p.domain !== seller);
+    if (!hasSeller || !hasPartner) return null;
     return {
       name: String(c.name || 'Untitled bundle').trim(),
       hook: String(c.hook || '').trim(),
       why: String(c.why || '').trim(),
-      searched: searched.slice(0, 3),
-      partner: partner.slice(0, 3),
-      discountPercent: discount,
+      picks,
+      discountPercent: Math.min(25, Math.max(10, parseInt(c.discountPercent, 10) || 15)),
       edited: false
     };
   }).filter(Boolean).slice(0, CONCEPT_COUNT + 1);
-}
-
-function uniqueProducts(side, ids) {
-  const seen = new Set();
-  return (Array.isArray(ids) ? ids : []).map(id => findProduct(side, id)).filter(p => {
-    if (!p || seen.has(p.id)) return false;
-    seen.add(p.id);
-    return true;
-  });
 }
 
 /* ---------------------------------------------------------------------------
@@ -345,26 +418,28 @@ function renderAll() {
   renderHeader();
   renderConcepts();
   renderColumns();
-  renderFooter();
+  renderTray();
 }
 
 function renderSelectionState() {
   dom.columns.querySelectorAll('.picker-product').forEach(tile => {
-    tile.classList.toggle('is-selected', state.selection.has(tile.dataset.key));
+    const selected = state.selection.has(tile.dataset.key);
+    tile.classList.toggle('is-selected', selected);
+    tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
   });
-  renderFooter();
+  renderTray();
   renderConcepts();
 }
 
 function renderHeader() {
-  const a = state.searched;
-  const b = state.partner;
+  const [seller, ...partners] = state.brands;
+  const title = state.brands.map(e => escapeHtml(e.brand.name)).join(' &times; ');
   dom.header.innerHTML = `
     <div class="picker-title">
-      ${renderFaviconDuo(extractDomain(a.url || ''), extractDomain(b.url || ''))}
+      ${renderFaviconDuo(seller.domain, partners[0]?.domain || seller.domain)}
       <div class="picker-title-labels">
-        <h2 class="results-group-title">${escapeHtml(a.name)} &times; ${escapeHtml(b.name)}</h2>
-        <p class="results-group-title text-content-tertiary">Pick products from both catalogs, or let AI suggest a few bundles to start from.</p>
+        <h2 class="results-group-title">${title}</h2>
+        <p class="results-group-title text-content-tertiary">Pick products across the catalogs, or let AI suggest a few bundles to start from.</p>
       </div>
     </div>
   `;
@@ -384,7 +459,7 @@ function renderConcepts() {
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
   } else {
     body = `<div class="picker-concepts-empty">
-      <p>Four bundle ideas built from both catalogs, each with a suggested price. Click one to load it into the picker.</p>
+      <p>Four bundle ideas built from the catalogs, each with a suggested price. Click one to load it into the picker.</p>
       <button type="button" class="btn btn--md btn--primary" data-action="suggest">Suggest bundles</button>
     </div>`;
   }
@@ -405,11 +480,16 @@ function renderConcepts() {
 }
 
 function renderConceptCard(concept, index) {
-  const products = [...concept.searched, ...concept.partner];
+  const products = concept.picks.map(p => p.product);
   const separate = conceptSeparatePrice(concept);
   const bundle = conceptBundlePrice(concept);
   const thumbs = products.slice(0, CONCEPT_THUMBS).map(p => `<img src="${catalogThumbUrl(p.image, 120)}" alt="" title="${escapeHtml(p.title)}">`).join('');
   const more = products.length > CONCEPT_THUMBS ? `<span class="picker-concept-more">+${products.length - CONCEPT_THUMBS}</span>` : '';
+  const split = state.brands
+    .map(e => ({ name: e.brand.name, n: concept.picks.filter(p => p.domain === e.domain).length }))
+    .filter(x => x.n > 0)
+    .map(x => `${x.n} ${escapeHtml(x.name)}`)
+    .join(' · ');
   const active = index === state.activeConcept;
   return `
     <button type="button" class="picker-concept${active ? ' is-active' : ''}" data-action="apply-concept" data-index="${index}">
@@ -420,72 +500,248 @@ function renderConceptCard(concept, index) {
         <strong>${money(bundle)}</strong>
         <span>${money(separate)} separately · save ${concept.discountPercent}%</span>
       </div>
-      <div class="picker-concept-meta">${concept.searched.length} from ${escapeHtml(state.searched.name)} · ${concept.partner.length} from ${escapeHtml(state.partner.name)}</div>
+      <div class="picker-concept-meta">${split}</div>
     </button>
   `;
 }
 
 function renderColumns() {
-  dom.columns.innerHTML = renderColumn('searched') + renderColumn('partner');
+  dom.columns.innerHTML = state.brands.map(e => renderColumnMarkup(e.domain)).join('') + renderAddColumn();
+  updateRailControls();
 }
 
-function renderColumn(side) {
-  const brand = brandFor(side);
+function renderColumn(domain) {
+  const existing = dom.columns.querySelector(`.picker-column[data-domain="${domain}"]`);
+  if (!existing) return;
+  existing.outerHTML = renderColumnMarkup(domain);
+  updateRailControls();
+}
+
+function renderColumnMarkup(domain) {
+  const entry = entryFor(domain);
+  if (!entry) return '';
+  const { brand } = entry;
   const catalog = brand.catalog;
-  const domain = extractDomain(brand.url || '');
-  const filter = state.filters[side].trim().toLowerCase();
+  const isSeller = domain === sellerEntry().domain;
+  const filter = (state.filters[domain] || '').trim().toLowerCase();
   const products = catalog.products.filter(p => !filter || p.title.toLowerCase().includes(filter));
   const loadingMore = catalog.status === 'shopify' && (catalog.truncated || catalog.products.length < catalog.count);
-
-  const tiles = products.map(p => {
-    const key = productKey(side, p.id);
-    const price = p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies';
-    const img = p.image ? `<img src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
-    return `
-      <button type="button" class="picker-product${state.selection.has(key) ? ' is-selected' : ''}" data-action="toggle" data-side="${side}" data-id="${escapeHtml(String(p.id))}" data-key="${key}" title="${escapeHtml(p.title)}">
-        <div class="picker-product-image">${img}<span class="picker-product-check">${icon('check-checkmark')}</span></div>
-        <div class="picker-product-title">${escapeHtml(p.title)}</div>
-        <div class="picker-product-price">${price}</div>
-      </button>`;
-  }).join('');
+  const removable = !isSeller && state.brands.length > 2;
 
   return `
-    <div class="picker-column" data-side="${side}">
+    <div class="picker-column" data-domain="${escapeHtml(domain)}">
       <div class="picker-column-head">
         <img class="picker-column-favicon" src="${getFaviconUrl(domain)}" alt="">
         <div class="picker-column-labels">
           <div class="picker-column-name">${escapeHtml(brand.name)}</div>
           <div class="picker-column-count">${catalog.count} products${loadingMore ? ' · loading the rest' : ''}</div>
         </div>
-        <input type="search" class="picker-filter" data-side="${side}" placeholder="Filter" value="${escapeHtml(state.filters[side])}" aria-label="Filter ${escapeHtml(brand.name)} products">
+        <input type="search" class="picker-filter" data-domain="${escapeHtml(domain)}" placeholder="Filter" value="${escapeHtml(state.filters[domain] || '')}" aria-label="Filter ${escapeHtml(brand.name)} products">
+        ${removable ? `<button type="button" class="picker-column-remove" data-action="remove-brand" data-domain="${escapeHtml(domain)}" aria-label="Remove ${escapeHtml(brand.name)}">${icon('cross-large', { size: 16 })}</button>` : ''}
       </div>
-      <div class="picker-grid">${tiles || '<p class="picker-grid-empty">No products match.</p>'}</div>
+      <div class="picker-grid">${products.map(p => renderTile(domain, p)).join('') || '<p class="picker-grid-empty">No products match.</p>'}</div>
     </div>
   `;
 }
 
-function renderFooter() {
-  const items = [...state.selection.values()];
-  const count = items.length;
-  const thumbs = items.slice(0, FOOTER_THUMBS).map(s => `<img src="${catalogThumbUrl(s.product.image, 96)}" alt="" title="${escapeHtml(s.product.title)}">`).join('');
-  const more = count > FOOTER_THUMBS ? `<span class="picker-footer-more">+${count - FOOTER_THUMBS}</span>` : '';
-  const a = selectedBySide('searched').length;
-  const b = selectedBySide('partner').length;
-  const summary = count === 0
-    ? 'Nothing selected yet'
-    : `${count} ${count === 1 ? 'product' : 'products'} · ${money(selectionTotal())} · ${a} ${escapeHtml(state.searched.name)}, ${b} ${escapeHtml(state.partner.name)}`;
+// The catalog picker's flat tile: the artwork is the tile, and the add button is where selection
+// is expressed (plus morphs to check). The whole tile toggles, since there is nothing to open.
+function renderTile(domain, p) {
+  const key = productKey(domain, p.id);
+  const selected = state.selection.has(key);
+  const price = p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies';
+  const img = p.image ? `<img src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
+  return `
+    <div class="picker-product${selected ? ' is-selected' : ''}" role="button" tabindex="0" aria-pressed="${selected}" data-action="toggle" data-domain="${escapeHtml(domain)}" data-id="${escapeHtml(String(p.id))}" data-key="${escapeHtml(key)}" title="${escapeHtml(p.title)}">
+      <div class="picker-product-art">
+        ${img}
+        <span class="picker-product-add" aria-hidden="true">${icon('plus-to-check')}</span>
+      </div>
+      <div class="picker-product-caption">
+        <p class="picker-product-title">${escapeHtml(p.title)}</p>
+        <p class="picker-product-price">${price}</p>
+      </div>
+    </div>`;
+}
 
-  dom.footer.innerHTML = `
-    <div class="picker-footer-selection">
-      <div class="picker-footer-thumbs">${thumbs}${more}</div>
-      <div class="picker-footer-summary">${summary}</div>
+function renderAddColumn() {
+  return `
+    <div class="picker-add-column">
+      <button type="button" class="picker-add-btn" data-action="add-brand" aria-label="Add a brand" aria-haspopup="true">${icon('plus-large', { size: 20 })}</button>
+      <span class="picker-add-label">Add brand</span>
     </div>
-    <div class="picker-footer-actions">
-      <button type="button" class="btn btn--md btn--secondary" data-action="clear"${count === 0 ? ' disabled' : ''}>Clear</button>
+  `;
+}
+
+function renderTray() {
+  const picks = [...state.selection.values()].sort((a, b) => a.sequence - b.sequence);
+  const count = picks.length;
+  dom.tray.classList.toggle('is-visible', count > 0);
+  dom.tray.setAttribute('aria-hidden', count === 0 ? 'true' : 'false');
+  dom.section.classList.toggle('has-tray', count > 0);
+  if (count === 0) {
+    dom.tray.innerHTML = '';
+    return;
+  }
+
+  const split = state.brands
+    .map(e => ({ name: e.brand.name, n: selectedFor(e.domain).length }))
+    .filter(x => x.n > 0)
+    .map(x => `${x.n} ${escapeHtml(x.name)}`)
+    .join(', ');
+  const thumbs = picks.slice(-TRAY_THUMBS).map(pick => {
+    const tilt = THUMB_TILTS[pick.sequence % THUMB_TILTS.length];
+    return `<div class="picker-tray-thumb" data-key="${escapeHtml(productKey(pick.domain, pick.product.id))}" style="transform: translateX(${tilt.shift}px) rotate(${tilt.rotate}deg)"><img src="${catalogThumbUrl(pick.product.image, 96)}" alt="" title="${escapeHtml(pick.product.title)}"></div>`;
+  }).join('');
+
+  dom.tray.innerHTML = `
+    <div class="picker-tray-pill">
+      <div class="picker-tray-thumbs">${thumbs}</div>
+      <div class="picker-tray-summary">
+        <strong>${count} ${count === 1 ? 'product' : 'products'} · ${money(selectionTotal())}</strong>
+        <span>${split}</span>
+      </div>
+      <button type="button" class="btn btn--md btn--secondary" data-action="clear">Clear</button>
       <button type="button" class="btn btn--md btn--primary" data-action="suggest"${state.conceptsStatus === 'loading' ? ' disabled' : ''}>Suggest bundles</button>
     </div>
   `;
-  dom.footer.classList.toggle('has-selection', count > 0);
+}
+
+/* ---------------------------------------------------------------------------
+   Rail: horizontal scroll with snap, arrows, and keyboard paging
+   --------------------------------------------------------------------------- */
+
+function columnStep() {
+  const column = dom.columns.querySelector('.picker-column');
+  if (!column) return 400;
+  const gap = parseFloat(getComputedStyle(dom.columns).columnGap || getComputedStyle(dom.columns).gap) || 16;
+  return column.getBoundingClientRect().width + gap;
+}
+
+function scrollRail(direction) {
+  dom.columns.scrollBy({ left: direction * columnStep(), behavior: 'smooth' });
+}
+
+function scrollToColumn(domain) {
+  const column = dom.columns.querySelector(`.picker-column[data-domain="${domain}"]`);
+  column?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+}
+
+function updateRailControls() {
+  if (!dom.rail || !dom.columns) return;
+  const track = dom.columns;
+  const overflow = track.scrollWidth > track.clientWidth + 2;
+  dom.rail.classList.toggle('has-overflow', overflow);
+  const prev = dom.rail.querySelector('[data-action="rail-prev"]');
+  const next = dom.rail.querySelector('[data-action="rail-next"]');
+  if (prev) prev.disabled = track.scrollLeft <= 2;
+  if (next) next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+}
+
+function onRailKeydown(e) {
+  if (e.target.closest('input')) return;
+  if (e.key === 'ArrowRight') { scrollRail(1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { scrollRail(-1); e.preventDefault(); }
+  else if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.picker-product')) {
+    const tile = e.target.closest('.picker-product');
+    toggleProduct(tile.dataset.domain, tile.dataset.id);
+    e.preventDefault();
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Add-brand popover and URL dialog
+   --------------------------------------------------------------------------- */
+
+function showAddPopover(anchor) {
+  const brands = addableBrands();
+  const rows = brands.map(b => {
+    const domain = extractDomain(b.url || '');
+    return `
+      <button type="button" class="picker-add-row" data-action="add-result-brand" data-domain="${escapeHtml(domain)}">
+        <img class="picker-add-row-favicon" src="${getFaviconUrl(domain)}" alt="">
+        <span class="picker-add-row-labels">
+          <span class="picker-add-row-name">${escapeHtml(b.name)}</span>
+          <span class="picker-add-row-meta">${b.catalog.count} products</span>
+        </span>
+      </button>`;
+  }).join('');
+
+  dom.popover.innerHTML = `
+    <button type="button" class="picker-add-row picker-add-row--url" data-action="add-url">
+      <span class="picker-add-row-icon">${icon('plus-large', { size: 16 })}</span>
+      <span class="picker-add-row-labels"><span class="picker-add-row-name">Add a brand by URL</span></span>
+    </button>
+    ${rows ? `<div class="picker-add-divider"></div><div class="picker-add-list">${rows}</div>` : '<p class="picker-add-empty">Every recommended brand with a catalog is already here.</p>'}
+  `;
+
+  // Anchor to the add button, kept inside the section.
+  const sectionRect = dom.section.getBoundingClientRect();
+  const rect = anchor.getBoundingClientRect();
+  const width = 300;
+  const left = Math.max(0, Math.min(rect.right - sectionRect.left - width, sectionRect.width - width));
+  dom.popover.style.top = `${rect.bottom - sectionRect.top + 8}px`;
+  dom.popover.style.left = `${left}px`;
+  dom.popover.classList.remove('hidden');
+}
+
+function hideAddPopover() {
+  dom.popover?.classList.add('hidden');
+}
+
+function showUrlDialog() {
+  hideAddPopover();
+  dom.dialog.classList.remove('hidden');
+  dom.dialog.querySelector('.picker-url-error').textContent = '';
+  const input = dom.dialog.querySelector('input');
+  input.value = '';
+  input.focus();
+}
+
+function hideUrlDialog() {
+  dom.dialog?.classList.add('hidden');
+}
+
+async function onUrlSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const input = form.querySelector('input');
+  const button = form.querySelector('button[type="submit"]');
+  const error = form.querySelector('.picker-url-error');
+  const domain = extractDomain(input.value.trim());
+  if (!domain) {
+    error.textContent = 'Enter a brand website, like graza.co.';
+    return;
+  }
+  if (entryFor(domain)) {
+    hideUrlDialog();
+    scrollToColumn(domain);
+    return;
+  }
+  button.disabled = true;
+  button.textContent = 'Fetching catalog';
+  error.textContent = '';
+  try {
+    const catalog = await fetchCatalog(domain);
+    if (!catalog.products.length) {
+      error.textContent = catalog.status === 'error'
+        ? `Couldn't reach ${domain}.`
+        : `${domain} has no public catalog to pick from.`;
+      return;
+    }
+    const known = (getResults()?.brands || []).find(b => extractDomain(b.url || '') === domain);
+    const brand = known || { name: brandNameFromDomain(domain), url: `https://${domain}`, catalog };
+    brand.catalog = catalog;
+    hideUrlDialog();
+    await addBrand(brand);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Add brand';
+  }
+}
+
+function brandNameFromDomain(domain) {
+  return domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 /* ---------------------------------------------------------------------------
@@ -496,8 +752,7 @@ function onSectionClick(e) {
   const target = e.target.closest('[data-action]');
   if (!target) return;
   switch (target.dataset.action) {
-    case 'close': closePicker(); break;
-    case 'toggle': toggleProduct(target.dataset.side, target.dataset.id); break;
+    case 'toggle': toggleProduct(target.dataset.domain, target.dataset.id); break;
     case 'clear': clearSelection(); break;
     case 'suggest': generateConcepts(); break;
     case 'cancel':
@@ -505,21 +760,35 @@ function onSectionClick(e) {
       state.abort = null;
       state.conceptsStatus = state.concepts.length ? 'ready' : 'idle';
       renderConcepts();
-      renderFooter();
+      renderTray();
       break;
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
+    case 'rail-prev': scrollRail(-1); break;
+    case 'rail-next': scrollRail(1); break;
+    case 'add-brand':
+      e.stopPropagation();
+      if (dom.popover.classList.contains('hidden')) showAddPopover(target); else hideAddPopover();
+      break;
+    case 'add-result-brand': {
+      const brand = (getResults()?.brands || []).find(b => extractDomain(b.url || '') === target.dataset.domain);
+      hideAddPopover();
+      if (brand) addBrand(brand);
+      break;
+    }
+    case 'add-url': showUrlDialog(); break;
+    case 'remove-brand': removeBrand(target.dataset.domain); break;
   }
 }
 
 function onSectionInput(e) {
   const input = e.target.closest('.picker-filter');
   if (!input) return;
-  const side = input.dataset.side;
-  state.filters[side] = input.value;
-  const column = dom.columns.querySelector(`.picker-column[data-side="${side}"]`);
+  const domain = input.dataset.domain;
+  state.filters[domain] = input.value;
+  const column = dom.columns.querySelector(`.picker-column[data-domain="${domain}"]`);
   const grid = column?.querySelector('.picker-grid');
   if (!grid) return;
   const fresh = document.createElement('div');
-  fresh.innerHTML = renderColumn(side);
+  fresh.innerHTML = renderColumnMarkup(domain);
   grid.innerHTML = fresh.querySelector('.picker-grid').innerHTML;
 }

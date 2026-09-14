@@ -4046,17 +4046,24 @@ position: absolute;
 }
 
 /* --------------------------------------------------------------------------
-   Bundle picker: two catalogs side by side, concepts above, selection below
+   Bundle picker: brand catalogs on a snap rail, concepts above, selection tray below.
+   Tiles and tray follow the main app's collab-builder catalog picker (OL-3571).
    -------------------------------------------------------------------------- */
 .picker-section {
+  --picker-column-width: 440px;
   padding-top: 72px;
-  padding-bottom: 120px; /* room for the sticky footer */
-  max-width: 1154px;
+  padding-bottom: 72px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 32px;
+  position: relative;
+}
+
+.picker-section.has-tray {
+  padding-bottom: 140px; /* room for the floating tray */
 }
 
 .picker-header {
@@ -4162,8 +4169,7 @@ position: absolute;
   border: 0.5px solid var(--content-border-neutral);
 }
 
-.picker-concept-more,
-.picker-footer-more {
+.picker-concept-more {
   font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--content-secondary);
@@ -4212,15 +4218,75 @@ position: absolute;
   color: var(--content-tertiary);
 }
 
-/* Columns */
+/* Rail: one column per brand, snap-scrolled, with arrows once it overflows */
+.picker-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.picker-rail-controls {
+  display: none;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.picker-rail.has-overflow .picker-rail-controls {
+  display: flex;
+}
+
+.picker-rail-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.picker-rail-btn:hover {
+  background: var(--content-background-overlay);
+}
+
+.picker-rail-btn[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .picker-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  scrollbar-width: none;
+  /* Open room for the columns' shadows without moving the track */
+  padding-block: 8px;
+  margin-block: -8px;
+  outline: none;
+}
+
+.picker-columns::-webkit-scrollbar {
+  display: none;
+}
+
+.picker-columns:focus-visible {
+  box-shadow: 0 0 0 2px var(--content-primary);
+  border-radius: 28px;
 }
 
 .picker-column {
+  flex: 0 0 min(var(--picker-column-width), 85vw);
+  scroll-snap-align: start;
   background: var(--content-background-elevated);
   border: 0.5px solid var(--content-border-neutral);
   border-radius: 28px;
@@ -4267,7 +4333,7 @@ position: absolute;
 }
 
 .picker-filter {
-  width: 140px;
+  width: 120px;
   height: 36px;
   padding: 0 14px;
   border-radius: var(--rounded-full);
@@ -4283,11 +4349,30 @@ position: absolute;
   border-color: var(--content-primary);
 }
 
+.picker-column-remove {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--content-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.picker-column-remove:hover {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+}
+
 .picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 8px;
-  padding: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  padding: 16px;
   max-height: 62vh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4301,156 +4386,393 @@ position: absolute;
   font-size: var(--font-size-sm);
 }
 
+/* Tile: the artwork is the tile; the add control is the only place selection is expressed */
 .picker-product {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 16px;
-  border: 1px solid transparent;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--content-primary);
+  outline: none;
+}
+
+.picker-product-art {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--content-background-base);
+  box-shadow: inset 0 0 0 0.5px var(--content-border-neutral);
+}
+
+.picker-product-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.picker-product:hover .picker-product-art img {
+  transform: scale(1.04);
+}
+
+.picker-product:focus-visible .picker-product-art {
+  box-shadow: 0 0 0 2px var(--content-primary);
+}
+
+/* The app's elevated icon button: 40px circle, white, hairline ring, 20px glyph */
+.picker-product-add {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  outline: 1px solid var(--content-border-neutral);
+  outline-offset: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, outline-color 0.2s ease;
+}
+
+.picker-product-add svg {
+  width: 20px;
+  height: 20px;
+  --icon-rendered: 20;
+}
+
+.picker-product:hover .picker-product-add {
+  background: var(--content-background-base);
+}
+
+.picker-product.is-selected .picker-product-add,
+.picker-product.is-selected:hover .picker-product-add {
+  background: var(--brand-secondary-moola);
+  color: var(--white);
+  outline-color: transparent;
+}
+
+/* plus -> check morph (from the app's animations.css), keyed off the selected tile */
+.plus-check__plus {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1) 150ms, opacity 120ms linear 150ms;
+}
+
+.plus-check__check {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset 150ms ease-in;
+}
+
+.picker-product.is-selected .plus-check__plus {
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 150ms cubic-bezier(0.55, 0, 1, 0.45), opacity 110ms linear;
+}
+
+.picker-product.is-selected .plus-check__check {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 340ms ease-out 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plus-check__plus,
+  .plus-check__check {
+    transition: none;
+  }
+}
+
+.picker-product-caption {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picker-product-title,
+.picker-product-price {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.picker-product-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.picker-product-price {
+  color: var(--content-secondary);
+}
+
+/* The skinny add column at the end of the rail */
+.picker-add-column {
+  flex: 0 0 96px;
+  scroll-snap-align: end;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 28px;
+  border: 1px dashed var(--content-border-neutral);
+  min-height: 320px;
+  color: var(--content-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.picker-add-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  outline: 1px solid var(--content-border-neutral);
+  outline-offset: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.picker-add-btn:hover {
+  background: var(--content-background-base);
+  transform: scale(1.05);
+}
+
+/* Add-brand popover */
+.picker-add-popover {
+  position: absolute;
+  z-index: var(--z-popover);
+  width: 300px;
+  padding: 8px;
+  border-radius: 20px;
+  background: var(--content-background-elevated);
+  border: 0.5px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideIn 0.2s ease;
+}
+
+.picker-add-popover.hidden {
+  display: none;
+}
+
+.picker-add-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 12px;
   background: transparent;
   text-align: left;
   cursor: pointer;
   color: var(--content-primary);
   font-family: var(--font-family);
-  transition: background var(--transition-base), border-color var(--transition-base);
 }
 
-.picker-product:hover {
+.picker-add-row:hover {
   background: var(--content-background-base);
 }
 
-.picker-product.is-selected {
-  border-color: var(--content-primary);
+.picker-add-row-favicon,
+.picker-add-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
   background: var(--content-background-base);
-}
-
-.picker-product-image {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--content-background-base);
-}
-
-.picker-product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.picker-product-check {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--content-primary);
-  color: var(--content-background-elevated);
-  display: flex;
+  object-fit: contain;
+  padding: 4px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.picker-product-check svg {
-  width: 14px;
-  --icon-rendered: 14;
-  height: 14px;
-}
-
-.picker-product.is-selected .picker-product-check {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.picker-product-title {
-  font-size: var(--font-size-xs);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.6em;
-}
-
-.picker-product-price {
-  font-size: var(--font-size-xs);
-  color: var(--content-secondary);
-}
-
-/* Sticky selection footer */
-.picker-footer {
-  position: fixed;
-  left: 50%;
-  bottom: 20px;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 900px;
+.picker-add-row-labels {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 12px 12px 16px;
-  border-radius: var(--rounded-full);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 0.5px solid var(--content-border-neutral);
-  box-shadow: var(--shadow-md);
-  z-index: var(--z-dropdown);
-}
-
-.picker-section.hidden .picker-footer {
-  display: none;
-}
-
-.picker-footer-selection {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   min-width: 0;
 }
 
-.picker-footer-thumbs {
-  display: flex;
-  align-items: center;
-}
-
-.picker-footer-thumbs img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--content-background-elevated);
-  background: var(--content-background-base);
-  margin-left: -10px;
-}
-
-.picker-footer-thumbs img:first-child {
-  margin-left: 0;
-}
-
-.picker-footer-summary {
+.picker-add-row-name {
   font-size: var(--font-size-sm);
-  color: var(--content-secondary);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.picker-footer.has-selection .picker-footer-summary {
+.picker-add-row-meta {
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+}
+
+.picker-add-divider {
+  height: 0.5px;
+  background: var(--content-border-neutral);
+  margin: 6px 8px;
+}
+
+.picker-add-empty {
+  margin: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+}
+
+/* URL dialog */
+.picker-url-dialog.hidden {
+  display: none;
+}
+
+.picker-url-modal {
+  max-width: 420px;
+  padding: 24px;
+  gap: 16px;
+}
+
+.picker-url-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picker-url-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--content-secondary);
+}
+
+.picker-url-field input {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--rounded-full);
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
   color: var(--content-primary);
 }
 
-.picker-footer-actions {
+.picker-url-field input:focus {
+  outline: none;
+  border-color: var(--content-primary);
+}
+
+.picker-url-error {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: var(--font-size-sm);
+  color: var(--brand-secondary-spice);
+}
+
+.picker-url-actions {
   display: flex;
-  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Floating selection tray (the app's picker tray): thumb pile, count, actions */
+.picker-tray {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 24px);
+  width: calc(100% - 32px);
+  max-width: 640px;
+  z-index: var(--z-dropdown);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.picker-tray.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.picker-tray-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 20px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  border: 1px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-md);
+}
+
+.picker-tray-thumbs {
+  position: relative;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
+}
+
+.picker-tray-thumb {
+  position: absolute;
+  inset: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.picker-tray-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.picker-tray-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.picker-tray-summary strong {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--content-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-tray-summary span {
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn[disabled] {
@@ -4460,12 +4782,8 @@ position: absolute;
 }
 
 @media (max-width: 900px) {
-  .picker-columns {
-    grid-template-columns: 1fr;
-  }
-
-  .picker-grid {
-    max-height: 50vh;
+  .picker-section {
+    --picker-column-width: 85vw;
   }
 
   .picker-concepts-empty {
@@ -4473,13 +4791,12 @@ position: absolute;
     align-items: flex-start;
   }
 
-  .picker-footer {
-    flex-direction: column;
-    align-items: stretch;
+  .picker-tray-pill {
+    flex-wrap: wrap;
     border-radius: 28px;
   }
 
-  .picker-footer-actions .btn {
+  .picker-tray-pill .btn {
     flex: 1;
   }
 }
