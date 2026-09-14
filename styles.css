@@ -2030,8 +2030,7 @@ position: absolute;
    -------------------------------------------------------------------------- */
 .result-card {
   background: var(--content-background-elevated);
-  border-radius: var(--rounded-2xl);
-  border-radius: 36px;
+  border-radius: 32px;
   border: 0.5px solid var(--content-border-neutral);
   box-shadow: var(--shadow-sm);
   cursor: pointer;

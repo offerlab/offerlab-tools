@@ -644,7 +644,7 @@ function renderCatalogThumbs(catalog) {
 
 // The chinstrap tucked under the card: source on the left, product count on the right.
 // Only while the catalog is loading or once it has products; a brand without one gets no strip.
-function renderCatalogChinstrap(catalog, radius = 36) {
+function renderCatalogChinstrap(catalog, radius = 32) {
   let source;
   let count = '';
   if (!catalog) {
