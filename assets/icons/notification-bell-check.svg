@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+  <path class="bell-check__bell" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.36 9.387a7.716 7.716 0 0 1 15.28 0l.627 4.444a3 3 0 0 1-2.97 3.419H6.703a3 3 0 0 1-2.97-3.42zM16 17.25a4 4 0 0 1-8 0"/>
+  <path class="bell-check__check" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m9 10.75 2 2 4-4"/>
+</svg>

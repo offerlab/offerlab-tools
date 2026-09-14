@@ -6,6 +6,7 @@ import {
   elements, CONFIG, getResults, extractDomain, getFaviconUrl, renderFaviconDuo, escapeHtml,
   parseJsonResponse, extractText, fetchCatalog, catalogThumbUrl, showSection
 } from './app.js';
+import { icon } from './icons.js';
 
 const PICK_PARAM = 'pick';
 const CONCEPT_MODEL = 'gemini-2.5-flash';
@@ -356,7 +357,7 @@ function renderHeader() {
   const b = state.partner;
   dom.header.innerHTML = `
     <button type="button" class="btn btn--md btn--secondary picker-back" data-action="close">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      ${icon('arrow-left')}
       Back to results
     </button>
     <div class="picker-title">
@@ -442,7 +443,7 @@ function renderColumn(side) {
     const img = p.image ? `<img src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
     return `
       <button type="button" class="picker-product${state.selection.has(key) ? ' is-selected' : ''}" data-action="toggle" data-side="${side}" data-id="${escapeHtml(String(p.id))}" data-key="${key}" title="${escapeHtml(p.title)}">
-        <div class="picker-product-image">${img}<span class="picker-product-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="picker-product-image">${img}<span class="picker-product-check">${icon('check-checkmark')}</span></div>
         <div class="picker-product-title">${escapeHtml(p.title)}</div>
         <div class="picker-product-price">${price}</div>
       </button>`;

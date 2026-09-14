@@ -5,6 +5,7 @@
 import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
 import { initPicker, openPicker, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
+import { icon, hydrateIcons } from './icons.js';
 
 const CONFIG = {
   // All API keys are now server-side for security
@@ -531,9 +532,7 @@ function renderSearchHistory(targetList = null) {
         >
         <span class="history-item-url">${item.domain}</span>
         <button type="button" class="history-item-remove-btn" data-url="${item.domain}" aria-label="Remove ${item.domain} from history">
-          <svg class="history-item-remove-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
+          ${icon('cross-large', { class: 'history-item-remove-icon' })}
         </button>
       </li>
     `).join('');
@@ -741,11 +740,7 @@ function createSearchedBrandCard(searchedBrand) {
       </div>
       <div class="searched-brand-card-external-wrapper">
         <span class="icon-button icon-button--medium searched-brand-card-external" aria-label="Open in new tab">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
+          ${icon('square-arrow-top-right-2')}
         </span>
       </div>
     </div>
@@ -781,7 +776,7 @@ function createBrandCard(brand, index) {
           <div class="card-url">${domain}</div>
         </div>
         ${showMenu ? `<button class="card-menu-btn" aria-label="More options">
-          <svg class="card-menu-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M2 12a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Z" clip-rule="evenodd"/></svg>
+          ${icon('dot-grid-1x3-horizontal', { class: 'card-menu-icon' })}
         </button>` : ''}
       </div>
       <div class="card-catalog-slot" data-catalog-domain="${domain}">${renderCatalogBlock(brand.catalog)}</div>
@@ -794,11 +789,7 @@ function createBrandCard(brand, index) {
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
         </div>
         <button type="button" class="btn btn--md btn--secondary btn--icon visit-btn has-tooltip" data-url="${fullUrl}" aria-label="Visit ${escapeHtml(brand.name)}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
+          ${icon('square-arrow-top-right-2')}
           <span class="tooltip" aria-hidden="true">Visit ${escapeHtml(brand.name)}</span>
         </button>
       </div>
@@ -1262,7 +1253,7 @@ function renderPitchInitialState(brand1, brand2) {
       </div>
       <p class="pitch-description">AI will research both brands, recommend the best outreach channel and contacts, draft personalized messages in your voice, and surface noteworthy details for conversation starters.</p>
       <button type="button" class="pitch-generate-btn" id="pitchGenerateBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        ${icon('ai-sparkles-two-filled', { size: 18 })}
         Generate Pitch
       </button>
     </div>
@@ -1280,10 +1271,10 @@ function renderQuickLinksCard(searchedBrand, partnerBrand) {
     { name: partnerBrand?.name || 'Brand 2', url: partnerBrand?.url || '', social: partnerBrand?.social || {} }
   ];
 
-  const websiteIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="square" stroke-width="2" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c-2.21 0-4-4.03-4-9s1.79-9 4-9m0 18c2.21 0 4-4.03 4-9s-1.79-9-4-9m0 0a9 9 0 0 0-9 9"/></svg>`;
-  const instagramIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.858 2.07c-1.064.05-1.79.22-2.425.47-.658.256-1.215.6-1.77 1.156a4.898 4.898 0 0 0-1.15 1.772c-.246.637-.413 1.364-.46 2.429-.047 1.064-.057 1.407-.052 4.122.005 2.716.017 3.056.069 4.123.05 1.064.22 1.79.47 2.425.256.658.6 1.215 1.156 1.77a4.892 4.892 0 0 0 1.774 1.15c.636.245 1.363.413 2.428.46 1.064.046 1.407.057 4.122.052 2.715-.005 3.056-.017 4.123-.068 1.067-.05 1.79-.221 2.425-.47a4.9 4.9 0 0 0 1.769-1.156 4.9 4.9 0 0 0 1.15-1.774c.246-.636.413-1.363.46-2.427.046-1.067.057-1.408.052-4.123-.005-2.715-.018-3.056-.068-4.122-.05-1.067-.22-1.79-.47-2.427a4.91 4.91 0 0 0-1.156-1.769 4.88 4.88 0 0 0-1.773-1.15c-.637-.245-1.364-.413-2.428-.46-1.065-.045-1.407-.057-4.123-.052-2.716.005-3.056.017-4.123.069Zm.117 18.078c-.975-.043-1.504-.205-1.857-.34-.467-.18-.8-.398-1.152-.746a3.08 3.08 0 0 1-.75-1.149c-.137-.352-.302-.881-.347-1.856-.05-1.054-.06-1.37-.066-4.04-.006-2.67.004-2.986.05-4.04.042-.974.205-1.504.34-1.857.18-.468.397-.8.746-1.151a3.087 3.087 0 0 1 1.149-.75c.353-.138.881-.302 1.856-.348 1.054-.05 1.37-.06 4.04-.066 2.67-.006 2.986.004 4.041.05.974.043 1.505.204 1.857.34.467.18.8.397 1.151.746.352.35.568.682.75 1.15.138.35.302.88.348 1.855.05 1.054.062 1.37.066 4.04.005 2.669-.004 2.986-.05 4.04-.043.975-.205 1.504-.34 1.857a3.1 3.1 0 0 1-.747 1.152c-.349.35-.681.567-1.148.75-.352.137-.882.301-1.855.347-1.055.05-1.371.06-4.041.066-2.671.006-2.986-.005-4.04-.05Zm8.153-13.493a1.2 1.2 0 1 0 2.398-.003 1.2 1.2 0 0 0-2.398.003ZM6.865 12.01a5.134 5.134 0 1 0 10.27-.02 5.134 5.134 0 0 0-10.27.02Zm1.802-.004a3.333 3.333 0 1 1 6.666-.013 3.333 3.333 0 0 1-6.666.013Z"/></svg>`;
-  const tiktokIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.438 2.017C13.529 2 14.613 2.008 15.696 2c.067 1.275.525 2.575 1.458 3.475.934.925 2.25 1.35 3.534 1.492v3.358c-1.2-.042-2.409-.292-3.5-.808-.475-.217-.917-.492-1.35-.775-.009 2.433.008 4.866-.017 7.291a6.366 6.366 0 0 1-1.125 3.284c-1.092 1.6-2.983 2.641-4.925 2.674-1.192.067-2.383-.258-3.4-.858-1.683-.992-2.867-2.808-3.042-4.758a15.445 15.445 0 0 1-.008-1.242c.15-1.583.933-3.1 2.15-4.133 1.383-1.2 3.317-1.775 5.125-1.433.017 1.233-.033 2.466-.033 3.7-.825-.267-1.792-.192-2.517.308a2.893 2.893 0 0 0-1.133 1.458c-.175.425-.125.892-.117 1.342.2 1.366 1.517 2.517 2.917 2.392.933-.009 1.825-.55 2.308-1.342.158-.275.333-.559.342-.884.083-1.491.05-2.975.058-4.466.008-3.358-.008-6.708.017-10.058Z"/></svg>`;
-  const facebookIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c5.523 0 10 4.477 10 10 0 4.991-3.657 9.129-8.438 9.879V14.89h2.33l.445-2.89h-2.773v-1.876c0-.79.387-1.562 1.63-1.562h1.26v-2.46s-.876-.15-1.828-.187l-.41-.009c-2.284 0-3.777 1.385-3.777 3.89V12h-2.54v2.89h2.54v6.989C5.657 21.129 2 16.99 2 12 2 6.477 6.477 2 12 2Z"/></svg>`;
+  const websiteIcon = `${icon('globus', { size: 20 })}`;
+  const instagramIcon = `${icon('instagram', { size: 20 })}`;
+  const tiktokIcon = `${icon('tiktok', { size: 20 })}`;
+  const facebookIcon = `${icon('facebook', { size: 20 })}`;
 
   function buildBrandLinks(brand) {
     const links = [];
@@ -1466,7 +1457,7 @@ function renderPitchLoadingState() {
 function renderPitchError(errorMessage) {
   elements.pitchModalContent.innerHTML = `
     <div class="pitch-error">
-      <svg class="pitch-error-icon" viewBox="0 0 24 24" fill="none"><path fill="currentColor" fill-rule="evenodd" d="M8.603 4.07c1.565-2.517 5.229-2.517 6.794 0l6.103 9.818C23.156 16.553 21.24 20 18.102 20H5.897C2.76 20 .844 16.553 2.5 13.888l6.103-9.817ZM12 8a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V9a1 1 0 0 1 1-1Zm-1.25 7a1.25 1.25 0 1 1 2.5 0 1.25 1.25 0 0 1-2.5 0Z" clip-rule="evenodd"/></svg>
+      ${icon('triangle-exclamation-filled', { class: 'pitch-error-icon' })}
       <p class="pitch-error-message">${escapeHtml(errorMessage)}</p>
       <button type="button" class="pitch-try-again-btn" id="pitchTryAgainBtn">Try Again</button>
     </div>
@@ -1501,10 +1492,10 @@ function renderChannelSection(channel) {
     // Build icon buttons
     const iconButtons = [];
     if (linkedinUrl) {
-      iconButtons.push(`<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer" class="pitch-contact-icon-btn" title="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>`);
+      iconButtons.push(`<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer" class="pitch-contact-icon-btn" title="LinkedIn">${icon('linkedin', { size: 18 })}</a>`);
     }
     if (email) {
-      iconButtons.push(`<a href="mailto:${email}" class="pitch-contact-icon-btn" title="${email}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>`);
+      iconButtons.push(`<a href="mailto:${email}" class="pitch-contact-icon-btn" title="${email}">${icon('email-1', { size: 18 })}</a>`);
     }
     const actionsHtml = iconButtons.length > 0 ? `<div class="pitch-contact-actions">${iconButtons.join('')}</div>` : '';
 
@@ -1529,7 +1520,7 @@ function renderChannelSection(channel) {
     <div class="pitch-section" data-section="channel">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Channel & Contacts</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-channel-card">
@@ -1574,7 +1565,7 @@ function renderMessagesSection(messages) {
     <div class="pitch-section" data-section="messages">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Messages</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-messages">${messageCards.join('')}</div>
@@ -1592,7 +1583,7 @@ function renderSingleMessage(msg, id) {
     <div class="pitch-message-card">
       <div class="pitch-message-header">
         <span class="pitch-message-channel">${channelLabel}</span>
-        <button type="button" class="pitch-copy-btn" data-copy-target="${id}"><svg viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V5.25A2.25 2.25 0 0 1 11.25 3h7.5A2.25 2.25 0 0 1 21 5.25v7.5A2.25 2.25 0 0 1 18.75 15H15m-2.25-6h-7.5A2.25 2.25 0 0 0 3 11.25v7.5A2.25 2.25 0 0 0 5.25 21h7.5A2.25 2.25 0 0 0 15 18.75v-7.5A2.25 2.25 0 0 0 12.75 9Z"/></svg> Copy</button>
+        <button type="button" class="pitch-copy-btn" data-copy-target="${id}">${icon('copy-2-layers-pages')} Copy</button>
       </div>
       ${hasSubject ? `<p class="pitch-message-subject"><strong>Subject:</strong> ${escapeHtml(msg.subject)}</p>` : ''}
       <div class="pitch-message-body" id="${id}">${body}</div>
@@ -1646,7 +1637,7 @@ function renderBrandIntelligenceSection(intelligence) {
     <div class="pitch-section" data-section="intelligence">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Brand Intel</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-brand-grid">
@@ -3327,6 +3318,7 @@ function initEventListeners() {
    -------------------------------------------------------------------------- */
 
 function init() {
+  hydrateIcons();
   initPicker();
   console.log('[init] Starting...');
   console.log('[init] elements.searchInput:', elements.searchInput);
