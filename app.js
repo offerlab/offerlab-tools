@@ -614,48 +614,58 @@ function catalogThumbUrl(src, width = 160) {
   return src;
 }
 
-function catalogSourceLabel(catalog) {
-  switch (catalog?.status) {
-    case 'shopify': return 'Shopify catalog';
-    case 'serp': return 'Google Shopping';
-    case 'error': return 'Catalog unreachable';
-    default: return 'No public catalog';
-  }
-}
+const CATALOG_SOURCES = {
+  shopify: { label: 'Shopify', icon: 'shopify' },
+  serp: { label: 'Google Shopping', icon: 'globus' },
+  error: { label: 'Catalog unreachable', icon: 'slash-stop' },
+  none: { label: 'No public catalog', icon: 'slash-stop' }
+};
 
-function renderCatalogBlock(catalog) {
+// Thumbnail row inside the card. Loading shows a shimmer; no products shows nothing.
+function renderCatalogThumbs(catalog) {
   if (!catalog) {
     const skeleton = '<div class="card-catalog-thumb"></div>'.repeat(4);
-    return `<div class="card-catalog card-catalog--loading">
-      <div class="card-catalog-badge">Checking catalog</div>
-      <div class="card-catalog-thumbs">${skeleton}</div>
-    </div>`;
+    return `<div class="card-catalog card-catalog--loading"><div class="card-catalog-thumbs">${skeleton}</div></div>`;
   }
-
   const products = (catalog.products || []).filter(p => p.image);
-  if (products.length === 0) {
-    return `<div class="card-catalog card-catalog--empty">
-      <div class="card-catalog-badge">${catalogSourceLabel(catalog)}</div>
-    </div>`;
-  }
+  if (products.length === 0) return '';
 
   const count = catalog.count || products.length;
   const thumbs = products.slice(0, CATALOG_THUMBS).map(p => `
     <img class="card-catalog-thumb" src="${catalogThumbUrl(p.image)}" alt="" title="${escapeHtml(p.title)}" loading="lazy"
       onerror="this.remove()">`).join('');
   const more = count > CATALOG_THUMBS ? `<div class="card-catalog-thumb card-catalog-thumb--more">+${count - CATALOG_THUMBS}</div>` : '';
+  return `<div class="card-catalog card-catalog--${catalog.status}"><div class="card-catalog-thumbs">${thumbs}${more}</div></div>`;
+}
 
-  return `<div class="card-catalog card-catalog--${catalog.status}">
-    <div class="card-catalog-badge">${catalogSourceLabel(catalog)} · ${count} ${count === 1 ? 'product' : 'products'}</div>
-    <div class="card-catalog-thumbs">${thumbs}${more}</div>
+// The chinstrap tucked under the card: source on the left, product count on the right.
+function renderCatalogChinstrap(catalog, radius = 36) {
+  let source;
+  let count = '';
+  if (!catalog) {
+    source = `${icon('spinner', { class: 'icon-spin', size: 14 })} Checking catalog`;
+  } else {
+    const meta = CATALOG_SOURCES[catalog.status] || CATALOG_SOURCES.none;
+    source = `${icon(meta.icon, { size: 14 })} ${meta.label}`;
+    const n = catalog.count || (catalog.products || []).length;
+    if (n > 0) count = `${n} ${n === 1 ? 'product' : 'products'}`;
+  }
+  return `<div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--${catalog ? catalog.status : 'loading'}" style="--tuck-radius: ${radius}px">
+    <span class="card-chinstrap-source">${source}</span>
+    <span class="card-chinstrap-count">${count}</span>
+    <div class="tuck-banner__notch tuck-banner__notch--left"></div>
+    <div class="tuck-banner__notch tuck-banner__notch--right"></div>
   </div>`;
 }
 
 function updateCardCatalog(domain, catalog) {
   const buildable = (catalog?.products?.length || 0) > 0;
-  document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(slot => {
-    slot.innerHTML = renderCatalogBlock(catalog);
-    const card = slot.closest('.result-card');
+  document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(group => {
+    const slot = group.querySelector('.card-catalog-slot');
+    if (slot) slot.innerHTML = renderCatalogThumbs(catalog);
+    const chinstrap = group.querySelector('.card-chinstrap');
+    if (chinstrap) chinstrap.outerHTML = renderCatalogChinstrap(catalog);
+    const card = group.querySelector('.result-card');
     if (!card) return;
     card.dataset.buildable = buildable ? 'true' : 'false';
     card.querySelector('.build-bundle-btn')?.classList.toggle('hidden', !buildable);
@@ -706,6 +716,10 @@ function createSearchedBrandCard(searchedBrand) {
   const faviconUrl = searchedBrand.faviconUrl || getFaviconUrl(domain);
   const imgSrc = imageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
 
+  const group = document.createElement('div');
+  group.className = 'searched-brand-card-group';
+  group.dataset.catalogDomain = domain;
+
   const card = document.createElement('a');
   card.className = 'searched-brand-card';
   card.href = fullUrl;
@@ -736,7 +750,7 @@ function createSearchedBrandCard(searchedBrand) {
           </div>
         </div>
         <p class="searched-brand-card-description">${searchedBrand.description}</p>
-        <div class="card-catalog-slot" data-catalog-domain="${domain}">${renderCatalogBlock(searchedBrand.catalog)}</div>
+        <div class="card-catalog-slot">${renderCatalogThumbs(searchedBrand.catalog)}</div>
       </div>
       <div class="searched-brand-card-external-wrapper">
         <span class="icon-button icon-button--medium searched-brand-card-external" aria-label="Open in new tab">
@@ -746,16 +760,22 @@ function createSearchedBrandCard(searchedBrand) {
     </div>
   `;
 
-  return card;
+  group.append(card);
+  group.insertAdjacentHTML('beforeend', renderCatalogChinstrap(searchedBrand.catalog));
+  return group;
 }
 
 function createBrandCard(brand, index) {
   const url = brand?.url || '';
   const domain = extractDomain(url);
   const fullUrl = url && url.startsWith('http') ? url : (url ? `https://${url}` : '#');
+  const group = document.createElement('div');
+  group.className = 'result-card-group';
+  group.style.animationDelay = `${index * 0.05}s`;
+  group.dataset.catalogDomain = domain;
+
   const card = document.createElement('div');
   card.className = 'result-card';
-  card.style.animationDelay = `${index * 0.05}s`;
   card.dataset.url = fullUrl;
   card.dataset.domain = domain;
   card.dataset.social = JSON.stringify(brand.social || {});
@@ -779,7 +799,7 @@ function createBrandCard(brand, index) {
           ${icon('dot-grid-1x3-horizontal', { class: 'card-menu-icon' })}
         </button>` : ''}
       </div>
-      <div class="card-catalog-slot" data-catalog-domain="${domain}">${renderCatalogBlock(brand.catalog)}</div>
+      <div class="card-catalog-slot">${renderCatalogThumbs(brand.catalog)}</div>
     </div>
     <div class="card-body">
       ${brand.reason ? `<div class="card-reason-bubble"><p class="card-reason">${brand.reason}</p></div>` : ''}
@@ -796,7 +816,9 @@ function createBrandCard(brand, index) {
     </div>
   `;
 
-  return card;
+  group.append(card);
+  group.insertAdjacentHTML('beforeend', renderCatalogChinstrap(brand.catalog));
+  return group;
 }
 
 

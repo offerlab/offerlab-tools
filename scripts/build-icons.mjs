@@ -9,6 +9,7 @@ const sources = ['index.html', 'app.js', 'picker.js'].map(f => readFileSync(join
 
 const used = new Set();
 for (const m of sources.matchAll(/icon\(\s*'([a-z0-9-]+)'/g)) used.add(m[1]);
+for (const m of sources.matchAll(/\bicon:\s*'([a-z0-9-]+)'/g)) used.add(m[1]); // { icon: 'name' } maps
 for (const m of sources.matchAll(/data-icon="([a-z0-9-]+)"/g)) used.add(m[1]);
 
 const available = new Set(readdirSync(join(root, 'assets/icons')).filter(f => f.endsWith('.svg')).map(f => basename(f, '.svg')));

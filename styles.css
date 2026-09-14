@@ -168,6 +168,7 @@
   /* Brand colors */
   --brand-primary-brew: #342E26FF;
   --brand-primary-chocolate: #4D2F06FF;
+  --background-dark: #24201BFF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
   --brand-secondary-spice: #713636FF;
@@ -688,11 +689,10 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   visibility: visible;
 }
 
-/* The card clips overflow by default; while a tooltip shows, let it overhang and sit above neighbors */
+/* The card clips overflow by default; while a tooltip shows, let it overhang (the group lifts it above neighbors) */
 .result-card:has(.has-tooltip:hover),
 .result-card:has(.has-tooltip:focus-visible) {
   overflow: visible;
-  z-index: var(--z-popover-overlay);
 }
 
 @media (hover: none) {
@@ -1883,13 +1883,34 @@ position: absolute;
   text-decoration: none;
   color: inherit;
   overflow: hidden;
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.searched-brand-card:hover {
-  box-shadow: var(--shadow-md);
+.searched-brand-card-group,
+.result-card-group {
+  display: flex;
+  flex-direction: column;
+  animation: cardFadeIn 0.4s ease forwards;
+  opacity: 0;
+  transition: transform var(--transition-base);
+}
+
+.searched-brand-card-group:hover,
+.result-card-group:hover {
   transform: translateY(-2px);
+}
+
+.searched-brand-card-group:hover .searched-brand-card,
+.result-card-group:hover .result-card {
+  box-shadow: var(--shadow-md);
+}
+
+/* A popover or tooltip inside the card has to clear the neighboring groups */
+.result-card-group:has(.popover-open),
+.result-card-group:has(.has-tooltip:hover),
+.result-card-group:has(.has-tooltip:focus-visible) {
+  z-index: var(--z-popover-overlay);
 }
 
 .searched-brand-card-image {
@@ -2006,10 +2027,10 @@ position: absolute;
   border: 0.5px solid var(--content-border-neutral);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition: box-shadow var(--transition-base);
   position: relative;
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
+  z-index: 1;
+  flex: 1;
   overflow: hidden;
   padding: 16px;
   display: flex;
@@ -2017,22 +2038,16 @@ position: absolute;
   gap: 24px;
 }
 
-.result-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
 .result-card.popover-open {
   overflow: visible;
-  z-index: var(--z-popover-overlay);
 }
 
 .card-header-wrapper {
   flex: 1;
 }
 
-/* Catalog strip: what the brand sells, from its public Shopify catalog */
-.card-catalog-slot {
+/* Catalog strip: thumbnails inside the card; the source and count ride the chinstrap below it */
+.card-catalog-slot:not(:empty) {
   margin-top: 16px;
 }
 
@@ -2040,35 +2055,6 @@ position: absolute;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.card-catalog-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
-  color: var(--content-secondary);
-}
-
-.card-catalog-badge::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--brand-secondary-mint);
-  flex-shrink: 0;
-}
-
-.card-catalog--serp .card-catalog-badge::before {
-  background: var(--brand-status-status-gold);
-}
-
-.card-catalog--empty .card-catalog-badge::before {
-  background: var(--content-border-neutral);
-}
-
-.card-catalog--loading .card-catalog-badge::before {
-  background: var(--brand-primary-shine);
 }
 
 .card-catalog-thumbs {
@@ -2111,8 +2097,91 @@ position: absolute;
   50% { opacity: 0.4; }
 }
 
-.searched-brand-card .card-catalog-slot {
+.searched-brand-card .card-catalog-slot:not(:empty) {
   margin-top: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   Tuck banner (ported from the main app's atelier/tailwind/tuck_banner.css)
+   A bar that tucks BEHIND a rounded card. Two concave notches, painted in the
+   bar's color, fill the gap the card's rounded corners leave, so the card nests
+   into the bar. Set --tuck-color once and --tuck-radius to the card's radius.
+   -------------------------------------------------------------------------- */
+.tuck-banner {
+  --tuck-color: var(--content-primary);
+  --tuck-radius: 28px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-weight: 500;
+  color: var(--content-background-elevated);
+  background-color: var(--tuck-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.tuck-banner--chinstrap {
+  padding: 8px 16px;
+  font-size: var(--font-size-xs);
+  border-radius: 0 0 var(--tuck-radius) var(--tuck-radius);
+}
+
+.tuck-banner__notch {
+  position: absolute;
+  pointer-events: none;
+  width: var(--tuck-radius);
+  height: var(--tuck-radius);
+}
+
+.tuck-banner__notch--left {
+  left: 0;
+}
+
+.tuck-banner__notch--right {
+  right: 0;
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch {
+  bottom: 100%;
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch--left {
+  background: radial-gradient(circle at top right, transparent var(--tuck-radius), var(--tuck-color) var(--tuck-radius));
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch--right {
+  background: radial-gradient(circle at top left, transparent var(--tuck-radius), var(--tuck-color) var(--tuck-radius));
+}
+
+/* Catalog chinstrap: source on the left, count on the right, dark bar with white text */
+.card-chinstrap {
+  --tuck-color: var(--background-dark);
+  color: var(--white);
+  justify-content: space-between;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.card-chinstrap-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.card-chinstrap-count {
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.icon-spin {
+  animation: icon-spin 0.9s linear infinite;
+}
+
+@keyframes icon-spin {
+  to { transform: rotate(360deg); }
 }
 
 .searched-brand-card .card-catalog-thumbs {
@@ -2654,16 +2723,16 @@ position: absolute;
 /* --------------------------------------------------------------------------
    Animation Delays for Staggered Card Appearance
    -------------------------------------------------------------------------- */
-.result-card:nth-child(1) { animation-delay: 0.05s; }
-.result-card:nth-child(2) { animation-delay: 0.1s; }
-.result-card:nth-child(3) { animation-delay: 0.15s; }
-.result-card:nth-child(4) { animation-delay: 0.2s; }
-.result-card:nth-child(5) { animation-delay: 0.25s; }
-.result-card:nth-child(6) { animation-delay: 0.3s; }
-.result-card:nth-child(7) { animation-delay: 0.35s; }
-.result-card:nth-child(8) { animation-delay: 0.4s; }
-.result-card:nth-child(9) { animation-delay: 0.45s; }
-.result-card:nth-child(10) { animation-delay: 0.5s; }
+.result-card-group:nth-child(1) { animation-delay: 0.05s; }
+.result-card-group:nth-child(2) { animation-delay: 0.1s; }
+.result-card-group:nth-child(3) { animation-delay: 0.15s; }
+.result-card-group:nth-child(4) { animation-delay: 0.2s; }
+.result-card-group:nth-child(5) { animation-delay: 0.25s; }
+.result-card-group:nth-child(6) { animation-delay: 0.3s; }
+.result-card-group:nth-child(7) { animation-delay: 0.35s; }
+.result-card-group:nth-child(8) { animation-delay: 0.4s; }
+.result-card-group:nth-child(9) { animation-delay: 0.45s; }
+.result-card-group:nth-child(10) { animation-delay: 0.5s; }
 
 /* --------------------------------------------------------------------------
    Modal
