@@ -2101,19 +2101,22 @@ position: absolute;
 .card-catalog-thumb--more {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border: none;
 }
 
 .card-catalog-thumb--more .card-catalog-thumb {
   width: 100%;
   height: 100%;
-  border-radius: 0;
+  border-radius: inherit;
   border: none;
 }
 
+/* A backdrop-filter layer ignores the parent's rounded clip, so the scrim rounds itself */
 .card-catalog-thumb-count {
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
