@@ -793,7 +793,14 @@ function createBrandCard(brand, index) {
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
         </div>
-        <button type="button" class="btn btn--md btn--secondary visit-btn" data-url="${fullUrl}">Visit</button>
+        <button type="button" class="btn btn--md btn--secondary btn--icon visit-btn has-tooltip" data-url="${fullUrl}" aria-label="Visit ${escapeHtml(brand.name)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span class="tooltip tooltip--end" aria-hidden="true">Visit ${escapeHtml(brand.name)}</span>
+        </button>
       </div>
     </div>
   `;

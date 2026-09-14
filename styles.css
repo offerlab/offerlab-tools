@@ -610,11 +610,64 @@ img {
 /* Card action buttons container */
 .card-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
 }
 
 .card-actions .btn {
   flex: 1;
+}
+
+/* Hover tooltip: a caption pill above the control, after the Shop app nav */
+.has-tooltip {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: var(--rounded-full);
+  border: 0.5px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  color: var(--content-primary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms, visibility 150ms;
+}
+
+/* Controls at a clipped container's right edge anchor the pill to their right side */
+.tooltip--end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.has-tooltip:hover .tooltip,
+.has-tooltip:focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .tooltip {
+    display: none;
+  }
+}
+
+/* Square icon-only variant of the medium button, e.g. the card's visit link */
+.btn--icon.btn--md {
+  flex: 0 0 auto;
+  width: 32px;
+  padding: 0;
 }
 
 /* Register custom property for animatable gradient angle */
