@@ -2002,9 +2002,9 @@ position: absolute;
 }
 
 /* An elevated pill holding two ghost circles: the platform mark and the external arrow.
-   Hovering the card reveals the arrow's ghost background, like an icon button. */
+   Hovering the pill itself reveals the arrow's ghost background, like an icon button;
+   the pill sits inside the card link, so clicking it still opens the site. */
 .searched-brand-card-link {
-  pointer-events: none;
   gap: 0;
   padding: 2px;
   width: auto;
@@ -2021,7 +2021,7 @@ position: absolute;
   transition: background 0.2s ease;
 }
 
-.searched-brand-card-group:hover .searched-brand-card-link-ghost--external {
+.searched-brand-card-link:hover .searched-brand-card-link-ghost--external {
   background: var(--content-background-overlay);
 }
 
