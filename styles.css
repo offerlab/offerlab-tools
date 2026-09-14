@@ -2127,7 +2127,6 @@ position: absolute;
   font-weight: 500;
   color: var(--content-background-elevated);
   background-color: var(--tuck-color);
-  box-shadow: var(--shadow-sm);
 }
 
 .tuck-banner--chinstrap {
