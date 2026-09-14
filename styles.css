@@ -2007,6 +2007,13 @@ position: absolute;
   padding: 0 12px;
 }
 
+/* The platform mark reads at 24px; the external arrow keeps the button's 14px icon size */
+.searched-brand-card-link .searched-brand-card-link-platform {
+  width: 24px;
+  height: 24px;
+  --icon-rendered: 24;
+}
+
 .searched-brand-card-group:hover .searched-brand-card-link {
   background: var(--content-background-overlay);
 }
