@@ -803,7 +803,7 @@ function trimCatalogForCache(brand) {
 // styled as an elevated button. The whole card is the link, so this is a span, not a button.
 function renderSearchedBrandLink(catalog) {
   const platform = catalog?.status === 'shopify'
-    ? `<span class="searched-brand-card-link-ghost">${icon(CATALOG_SOURCES.shopify.icon, { class: 'searched-brand-card-link-platform', size: 20 })}</span>`
+    ? `<span class="searched-brand-card-link-ghost">${icon(CATALOG_SOURCES.shopify.icon, { class: 'searched-brand-card-link-platform', size: 18 })}</span>`
     : '';
   return `<span class="btn btn--md btn--secondary searched-brand-card-link" aria-hidden="true">
     ${platform}<span class="searched-brand-card-link-ghost searched-brand-card-link-ghost--external">${icon('square-arrow-top-right-2')}</span>

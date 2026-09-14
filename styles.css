@@ -2026,9 +2026,9 @@ position: absolute;
 }
 
 .searched-brand-card-link .searched-brand-card-link-platform {
-  width: 20px;
-  height: 20px;
-  --icon-rendered: 20;
+  width: 18px;
+  height: 18px;
+  --icon-rendered: 18;
 }
 
 .searched-brand-card-description {
