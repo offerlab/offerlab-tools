@@ -2159,8 +2159,8 @@ position: absolute;
 
 /* Catalog chinstrap: source on the left, count on the right, dark bar with white text */
 .card-chinstrap {
-  --tuck-color: var(--background-dark);
-  color: var(--white);
+  --tuck-color: var(--content-background-base);
+  color: var(--content-primary);
   justify-content: space-between;
   gap: 8px;
   padding: 8px 24px;
@@ -2175,7 +2175,7 @@ position: absolute;
 
 .card-chinstrap-count {
   white-space: nowrap;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--content-secondary);
 }
 
 .icon-spin {
