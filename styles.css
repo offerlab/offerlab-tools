@@ -644,17 +644,16 @@ img {
   transition: opacity 150ms, visibility 150ms;
 }
 
-/* Controls at a clipped container's right edge anchor the pill to their right side */
-.tooltip--end {
-  left: auto;
-  right: 0;
-  transform: none;
-}
-
 .has-tooltip:hover .tooltip,
 .has-tooltip:focus-visible .tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+/* The card clips overflow by default; let a centered pill overhang its edge while shown */
+.result-card:has(.has-tooltip:hover),
+.result-card:has(.has-tooltip:focus-visible) {
+  overflow: visible;
 }
 
 @media (hover: none) {

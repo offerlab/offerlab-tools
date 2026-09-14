@@ -799,7 +799,7 @@ function createBrandCard(brand, index) {
             <polyline points="15 3 21 3 21 9"/>
             <line x1="10" y1="14" x2="21" y2="3"/>
           </svg>
-          <span class="tooltip tooltip--end" aria-hidden="true">Visit ${escapeHtml(brand.name)}</span>
+          <span class="tooltip" aria-hidden="true">Visit ${escapeHtml(brand.name)}</span>
         </button>
       </div>
     </div>
