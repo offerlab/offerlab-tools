@@ -57,6 +57,7 @@
             <form class="search-form" id="resultsSearchForm">
               <div class="search-input-wrapper">
                 <span class="typing-placeholder typing-placeholder-results hidden" id="resultsTypingPlaceholder" aria-hidden="true"></span>
+                <span class="search-display hidden" id="resultsSearchDisplay" aria-hidden="true"></span>
                 <input
                   type="text"
                   class="search-input"
@@ -219,47 +220,6 @@
         </div>
           <div class="results-grid" id="brandsGrid">
             <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <!-- Products Section -->
-        <div class="results-group" id="productsGroup">
-          <h2 class="results-group-title">
-            Recommended products
-          </h2>
-          <!-- Products Loading State -->
-          <div class="products-loading" id="productsLoading">
-            <div class="products-loading-spinner">
-              <div class="loader"></div>
-              <span class="products-loading-text" id="productsLoadingText">Finding top products from recommended brands...</span>
-            </div>
-          </div>
-          <!-- Products Skeleton UI -->
-          <div class="products-skeleton hidden" id="productsSkeleton">
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-          </div>
-          <!-- Actual Products Grid -->
-          <div class="results-grid hidden" id="productsGrid">
-            <!-- Populated by JS -->
-          </div>
-          <!-- Out of Credits State -->
-          <div class="products-out-of-credits hidden" id="productsOutOfCredits">
-            <div class="coins-animation">
-              <div class="coin coin-1">🪙</div>
-              <div class="coin coin-2">🪙</div>
-              <div class="coin coin-3">🪙</div>
-            </div>
-            <h3 class="out-of-credits-title">Uh oh, we're broke! 💸</h3>
-            <p class="out-of-credits-message">
-              Our product search piggy bank is empty. The brands above are still fire though!
-            </p>
-            <a href="https://serpapi.com/dashboard" target="_blank" rel="noopener noreferrer" class="refill-credits-btn">
-              Refill the piggy bank →
-            </a>
           </div>
         </div>
 

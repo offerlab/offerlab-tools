@@ -7,12 +7,14 @@ import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
+import { fetchShopifyCatalog } from './shared/catalog.js';
 
 config(); // Load .env
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 5500;
+const SERPAPI_TIMEOUT_MS = 15000;
 
 // OpenGraph proxy - API key stays server-side
 app.get('/api/opengraph', async (req, res) => {
@@ -122,7 +124,7 @@ app.get('/api/serpapi', async (req, res) => {
 
   try {
     console.log(`[SerpAPI Proxy] Query: "${query.trim()}" Engine: ${engine}`);
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, { signal: AbortSignal.timeout(SERPAPI_TIMEOUT_MS) });
     
     if (!response.ok) {
       console.warn(`[SerpAPI Proxy] API returned ${response.status}`);
@@ -172,6 +174,22 @@ app.post('/api/gemini', express.json(), async (req, res) => {
   } catch (err) {
     console.error('[Gemini Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to process Gemini request' });
+  }
+});
+
+// Shopify public catalog proxy - storefronts send no CORS headers on /products.json
+app.get('/api/catalog', async (req, res) => {
+  const domain = req.query.domain;
+  if (!domain || typeof domain !== 'string' || !domain.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid domain parameter' });
+  }
+  try {
+    const catalog = await fetchShopifyCatalog(domain);
+    console.log(`[Catalog Proxy] ${domain}: ${catalog.status} (${catalog.count} products)`);
+    res.json(catalog);
+  } catch (err) {
+    console.error('[Catalog Proxy] Error:', err);
+    res.status(500).json({ error: 'Failed to fetch catalog' });
   }
 });
 

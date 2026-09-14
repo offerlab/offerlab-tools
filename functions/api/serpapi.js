@@ -3,6 +3,8 @@
  * Keeps the API key secure on the server side
  */
 
+const SERPAPI_TIMEOUT_MS = 15000;
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -53,7 +55,7 @@ export async function onRequest(context) {
   const apiUrl = `https://serpapi.com/search.json?${params}`;
 
   try {
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, { signal: AbortSignal.timeout(SERPAPI_TIMEOUT_MS) });
     
     if (!response.ok) {
       return new Response(
