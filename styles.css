@@ -1299,6 +1299,8 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   border: 1px solid var(--content-border-neutral);
   background: var(--content-background-elevated);
   flex-shrink: 0;
+  /* Optical: lowercase glyphs sit below the line box's center, so the ring drops 1px to meet them */
+  transform: translateY(1px);
 }
 
 .search-display-avatar img {
