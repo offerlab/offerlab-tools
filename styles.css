@@ -373,12 +373,22 @@ html {
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
+  /* Aktiv Grotesk's proportional lining figures (pnum + lnum), as in the main app */
+  font-variant-numeric: proportional-nums lining-nums;
   color: var(--content-primary);
   background-color: var(--content-background-base);
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.25s ease;
+}
+
+/* Form controls reset font-variant-numeric in the UA stylesheet; keep their digits matching */
+input,
+select,
+textarea,
+button {
+  font-variant-numeric: inherit;
 }
 
 body.showing-results {
