@@ -2021,6 +2021,11 @@ position: absolute;
   transition: background 0.2s ease;
 }
 
+/* The generic .btn hover fill stays off the pill; only the arrow circle responds */
+.searched-brand-card-link:hover {
+  background: var(--content-background-elevated);
+}
+
 .searched-brand-card-link:hover .searched-brand-card-link-ghost--external {
   background: var(--content-background-overlay);
 }
