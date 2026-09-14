@@ -69,6 +69,10 @@ export async function openPicker(partner, { skipUrlUpdate = false } = {}) {
   return true;
 }
 
+export function isPickerOpen() {
+  return !!dom.section && !dom.section.classList.contains('hidden');
+}
+
 export function closePicker() {
   if (state.abort) state.abort.abort();
   const url = new URL(window.location.href);
@@ -356,10 +360,6 @@ function renderHeader() {
   const a = state.searched;
   const b = state.partner;
   dom.header.innerHTML = `
-    <button type="button" class="btn btn--md btn--secondary picker-back" data-action="close">
-      ${icon('arrow-left')}
-      Back to results
-    </button>
     <div class="picker-title">
       ${renderFaviconDuo(extractDomain(a.url || ''), extractDomain(b.url || ''))}
       <div class="picker-title-labels">

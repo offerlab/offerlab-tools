@@ -4,7 +4,7 @@
 
 import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
-import { initPicker, openPicker, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
+import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
 import { icon, hydrateIcons } from './icons.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
@@ -3289,8 +3289,12 @@ function initEventListeners() {
   });
 
   // Header back and start over buttons
+  // The header's back button steps out of the picker first, then back to the landing page.
   if (elements.headerBackBtn) {
-    elements.headerBackBtn.addEventListener('click', goToLanding);
+    elements.headerBackBtn.addEventListener('click', () => {
+      if (isPickerOpen()) closePicker();
+      else goToLanding();
+    });
   }
   if (elements.headerStartOverBtn) {
     elements.headerStartOverBtn.addEventListener('click', goToLanding);

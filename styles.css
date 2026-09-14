@@ -4061,15 +4061,7 @@ position: absolute;
 
 .picker-header {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
   align-items: flex-start;
-}
-
-.picker-back svg {
-  width: 14px;
-  --icon-rendered: 14;
-  height: 14px;
 }
 
 .picker-title {
