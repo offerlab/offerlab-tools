@@ -523,6 +523,7 @@ img {
 
 .icon-button--medium svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -574,6 +575,7 @@ img {
 
 .btn--md svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
 }
 
@@ -608,6 +610,42 @@ img {
 }
 
 /* Card action buttons container */
+/* --------------------------------------------------------------------------
+   Icons: constant stroke weight at any rendered size (mirrors the main app's
+   atelier/tailwind/base.css and icon_stroke.css, see OL-3740)
+   -------------------------------------------------------------------------- */
+/* user units = design stroke x viewBox / rendered px. The size utilities below and any
+   CSS rule that sizes an icon publish --icon-rendered; icons rendered with an explicit
+   size get it inline from icon(). */
+/* :where() keeps these defaults at zero specificity, so any rule that sizes an icon
+   can publish --icon-rendered without fighting for precedence. */
+:where(svg.icon) {
+  --icon-stroke: 1.5;
+  --icon-viewbox: 24;
+  --icon-rendered: 24;
+  flex-shrink: 0;
+}
+
+svg.icon path[stroke],
+svg.icon line[stroke],
+svg.icon circle[stroke],
+svg.icon rect[stroke],
+svg.icon polyline[stroke],
+svg.icon polygon[stroke] {
+  stroke-width: calc(var(--icon-stroke) * var(--icon-viewbox) / var(--icon-rendered));
+}
+
+svg.icon.stroke-width-2 { --icon-stroke: 2; }
+svg.icon.stroke-width-2\.5 { --icon-stroke: 2.5; }
+svg.icon.stroke-width-3 { --icon-stroke: 3; }
+
+svg.icon.icon-size-12 { width: 12px; height: 12px; --icon-rendered: 12; }
+svg.icon.icon-size-14 { width: 14px; height: 14px; --icon-rendered: 14; }
+svg.icon.icon-size-16 { width: 16px; height: 16px; --icon-rendered: 16; }
+svg.icon.icon-size-18 { width: 18px; height: 18px; --icon-rendered: 18; }
+svg.icon.icon-size-20 { width: 20px; height: 20px; --icon-rendered: 20; }
+svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
+
 .card-actions {
   display: flex;
   gap: 6px;
@@ -1391,6 +1429,7 @@ img {
 
 .search-button--stop .stop-icon {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
   color: var(--white);
   z-index: 1;
@@ -1501,6 +1540,7 @@ position: absolute;
 
 .search-icon {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   color: var(--content-primary);
 }
@@ -1634,6 +1674,7 @@ position: absolute;
 
 .history-item-remove-icon {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
 }
 
@@ -2212,6 +2253,7 @@ position: absolute;
 
 .card-menu-icon {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
 }
 
@@ -2262,6 +2304,7 @@ position: absolute;
 
 .social-link-external {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
   flex-shrink: 0;
   margin-left: auto;
@@ -2276,6 +2319,7 @@ position: absolute;
 
 .social-icon {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   flex-shrink: 0;
 }
@@ -2351,6 +2395,7 @@ position: absolute;
 
 .feedback-icon {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -2711,6 +2756,7 @@ position: absolute;
 
 .modal-close-btn svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -3117,6 +3163,7 @@ position: absolute;
 /* Stop icon */
 .pitch-toolbar-stop-svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   color: var(--content-primary);
   z-index: 1;
@@ -3383,6 +3430,7 @@ position: absolute;
 
 .pitch-error-icon {
   width: 48px;
+  --icon-rendered: 48;
   height: 48px;
   color: var(--content-sentiment-warning);
 }
@@ -3462,6 +3510,7 @@ position: absolute;
 
 .pitch-section-chevron {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   color: var(--content-primary);
   flex-shrink: 0;
@@ -3707,6 +3756,7 @@ position: absolute;
 
 .pitch-copy-btn svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
   flex-shrink: 0;
 }
@@ -3886,6 +3936,7 @@ position: absolute;
 
 .picker-back svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
 }
 
@@ -4184,6 +4235,7 @@ position: absolute;
 
 .picker-product-check svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
 }
 
