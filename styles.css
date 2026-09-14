@@ -2079,22 +2079,41 @@ position: absolute;
 }
 
 .card-catalog-thumb {
-  width: 56px;
-  height: 56px;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
-  border-radius: var(--rounded-xl);
+  border-radius: 20px;
   object-fit: cover;
   background: var(--content-background-base);
   border: 0.5px solid var(--content-border-neutral);
 }
 
+/* Overflow tile: the last image under a blurred 20% black scrim with the remaining count */
 .card-catalog-thumb--more {
+  position: relative;
+  overflow: hidden;
+  border: none;
+}
+
+.card-catalog-thumb--more .card-catalog-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+}
+
+.card-catalog-thumb-count {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-xs);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--white);
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--content-secondary);
 }
 
 .card-catalog--loading .card-catalog-thumb {

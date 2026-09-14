@@ -629,11 +629,17 @@ function renderCatalogThumbs(catalog) {
   if (products.length === 0) return '';
 
   const count = catalog.count || products.length;
-  const thumbs = products.slice(0, CATALOG_THUMBS).map(p => `
-    <img class="card-catalog-thumb" src="${catalogThumbUrl(p.image)}" alt="" title="${escapeHtml(p.title)}" loading="lazy"
-      onerror="this.remove()">`).join('');
-  const more = count > CATALOG_THUMBS ? `<div class="card-catalog-thumb card-catalog-thumb--more">+${count - CATALOG_THUMBS}</div>` : '';
-  return `<div class="card-catalog card-catalog--${catalog.status}"><div class="card-catalog-thumbs">${thumbs}${more}</div></div>`;
+  const shown = products.slice(0, CATALOG_THUMBS);
+  // Past the row, the last tile blurs over its image and carries the count it stands in for.
+  const overflow = count > CATALOG_THUMBS ? count - (CATALOG_THUMBS - 1) : 0;
+  const thumbs = shown.map((p, i) => {
+    const img = `<img class="card-catalog-thumb" src="${catalogThumbUrl(p.image, 240)}" alt="" title="${escapeHtml(p.title)}" loading="lazy" onerror="this.remove()">`;
+    if (overflow && i === shown.length - 1) {
+      return `<div class="card-catalog-thumb card-catalog-thumb--more">${img}<span class="card-catalog-thumb-count">+${overflow}</span></div>`;
+    }
+    return img;
+  }).join('');
+  return `<div class="card-catalog card-catalog--${catalog.status}"><div class="card-catalog-thumbs">${thumbs}</div></div>`;
 }
 
 // The chinstrap tucked under the card: source on the left, product count on the right.
