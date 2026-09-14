@@ -6,6 +6,7 @@ import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
 import { initPicker, openPicker, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
 import { icon, hydrateIcons } from './icons.js';
+import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
 const CONFIG = {
   // All API keys are now server-side for security
@@ -14,6 +15,7 @@ const CONFIG = {
   SERPAPI_PROXY: '/api/serpapi',
   OPENGRAPH_PROXY: '/api/opengraph',
   CATALOG_PROXY: '/api/catalog',
+  SOCIALS_PROXY: '/api/socials',
   CATALOG_CONCURRENCY: 6,
   SERP_FALLBACK_BRANDS: 5,
   CACHED_PRODUCTS_PER_BRAND: 24,
@@ -581,9 +583,82 @@ function hideAllSearchHistoryDropdowns() {
    Results Rendering
    -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+   Social accounts: scraped from the brand's site (same grammar as the app's Brand DNA
+   extraction), with Gemini's guesses filling any platform the site did not link.
+   Stored as {platform: {handle, url}} in the app's registry order.
+   -------------------------------------------------------------------------- */
+
+const SOCIAL_PLATFORMS = [
+  { key: 'instagram', label: 'Instagram', icon: 'instagram' },
+  { key: 'tiktok', label: 'TikTok', icon: 'tiktok' },
+  { key: 'twitter', label: 'X', icon: 'twitter-x' },
+  { key: 'youtube', label: 'YouTube', icon: 'youtube' },
+  { key: 'pinterest', label: 'Pinterest', icon: 'pinterest' },
+  { key: 'facebook', label: 'Facebook', icon: 'facebook' },
+  { key: 'snapchat', label: 'Snapchat', icon: 'snapchat' },
+  { key: 'shopmy', label: 'ShopMy', icon: 'shopmy' },
+  { key: 'amazon', label: 'Amazon shop', icon: 'amazon' },
+  { key: 'ltk', label: 'LTK', icon: 'ltk' }
+];
+
+const HANDLE_SHAPE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
+// Accepts the AI's loose shape ({instagram: "@handle" | url | name}) or the stored one.
+function normalizeSocial(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const { key } of SOCIAL_PLATFORMS) {
+    const value = raw[key];
+    if (!value) continue;
+    if (typeof value === 'object' && value.handle) {
+      out[key] = { handle: value.handle, url: value.url || synthesizeSocialUrl(key, value.handle) };
+      continue;
+    }
+    const text = String(value).trim();
+    if (/^https?:\/\//i.test(text)) {
+      const found = {};
+      matchSocial(found, text);
+      if (found[key]) out[key] = found[key];
+      continue;
+    }
+    const handle = text.replace(/^@/, '');
+    if (HANDLE_SHAPE.test(handle)) out[key] = { handle, url: synthesizeSocialUrl(key, handle) };
+  }
+  return out;
+}
+
+// The site's own links win; the AI only fills platforms the site did not link.
+function mergeSocial(scraped, ai) {
+  return { ...normalizeSocial(ai), ...normalizeSocial(scraped) };
+}
+
 function hasAnySocialLink(social) {
-  const s = social && typeof social === 'object' ? social : {};
-  return !!(s.tiktok || s.instagram || s.facebook);
+  return Object.keys(normalizeSocial(social)).length > 0;
+}
+
+function socialEntries(social) {
+  const normalized = normalizeSocial(social);
+  return SOCIAL_PLATFORMS.filter(p => normalized[p.key]).map(p => ({ ...p, ...normalized[p.key] }));
+}
+
+async function fetchSocials(domain) {
+  try {
+    const response = await fetch(`${CONFIG.SOCIALS_PROXY}?domain=${encodeURIComponent(domain)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return data.socials || {};
+  } catch (err) {
+    console.warn(`[Socials] ${domain}: ${err.message}`);
+    return {};
+  }
+}
+
+function updateCardSocial(domain, social) {
+  document.querySelectorAll(`.result-card[data-domain="${domain}"]`).forEach(card => {
+    card.dataset.social = JSON.stringify(social || {});
+    card.querySelector('.card-menu-btn')?.classList.toggle('hidden', !hasAnySocialLink(social));
+  });
 }
 
 function buildFallbackSearchedBrand(domain) {
@@ -706,7 +781,11 @@ async function attachCatalogs(brands, onCatalog) {
     while (queue.length) {
       const brand = queue.shift();
       const domain = extractDomain(brand.url || '');
-      brand.catalog = domain ? await fetchCatalog(domain) : { status: 'none', domain: '', count: 0, products: [] };
+      const [catalog, scrapedSocial] = domain
+        ? await Promise.all([fetchCatalog(domain), fetchSocials(domain)])
+        : [{ status: 'none', domain: '', count: 0, products: [] }, {}];
+      brand.catalog = catalog;
+      brand.social = mergeSocial(scrapedSocial, brand.social);
       if (onCatalog) onCatalog(brand);
     }
   };
@@ -812,9 +891,9 @@ function createBrandCard(brand, index) {
           <div class="card-name">${brand.name}</div>
           <div class="card-url">${domain}</div>
         </div>
-        ${showMenu ? `<button class="card-menu-btn" aria-label="More options">
+        <button class="card-menu-btn${showMenu ? '' : ' hidden'}" aria-label="More options">
           ${icon('dot-grid-1x3-horizontal', { class: 'card-menu-icon' })}
-        </button>` : ''}
+        </button>
       </div>
       <div class="card-catalog-slot">${renderCatalogThumbs(brand.catalog)}</div>
     </div>
@@ -898,31 +977,12 @@ function showSocialPopover(button, socialData) {
     activePopoverCard.classList.add('popover-open');
   }
 
-  // Update links - hide unavailable, show and set href for available
-  const tiktokLink = popover.querySelector('[data-platform="tiktok"]');
-  const instagramLink = popover.querySelector('[data-platform="instagram"]');
-  const facebookLink = popover.querySelector('[data-platform="facebook"]');
-
-  if (socialData.tiktok) {
-    tiktokLink.href = socialData.tiktok.startsWith('http') ? socialData.tiktok : `https://tiktok.com/@${socialData.tiktok}`;
-    tiktokLink.classList.remove('hidden');
-  } else {
-    tiktokLink.classList.add('hidden');
-  }
-
-  if (socialData.instagram) {
-    instagramLink.href = socialData.instagram.startsWith('http') ? socialData.instagram : `https://instagram.com/${socialData.instagram}`;
-    instagramLink.classList.remove('hidden');
-  } else {
-    instagramLink.classList.add('hidden');
-  }
-
-  if (socialData.facebook) {
-    facebookLink.href = socialData.facebook.startsWith('http') ? socialData.facebook : `https://facebook.com/${socialData.facebook}`;
-    facebookLink.classList.remove('hidden');
-  } else {
-    facebookLink.classList.add('hidden');
-  }
+  popover.innerHTML = socialEntries(socialData).map(entry => `
+    <a href="${escapeHtml(entry.url)}" class="social-link" data-platform="${entry.key}" target="_blank" rel="noopener" title="@${escapeHtml(entry.handle)}">
+      ${icon(entry.icon, { class: 'social-icon' })}
+      <span>${entry.label}</span>
+      ${icon('arrow-up-right', { class: 'social-link-external' })}
+    </a>`).join('');
 
   // Append popover to card so it scrolls with the page (not fixed in viewport)
   parentCard.appendChild(popover);
@@ -1311,9 +1371,6 @@ function renderQuickLinksCard(searchedBrand, partnerBrand) {
   ];
 
   const websiteIcon = `${icon('globus', { size: 20 })}`;
-  const instagramIcon = `${icon('instagram', { size: 20 })}`;
-  const tiktokIcon = `${icon('tiktok', { size: 20 })}`;
-  const facebookIcon = `${icon('facebook', { size: 20 })}`;
 
   function buildBrandLinks(brand) {
     const links = [];
@@ -1331,42 +1388,15 @@ function renderQuickLinksCard(searchedBrand, partnerBrand) {
       `);
     }
 
-    const social = brand.social && typeof brand.social === 'object' ? brand.social : {};
-
-    // Instagram
-    if (social.instagram) {
-      const igUrl = social.instagram.startsWith('http') ? social.instagram : `https://instagram.com/${social.instagram}`;
-      const igHandle = social.instagram.startsWith('http') ? social.instagram.split('/').pop() : social.instagram;
+    socialEntries(brand.social).forEach(entry => {
+      const label = entry.key === 'facebook' ? entry.label : `@${entry.handle}`;
       links.push(`
-        <a href="${escapeHtml(igUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">@${escapeHtml(igHandle)}</span>
-          <span class="quick-link-icon">${instagramIcon}</span>
+        <a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
+          <span class="quick-link-label">${escapeHtml(label)}</span>
+          <span class="quick-link-icon">${icon(entry.icon, { size: 20 })}</span>
         </a>
       `);
-    }
-
-    // TikTok
-    if (social.tiktok) {
-      const ttUrl = social.tiktok.startsWith('http') ? social.tiktok : `https://tiktok.com/@${social.tiktok}`;
-      const ttHandle = social.tiktok.startsWith('http') ? social.tiktok.split('/').pop().replace('@', '') : social.tiktok.replace('@', '');
-      links.push(`
-        <a href="${escapeHtml(ttUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">@${escapeHtml(ttHandle)}</span>
-          <span class="quick-link-icon">${tiktokIcon}</span>
-        </a>
-      `);
-    }
-
-    // Facebook
-    if (social.facebook) {
-      const fbUrl = social.facebook.startsWith('http') ? social.facebook : `https://facebook.com/${social.facebook}`;
-      links.push(`
-        <a href="${escapeHtml(fbUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">Facebook</span>
-          <span class="quick-link-icon">${facebookIcon}</span>
-        </a>
-      `);
-    }
+    });
 
     return { links, faviconSrc };
   }
@@ -2909,8 +2939,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   addToSearchHistory(url);
   currentSearchId = generateId();
 
-  // Yield so the loading UI paints before we start
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  // Yield so the loading UI paints before we start. A timer, not requestAnimationFrame,
+  // which never fires in a background tab and would stall the search until it's visible.
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   // Track state for the decoupled flow
   let brandsData = null;
@@ -2952,7 +2983,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       // Called per brand as its catalog resolves
       onCatalog: (brand) => {
         if (isSearchCancelled) return;
-        updateCardCatalog(extractDomain(brand.url || ''), brand.catalog);
+        const domain = extractDomain(brand.url || '');
+        updateCardCatalog(domain, brand.catalog);
+        updateCardSocial(domain, brand.social);
       }
     });
 

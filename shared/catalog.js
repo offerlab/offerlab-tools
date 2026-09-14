@@ -19,7 +19,7 @@ export function normalizeDomain(input) {
 }
 
 // The domain as given, its www. twin, and, for a subdomain like us.brand.com, the apex too.
-function hostCandidates(domain) {
+export function hostCandidates(domain) {
   const bare = domain.replace(/^www\./, '');
   const candidates = [bare, `www.${bare}`];
   const parts = bare.split('.');

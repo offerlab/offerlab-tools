@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
 import { fetchShopifyCatalog } from './shared/catalog.js';
+import { fetchSocials } from './shared/socials.js';
 
 config(); // Load .env
 
@@ -190,6 +191,22 @@ app.get('/api/catalog', async (req, res) => {
   } catch (err) {
     console.error('[Catalog Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to fetch catalog' });
+  }
+});
+
+// Social accounts linked from a storefront homepage (same grammar as the app's Brand DNA extraction)
+app.get('/api/socials', async (req, res) => {
+  const domain = req.query.domain;
+  if (!domain || typeof domain !== 'string' || !domain.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid domain parameter' });
+  }
+  try {
+    const result = await fetchSocials(domain);
+    console.log(`[Socials Proxy] ${domain}: ${result.status} (${Object.keys(result.socials).join(', ') || 'none'})`);
+    res.json(result);
+  } catch (err) {
+    console.error('[Socials Proxy] Error:', err);
+    res.status(500).json({ error: 'Failed to fetch socials' });
   }
 });
 
