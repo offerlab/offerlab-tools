@@ -650,10 +650,11 @@ img {
   visibility: visible;
 }
 
-/* The card clips overflow by default; let a centered pill overhang its edge while shown */
+/* The card clips overflow by default; while a tooltip shows, let it overhang and sit above neighbors */
 .result-card:has(.has-tooltip:hover),
 .result-card:has(.has-tooltip:focus-visible) {
   overflow: visible;
+  z-index: var(--z-popover-overlay);
 }
 
 @media (hover: none) {
