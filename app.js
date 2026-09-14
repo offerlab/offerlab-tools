@@ -3203,9 +3203,22 @@ function ensureHttps(item) {
    -------------------------------------------------------------------------- */
 
 const TYPING_MESSAGES = ["Find your next collab", "Drop any brand URL", "Get instant recommendations"];
+// Demo teams in staging. The "Try {domain}" placeholder rotates through these, one per cycle,
+// with the brand's favicon inline after "Try".
+const DEMO_BRANDS = ['magicspoon.com', 'monos.com', 'flamingoestate.com', 'wildone.com', 'fanttik.com', 'jolieskinco.com'];
+const TRY_PREFIX = 'Try ';
 const TYPING_SPEED = 80;
 const PAUSE_AFTER_TYPE = 2000;
 const FADE_OUT_DURATION = 400;
+
+function preloadDemoAvatars() {
+  DEMO_BRANDS.forEach((domain) => { new Image().src = getFaviconUrl(domain); });
+}
+
+function buildTypingSequence(demoIndex) {
+  const domain = DEMO_BRANDS[demoIndex % DEMO_BRANDS.length];
+  return [...TYPING_MESSAGES, { text: `${TRY_PREFIX}${domain}`, avatarDomain: domain }];
+}
 function createTypingAnimation(placeholderEl, inputEl) {
   console.log('[createTypingAnimation] Called with:', { placeholderEl, inputEl });
   if (!placeholderEl || !inputEl) {
@@ -3216,28 +3229,52 @@ function createTypingAnimation(placeholderEl, inputEl) {
   let messageIndex = 0;
   let charIndex = 0;
   let timeoutId = null;
+  let demoIndex = 0;
+  let sequence = buildTypingSequence(demoIndex);
 
-  function updateDisplay(text) {
-    placeholderEl.textContent = text;
+  function updateDisplay(message, typed) {
+    const avatarDomain = message?.avatarDomain;
+    // The avatar pops in once "Try " is typed, then the domain types out after it.
+    if (!avatarDomain || typed.length < TRY_PREFIX.length) {
+      placeholderEl.textContent = typed;
+      return;
+    }
+    let avatar = placeholderEl.querySelector('.typing-placeholder-avatar');
+    if (!avatar) {
+      placeholderEl.textContent = '';
+      placeholderEl.append(TRY_PREFIX.trim());
+      avatar = document.createElement('img');
+      avatar.className = 'typing-placeholder-avatar';
+      avatar.alt = '';
+      avatar.src = getFaviconUrl(avatarDomain);
+      avatar.onerror = () => { avatar.src = CONFIG.FAVICON_FALLBACK(avatarDomain); avatar.onerror = null; };
+      placeholderEl.append(avatar, document.createTextNode(''));
+    }
+    placeholderEl.lastChild.textContent = typed.slice(TRY_PREFIX.length);
   }
 
   function fadeOutAndNext() {
     placeholderEl.classList.add('fade-out');
     timeoutId = setTimeout(() => {
       placeholderEl.classList.remove('fade-out');
-      messageIndex = (messageIndex + 1) % TYPING_MESSAGES.length;
+      messageIndex = (messageIndex + 1) % sequence.length;
+      if (messageIndex === 0) {
+        demoIndex++;
+        sequence = buildTypingSequence(demoIndex);
+      }
       charIndex = 0;
-      updateDisplay('');
+      placeholderEl.textContent = '';
       tick();
     }, FADE_OUT_DURATION);
   }
 
   function tick() {
-    const message = TYPING_MESSAGES[messageIndex];
+    const message = sequence[messageIndex];
+    const text = typeof message === 'string' ? message : message.text;
     charIndex++;
-    updateDisplay(message.substring(0, charIndex));
+    updateDisplay(message, text.substring(0, charIndex));
 
-    if (charIndex === message.length) {
+    if (charIndex === text.length) {
       timeoutId = setTimeout(fadeOutAndNext, PAUSE_AFTER_TYPE);
     } else {
       timeoutId = setTimeout(tick, TYPING_SPEED);
@@ -3251,7 +3288,7 @@ function createTypingAnimation(placeholderEl, inputEl) {
     messageIndex = 0;
     charIndex = 0;
     if (timeoutId) clearTimeout(timeoutId);
-    updateDisplay('');
+    placeholderEl.textContent = '';
     tick();
   }
 
@@ -3291,6 +3328,7 @@ function createTypingAnimation(placeholderEl, inputEl) {
 }
 
 function initTypingPlaceholders() {
+  preloadDemoAvatars();
   console.log('[initTypingPlaceholders] Starting with:', {
     typingPlaceholder: elements.typingPlaceholder,
     searchInput: elements.searchInput
