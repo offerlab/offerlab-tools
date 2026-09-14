@@ -802,10 +802,11 @@ function trimCatalogForCache(brand) {
 // Searched brand's visit control: the platform mark (when known) beside the external-link icon,
 // styled as an elevated button. The whole card is the link, so this is a span, not a button.
 function renderSearchedBrandLink(catalog) {
-  const platform = CATALOG_SOURCES[catalog?.status] && catalog.status === 'shopify'
-    ? icon(CATALOG_SOURCES.shopify.icon, { class: 'searched-brand-card-link-platform', size: 24 }) : '';
+  const platform = catalog?.status === 'shopify'
+    ? `<span class="searched-brand-card-link-ghost">${icon(CATALOG_SOURCES.shopify.icon, { class: 'searched-brand-card-link-platform', size: 20 })}</span>`
+    : '';
   return `<span class="btn btn--md btn--secondary searched-brand-card-link" aria-hidden="true">
-    ${platform}${icon('square-arrow-top-right-2')}
+    ${platform}<span class="searched-brand-card-link-ghost searched-brand-card-link-ghost--external">${icon('square-arrow-top-right-2')}</span>
   </span>`;
 }
 

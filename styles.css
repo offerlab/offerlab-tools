@@ -2001,21 +2001,34 @@ position: absolute;
   margin-left: auto;
 }
 
+/* An elevated pill holding two ghost circles: the platform mark and the external arrow.
+   Hovering the card reveals the arrow's ghost background, like an icon button. */
 .searched-brand-card-link {
   pointer-events: none;
-  gap: 6px;
-  padding: 0 12px;
+  gap: 0;
+  padding: 2px;
+  width: auto;
 }
 
-/* The platform mark reads at 24px; the external arrow keeps the button's 14px icon size */
-.searched-brand-card-link .searched-brand-card-link-platform {
-  width: 24px;
-  height: 24px;
-  --icon-rendered: 24;
+.searched-brand-card-link-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.2s ease;
 }
 
-.searched-brand-card-group:hover .searched-brand-card-link {
+.searched-brand-card-group:hover .searched-brand-card-link-ghost--external {
   background: var(--content-background-overlay);
+}
+
+.searched-brand-card-link .searched-brand-card-link-platform {
+  width: 20px;
+  height: 20px;
+  --icon-rendered: 20;
 }
 
 .searched-brand-card-description {
