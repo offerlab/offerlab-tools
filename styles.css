@@ -4486,11 +4486,74 @@ position: absolute;
   box-shadow: 0 0 0 2px var(--content-primary);
 }
 
+/* Loading card: a flat dot grid with two soft blobs roaming over it, where the dots swell and
+   brighten. The blobs are the same grid drawn heavier, revealed through a pair of moving radial
+   masks, so the light reads as passing through the surface rather than sitting on it. */
 .picker-concept--skeleton {
+  position: relative;
+  overflow: hidden;
   min-height: 200px;
-  animation: catalog-shimmer 1.2s ease-in-out infinite;
-  background: var(--content-background-base);
+  background: var(--agent-surface-start);
   border-color: transparent;
+  --dot-grid: 11px;
+  --dot-ink: var(--brand-secondary-moola);
+  /* Blob diameter tracks the card, so a wide card gets wider light rather than more blobs */
+  --dot-blob: 60%;
+}
+
+.picker-concept--skeleton::before,
+.picker-concept--skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: var(--dot-grid) var(--dot-grid);
+  pointer-events: none;
+}
+
+.picker-concept--skeleton::before {
+  background-image: radial-gradient(circle, var(--dot-ink) 0.7px, transparent 1.3px);
+  opacity: 0.22;
+}
+
+.picker-concept--skeleton::after {
+  background-image: radial-gradient(circle, var(--dot-ink) 1.3px, transparent 1.8px);
+  opacity: 0.75;
+  -webkit-mask-image: radial-gradient(#000 0%, transparent 60%), radial-gradient(#000 0%, transparent 62%);
+  mask-image: radial-gradient(#000 0%, transparent 60%), radial-gradient(#000 0%, transparent 62%);
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  animation: conceptDotDrift 4.2s cubic-bezier(0.35, 1.55, 0.65, 1) infinite,
+             conceptDotBreathe 1.9s cubic-bezier(0.66, 0, 0.34, 1) infinite;
+}
+
+@keyframes conceptDotDrift {
+  0%, 100% {
+    mask-size: calc(var(--dot-blob) * 1.1) calc(var(--dot-blob) * 0.95), calc(var(--dot-blob) * 0.8) calc(var(--dot-blob) * 0.8);
+    mask-position: 16% 20%, 30% 32%;
+  }
+  25% {
+    mask-size: calc(var(--dot-blob) * 0.96) calc(var(--dot-blob) * 1.22), calc(var(--dot-blob) * 0.88) calc(var(--dot-blob) * 0.76);
+    mask-position: 84% 16%, 66% 30%;
+  }
+  50% {
+    mask-size: calc(var(--dot-blob) * 1.24) calc(var(--dot-blob) * 0.92), calc(var(--dot-blob) * 0.76) calc(var(--dot-blob) * 0.92);
+    mask-position: 82% 84%, 62% 68%;
+  }
+  75% {
+    mask-size: calc(var(--dot-blob) * 1) calc(var(--dot-blob) * 1.12), calc(var(--dot-blob) * 0.92) calc(var(--dot-blob) * 0.8);
+    mask-position: 14% 82%, 34% 66%;
+  }
+}
+
+@keyframes conceptDotBreathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concept--skeleton::after {
+    animation: none;
+  }
 }
 
 .picker-concept-create {
