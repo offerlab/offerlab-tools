@@ -4341,6 +4341,45 @@ position: absolute;
   gap: 28px;
 }
 
+/* Ported from the app's .text-shimmer / .text-shimmer-ink (atelier/animations.css). The sweep
+   DARKENS rather than lightens: on a light surface a light sheen makes the emphasised word the
+   one closest to the background, so it reads as erasing rather than as attention. */
+.text-shimmer-ink {
+  --spread: 16%;
+  --animation-duration: 3s;
+  --shimmer-peak: var(--agent-ink);
+  --shimmer-edge: rgba(37, 79, 26, 0);
+  color: rgba(37, 79, 26, 0.42);
+  display: inline-block;
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image:
+    linear-gradient(100deg,
+      var(--shimmer-edge) calc(50% - var(--spread)),
+      var(--shimmer-peak),
+      var(--shimmer-edge) calc(50% + var(--spread))),
+    linear-gradient(currentColor, currentColor);
+  animation: shimmerSlide var(--animation-duration) linear infinite;
+}
+
+/* Sweeps over the first two thirds, then parks off-screen, since a CSS animation cannot rest
+   between iterations. At 3s that is a 2s pass and a 1s beat. */
+@keyframes shimmerSlide {
+  0% { background-position: 100% center, 0% center; }
+  66%, 100% { background-position: 0% center, 0% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer-ink {
+    animation: none;
+    -webkit-text-fill-color: currentColor;
+    color: var(--agent-ink);
+  }
+}
+
 /* The head's action button, whichever state is showing: Suggest bundles, Regenerate, Try again */
 .picker-concepts-head .btn {
   padding-inline: 10px;
