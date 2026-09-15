@@ -789,6 +789,8 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 .has-tooltip:focus-visible .tooltip {
   opacity: 1;
   visibility: visible;
+  /* Held back so passing the cursor over a control does not flash a label */
+  transition-delay: 200ms;
 }
 
 /* The card clips overflow by default; while a tooltip shows, let it overhang (the group lifts it above neighbors) */
@@ -4606,9 +4608,6 @@ position: absolute;
 .picker-column {
   --picker-column-top: 132px;
   position: relative;
-  /* The grid scrolls inside the card, so the card has to clip it — otherwise tiles
-     ride over the rounded corners on their way past the head. */
-  overflow: hidden;
 }
 
 .picker-column-top {
@@ -4688,18 +4687,17 @@ position: absolute;
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: var(--content-secondary);
+  color: var(--content-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .picker-column-action:hover {
   background: var(--content-background-overlay);
-  color: var(--content-primary);
 }
 
 .picker-grid {
@@ -4711,6 +4709,9 @@ position: absolute;
   min-height: 0;
   align-content: start; /* rows stack from the top rather than stretching to fill the column */
   overflow-y: auto;
+  /* The grid does its own clipping (the column cannot, or a header tooltip would be cut off),
+     so tiles scrolling past the head follow the card's rounded top corners. */
+  border-radius: 32px 32px 0 0;
   overscroll-behavior: contain;
   /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
      overlay their scrollbars it still fades out after scrolling stops. */
