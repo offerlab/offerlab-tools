@@ -4510,7 +4510,7 @@ position: absolute;
   padding: 0;
   border-radius: var(--rounded-28);
   border: 1px solid var(--content-border-neutral);
-  background: var(--content-background-elevated);
+  background: var(--background-light);
   box-shadow: var(--shadow-sm);
   text-align: left;
   cursor: pointer;
@@ -4611,11 +4611,18 @@ position: absolute;
   flex-direction: column;
   gap: var(--concept-gap);
   padding: 16px 16px 0;
+  background: var(--content-background-elevated);
+  border-radius: 27px 27px 0 0;
+}
+
+/* The card stretches to its row's tallest, and the slack belongs to the light ground below the
+   Includes panel rather than to a gap above it. */
+.picker-concept-includes {
+  margin-bottom: auto;
 }
 
 .picker-concept-create {
   margin: 16px;
-  margin-top: auto;
   align-self: stretch;
 }
 

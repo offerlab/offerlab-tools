@@ -731,9 +731,9 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
   } else if (conceptsStatus === 'loading') {
     head = conceptsHead({
-      title: 'Mixing these catalogs',
+      title: 'Rummaging through the shelves',
       titleClass: 'text-shimmer-ink',
-      subtitle: 'Pairing products and pricing each bundle.',
+      subtitle: '',
       action: `<button type="button" class="stop-button" data-action="cancel" aria-label="Stop generating">${icon('stop-filled', { class: 'stop-icon' })}</button>`
     });
     body = `<div class="picker-concepts-grid">${'<div class="picker-concept picker-concept--skeleton"></div>'.repeat(CONCEPT_COUNT)}</div>`;
@@ -768,7 +768,7 @@ function conceptsHead({ title, subtitle, action, titleClass = '' }) {
       ${renderProductStack()}
       <div class="picker-concepts-copy">
         <h3 class="picker-concepts-title${titleClass ? ` ${titleClass}` : ''}">${escapeHtml(title)}</h3>
-        <p class="picker-concepts-subtitle">${escapeHtml(subtitle)}</p>
+        ${subtitle ? `<p class="picker-concepts-subtitle">${escapeHtml(subtitle)}</p>` : ''}
       </div>
       ${action}
     </div>`;
