@@ -612,10 +612,11 @@ function renderTile(domain, p) {
     </div>`;
 }
 
+// The whole dashed column is the control; the plus is its visual.
 function renderAddColumn() {
   return `
-    <div class="picker-add-column">
-      <button type="button" class="picker-add-btn" data-action="add-brand" aria-label="Add a brand" aria-haspopup="true">${icon('plus-large', { size: 20 })}</button>
+    <div class="picker-add-column" role="button" tabindex="0" data-action="add-brand" aria-label="Add a brand" aria-haspopup="true">
+      <span class="picker-add-btn" aria-hidden="true">${icon('plus-large', { size: 20 })}</span>
       <span class="picker-add-label">Add brand</span>
     </div>
   `;
@@ -690,6 +691,10 @@ function onRailKeydown(e) {
   if (e.target.closest('input')) return;
   if (e.key === 'ArrowRight') { scrollRail(1); e.preventDefault(); }
   else if (e.key === 'ArrowLeft') { scrollRail(-1); e.preventDefault(); }
+  else if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.picker-add-column')) {
+    e.target.closest('.picker-add-column').click();
+    e.preventDefault();
+  }
   else if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.picker-product')) {
     const tile = e.target.closest('.picker-product');
     toggleProduct(tile.dataset.domain, tile.dataset.id);
@@ -817,7 +822,7 @@ function onSectionClick(e) {
     case 'rail-next': scrollRail(1); break;
     case 'add-brand':
       e.stopPropagation();
-      if (dom.popover.classList.contains('hidden')) showAddPopover(target); else hideAddPopover();
+      if (dom.popover.classList.contains('hidden')) showAddPopover(target.querySelector('.picker-add-btn') || target); else hideAddPopover();
       break;
     case 'add-result-brand': {
       const brand = (getResults()?.brands || []).find(b => extractDomain(b.url || '') === target.dataset.domain);

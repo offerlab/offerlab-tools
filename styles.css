@@ -4639,6 +4639,8 @@ position: absolute;
 .picker-add-column {
   flex: 0 0 96px;
   scroll-snap-align: end;
+  cursor: pointer;
+  outline: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4661,7 +4663,6 @@ position: absolute;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: none;
   background: var(--content-background-elevated);
   color: var(--content-primary);
   box-shadow: var(--shadow-sm);
@@ -4670,13 +4671,17 @@ position: absolute;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.picker-add-btn:hover {
+.picker-add-column:hover .picker-add-btn,
+.picker-add-column:focus-visible .picker-add-btn {
   background: var(--content-background-base);
   transform: scale(1.05);
+}
+
+.picker-add-column:focus-visible {
+  border-color: var(--content-primary);
 }
 
 /* Add-brand popover */
