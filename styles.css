@@ -4228,7 +4228,7 @@ position: absolute;
   height: var(--size, 96px);
   border-radius: 16px;
   box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-sm);
-  transform: translate(calc(-50% + var(--shift, 0px)), -50%) rotate(var(--tilt, 0deg));
+  transform: translate(calc(-50% + var(--shift, 0px)), calc(-50% + var(--drop, 0px))) rotate(var(--tilt, 0deg));
 }
 
 .picker-stack-card--front {

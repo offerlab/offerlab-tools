@@ -458,11 +458,13 @@ function stackImages() {
 
 // Five slots fanning out from the front card: a mid pair just behind it, tilted outward, and a
 // smaller far pair behind those. Painted back to front, so DOM order is far, mid, front.
+// The far pair sits low: the midpoint of its bottom edge lands 4px above the mid pair's
+// (40·cos22° ≈ 37 versus 48·cos11° ≈ 47, so a 6px drop closes the gap to 4).
 const STACK_SLOTS = [
-  { tilt: -22, shift: -78, size: 80 },  // far left
-  { tilt: 22, shift: 78, size: 80 },    // far right
-  { tilt: -11, shift: -42, size: 96 },  // mid left
-  { tilt: 11, shift: 42, size: 96 }     // mid right
+  { tilt: -22, shift: -78, size: 80, drop: 6 },  // far left
+  { tilt: 22, shift: 78, size: 80, drop: 6 },    // far right
+  { tilt: -11, shift: -42, size: 96, drop: 0 },  // mid left
+  { tilt: 11, shift: 42, size: 96, drop: 0 }     // mid right
 ];
 
 function renderProductStack() {
@@ -475,7 +477,7 @@ function renderProductStack() {
     const src = images[imageIndex];
     if (!src) return '';
     const slot = STACK_SLOTS[slotIndex];
-    return card(catalogThumbUrl(src, 240), '', `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px`);
+    return card(catalogThumbUrl(src, 240), '', `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px; --drop: ${slot.drop}px`);
   }).join('');
   return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 320), ' picker-stack-card--front')}</div>`;
 }
