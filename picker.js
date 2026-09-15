@@ -827,15 +827,17 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     });
   }
 
+  const morphing = dom.concepts.classList.contains('is-morphing') ? ' is-morphing' : '';
+
   if (state.conceptsMinimized) {
-    dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus} is-minimized`;
+    dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus} is-minimized${morphing}`;
     dom.concepts.innerHTML = `<button type="button" class="picker-concepts-chip" data-action="toggle-minimize"
       aria-expanded="false" aria-label="Expand bundle ideas"><span class="picker-concepts-chip-label">Bundle ideas</span><span
       class="picker-concepts-chip-icon" aria-hidden="true">${icon('expand-45', { size: 14 })}</span></button>`;
     return;
   }
 
-  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
+  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}${morphing}`;
   dom.concepts.innerHTML = `${head}${body ? `<div class="picker-concepts-body" id="pickerConceptsBody">${body}</div>` : ''}`;
 
   fanOutStack();
@@ -918,12 +920,18 @@ function toggleMinimize() {
   card.style.width = '';
   card.style.height = '';
   state.conceptsMinimized = next;
-  // The shell shrink-wraps for BOTH directions of the run; expanding hands it back on release,
-  // or the glow would snap to full width while the card is still travelling.
-  shell.classList.add('is-chip');
+  // Measure with the shell in its TARGET state: a shrink-wrapped shell would hand back the
+  // banner's max-content width rather than the width it will actually settle at.
+  shell.classList.toggle('is-chip', next);
   renderConcepts();
   const toW = card.offsetWidth;
   const toH = card.offsetHeight;
+  // Hidden for the run. The content would otherwise lay out at every width the box passes
+  // through, and the headline visibly wraps and unwraps on the way.
+  card.classList.add('is-morphing');
+  // Shrink-wrapped for BOTH directions of the run so the glow tracks the pinned card; expanding
+  // hands it back on release.
+  shell.classList.add('is-chip');
 
   const toRadius = clampedRadius(toH);
   card.style.width = `${fromW}px`;
@@ -941,6 +949,7 @@ function toggleMinimize() {
     card.style.width = '';
     card.style.height = '';
     card.style.borderRadius = '';
+    card.classList.remove('is-morphing');
     shell.classList.toggle('is-chip', next);
     card.removeEventListener('transitionend', release);
   };

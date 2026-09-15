@@ -4494,6 +4494,23 @@ position: absolute;
   padding: 12px;
 }
 
+/* The box travels, its contents do not follow it through every width on the way: they are hidden
+   for the run and brought back once it lands. Fast, so the chip is not empty for long. */
+.picker-concepts-head,
+.picker-concepts-body,
+.picker-concepts-chip {
+  transition: opacity 0.16s ease;
+}
+
+.picker-concepts.is-morphing .picker-concepts-head,
+.picker-concepts.is-morphing .picker-concepts-body,
+.picker-concepts.is-morphing .picker-concepts-chip {
+  opacity: 0;
+  /* Out instantly, in over the base duration: a faded hide still shows a frame or two of the
+     headline wrapped at whatever width the box happens to be passing through. */
+  transition-duration: 0s;
+}
+
 /* Chip: the same box, shrunk to a pill. 999px is a stadium at any height because the radius is
    clamped to half the box at paint time, which a fixed length cannot promise. The insets are not
    even: 7px on three sides is set by the trailing button, which is the tallest thing in the row,
