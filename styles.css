@@ -4717,10 +4717,15 @@ position: absolute;
 }
 
 .picker-add-list {
-  max-height: 320px;
+  max-height: 480px; /* showAddPopover trims this to what fits below the anchor */
   overflow-y: auto;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
+}
+
+.picker-add-list::-webkit-scrollbar {
+  display: none;
 }
 
 .picker-add-row {

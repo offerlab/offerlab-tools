@@ -736,6 +736,14 @@ function showAddPopover(anchor) {
   dom.popover.style.top = `${rect.bottom - sectionRect.top + 8}px`;
   dom.popover.style.left = `${left}px`;
   dom.popover.classList.remove('hidden');
+
+  // Show as much of the list as the viewport allows below the anchor, never past its bottom edge.
+  const list = dom.popover.querySelector('.picker-add-list');
+  if (list) {
+    const listTop = list.getBoundingClientRect().top;
+    const available = window.innerHeight - listTop - 24;
+    list.style.maxHeight = `${Math.max(240, Math.min(480, available))}px`;
+  }
 }
 
 function hideAddPopover() {
