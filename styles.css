@@ -1518,29 +1518,37 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(255, 237, 132, 0.8) 0px 4px 24px 0px;
 }
 
-/* Stop button variant (during search) */
-.search-button--stop {
+/* Circular stop control with a sweeping ring. Set --stop-size to fit the row it sits in. */
+.stop-button {
+  --stop-size: 40px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--stop-size);
+  height: var(--stop-size);
+  border: none;
+  border-radius: 50%;
   background-color: var(--content-primary);
-  box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(52,46,38, 0.15) 0px 4px 24px 0px;
+  box-shadow: 0 4px 24px rgba(52, 46, 38, 0.15);
   cursor: pointer;
+  transition: transform var(--transition-fast);
 }
 
-.search-button--stop:hover {
+.stop-button:hover {
   transform: scale(1.05);
 }
 
-/* Hide the SVG spinner ring, use pseudo-element instead for gradient */
-.search-button--stop .spinner-ring {
+/* The icon font's own spinner is replaced by the conic ring below */
+.stop-button .spinner-ring {
   display: none;
 }
 
-/* Gradient spinner using conic-gradient */
-.search-button--stop::before {
+.stop-button::before {
   content: '';
   position: absolute;
-  width: 32px;
-  height: 32px;
+  inset: calc(var(--stop-size) * 0.1);
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
@@ -1548,17 +1556,23 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
     rgba(255, 255, 255, 1) 270deg,
     transparent 360deg
   );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), var(--content-primary) calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), var(--content-primary) calc(100% - 2.5px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
   animation: spin-ring 1s linear infinite;
 }
 
-.search-button--stop .stop-icon {
-  width: 16px;
-  --icon-rendered: 16;
-  height: 16px;
+.stop-button .stop-icon {
+  width: calc(var(--stop-size) * 0.4);
+  height: calc(var(--stop-size) * 0.4);
+  --icon-rendered: calc(var(--stop-size) * 0.4);
   color: var(--white);
   z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stop-button::before {
+    animation: none;
+  }
 }
 
 @keyframes spin-ring {
@@ -4320,6 +4334,11 @@ position: absolute;
   display: flex;
   align-items: center;
   gap: 28px;
+}
+
+/* Matches the height of the .btn--md actions it replaces */
+.picker-concepts-head .stop-button {
+  --stop-size: 32px;
 }
 
 .picker-concepts-copy {

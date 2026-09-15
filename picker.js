@@ -625,7 +625,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     head = conceptsHead({
       title: 'Mixing these catalogs',
       subtitle: 'Pairing products and pricing each bundle.',
-      action: `<button type="button" class="btn btn--md btn--secondary" data-action="cancel">Stop</button>`
+      action: `<button type="button" class="stop-button" data-action="cancel" aria-label="Stop generating">${icon('stop-filled', { class: 'stop-icon' })}</button>`
     });
     body = `<div class="picker-concepts-grid">${'<div class="picker-concept picker-concept--skeleton"></div>'.repeat(CONCEPT_COUNT)}</div>`;
   } else if (conceptsStatus === 'error') {
