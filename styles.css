@@ -4483,6 +4483,7 @@ position: absolute;
 .picker-filter:focus {
   outline: none;
   border-color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .picker-column-remove {
