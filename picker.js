@@ -781,26 +781,24 @@ function crossfadeCopy() {
 
 function renderConceptCard(concept, index) {
   const products = concept.picks.map(p => p.product);
-  const separate = conceptSeparatePrice(concept);
   const bundle = conceptBundlePrice(concept);
   const thumbs = products.slice(0, CONCEPT_THUMBS).map((p, i) => `<span class="picker-concept-thumb media-tile media-hairline" style="--tilt: ${THUMB_PILE_TILTS[i % THUMB_PILE_TILTS.length]}deg; --i: ${index * CONCEPT_THUMBS + i}" title="${escapeHtml(p.title)}"><img class="media-zoom" src="${catalogThumbUrl(p.image, 200)}" alt=""></span>`).join('');
   const more = products.length > CONCEPT_THUMBS ? `<span class="picker-concept-more">+${products.length - CONCEPT_THUMBS}</span>` : '';
-  const split = state.brands
-    .map(e => ({ name: e.brand.name, n: concept.picks.filter(p => p.domain === e.domain).length }))
-    .filter(x => x.n > 0)
-    .map(x => `${x.n} ${escapeHtml(x.name)}`)
-    .join(' · ');
+  const items = concept.picks.map(({ domain, product }) => {
+    const brand = entryFor(domain)?.brand.name || domain;
+    return `<li class="picker-concept-item">${escapeHtml(product.title)} <span class="picker-concept-item-brand">by ${escapeHtml(brand)}</span></li>`;
+  }).join('');
   const active = index === state.activeConcept;
   return `
     <div class="picker-concept${active ? ' is-active' : ''}" role="button" tabindex="0" data-action="apply-concept" data-index="${index}">
       <div class="picker-concept-thumbs">${thumbs}${more}</div>
       <div class="picker-concept-name">${escapeHtml(concept.name)}${concept.edited ? ' <span class="picker-concept-edited">edited</span>' : ''}</div>
       <p class="picker-concept-hook">${escapeHtml(concept.hook)}</p>
-      <div class="picker-concept-price">
-        <strong>${money(bundle)}</strong>
-        <span>${money(separate)} separately · save ${concept.discountPercent}%</span>
+      <div class="picker-concept-includes">
+        <div class="picker-concept-includes-label">Includes</div>
+        <ul class="picker-concept-items">${items}</ul>
       </div>
-      <div class="picker-concept-meta">${split}</div>
+      <div class="picker-concept-total">${money(bundle)}</div>
       <button type="button" class="btn btn--md btn--ai picker-concept-create" data-action="create-concept" data-index="${index}">Create bundle</button>
     </div>
   `;
