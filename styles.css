@@ -169,6 +169,7 @@
   --brand-primary-brew: #342E26FF;
   --brand-primary-chocolate: #4D2F06FF;
   --background-dark: #24201BFF;
+  --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
   --brand-secondary-spice: #713636FF;
@@ -4649,6 +4650,11 @@ position: absolute;
   color: var(--content-primary);
   font-size: var(--font-size-xs);
   font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.picker-add-column:hover {
+  background: var(--background-light);
 }
 
 .picker-add-btn {
