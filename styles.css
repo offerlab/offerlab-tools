@@ -4576,7 +4576,6 @@ position: absolute;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
   transform: rotate(var(--tilt, 0deg));
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Each tile overlaps the one before it, later tiles on top */
@@ -4588,14 +4587,29 @@ position: absolute;
 .picker-concept-thumb:nth-child(3) { z-index: 3; }
 .picker-concept-thumb:nth-child(4) { z-index: 4; }
 
-/* The pile squares up and spreads under the cursor, so every product is legible on hover */
-.picker-concept:hover .picker-concept-thumb {
-  transform: rotate(0deg);
-  margin-left: -8px;
+/* Only on a fresh batch: toggling a product re-renders these cards, and replaying the entrance
+   on every toggle would be noise. */
+.picker-concepts-grid.is-entering .picker-concept-thumb {
+  animation: conceptThumbIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.picker-concept:hover .picker-concept-thumb:first-child {
-  margin-left: 0;
+/* Lands on its resting tilt, so each tile reads as being laid onto the pile */
+@keyframes conceptThumbIn {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) rotate(0deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(var(--tilt, 0deg)) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concepts-grid.is-entering .picker-concept-thumb {
+    animation: none;
+  }
 }
 
 .picker-concept-more {

@@ -739,7 +739,10 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
   dom.concepts.innerHTML = `${head}${body}`;
 
   fanOutStack();
-  if (reveal) playCardReveal();
+  if (reveal) {
+    dom.concepts.querySelector('.picker-concepts-grid')?.classList.add('is-entering');
+    playCardReveal();
+  }
   if (swap) crossfadeCopy();
 }
 
@@ -780,7 +783,7 @@ function renderConceptCard(concept, index) {
   const products = concept.picks.map(p => p.product);
   const separate = conceptSeparatePrice(concept);
   const bundle = conceptBundlePrice(concept);
-  const thumbs = products.slice(0, CONCEPT_THUMBS).map((p, i) => `<span class="picker-concept-thumb media-tile media-hairline" style="--tilt: ${THUMB_PILE_TILTS[i % THUMB_PILE_TILTS.length]}deg" title="${escapeHtml(p.title)}"><img class="media-zoom" src="${catalogThumbUrl(p.image, 200)}" alt=""></span>`).join('');
+  const thumbs = products.slice(0, CONCEPT_THUMBS).map((p, i) => `<span class="picker-concept-thumb media-tile media-hairline" style="--tilt: ${THUMB_PILE_TILTS[i % THUMB_PILE_TILTS.length]}deg; --i: ${index * CONCEPT_THUMBS + i}" title="${escapeHtml(p.title)}"><img class="media-zoom" src="${catalogThumbUrl(p.image, 200)}" alt=""></span>`).join('');
   const more = products.length > CONCEPT_THUMBS ? `<span class="picker-concept-more">+${products.length - CONCEPT_THUMBS}</span>` : '';
   const split = state.brands
     .map(e => ({ name: e.brand.name, n: concept.picks.filter(p => p.domain === e.domain).length }))
