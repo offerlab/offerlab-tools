@@ -4547,6 +4547,14 @@ position: absolute;
   padding: 7px 7px 7px 12px;
   border-radius: 999px;
   overflow: hidden;
+  /* Still a gradient, both stops white: swapping a gradient for a flat colour drops the
+     background-image for a frame and blinks mid-morph. */
+  background-image: linear-gradient(98deg, var(--content-background-elevated), var(--content-background-elevated));
+  color: var(--content-primary);
+}
+
+.picker-concepts.is-minimized .picker-concepts-chip {
+  color: var(--content-primary);
 }
 
 .picker-concepts-chip {
