@@ -282,10 +282,6 @@ function selectedFor(domain) {
   return [...state.selection.values()].filter(s => s.domain === domain).map(s => s.product);
 }
 
-function selectionTotal() {
-  return [...state.selection.values()].reduce((sum, s) => sum + (s.product.price || 0), 0);
-}
-
 function clearSelection() {
   state.selection = new Map();
   state.activeConcept = -1;
@@ -815,7 +811,7 @@ function renderTray() {
     <div class="picker-tray-pill">
       <div class="picker-tray-thumbs">${thumbs}</div>
       <div class="picker-tray-summary">
-        <strong>${count} ${count === 1 ? 'product' : 'products'} · ${money(selectionTotal())}</strong>
+        <strong>${count} ${count === 1 ? 'product' : 'products'}</strong>
         <span>${split}</span>
       </div>
       <button type="button" class="btn btn--md btn--secondary" data-action="clear">Clear</button>
