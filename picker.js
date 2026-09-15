@@ -536,8 +536,10 @@ function renderColumnMarkup(domain) {
           <div class="picker-column-name">${escapeHtml(brand.name)}</div>
           <div class="picker-column-count">${catalog.count} products${loadingMore ? ' · loading the rest' : ''}</div>
         </div>
-        <input type="search" class="picker-filter" data-domain="${escapeHtml(domain)}" placeholder="Filter" value="${escapeHtml(state.filters[domain] || '')}" aria-label="Filter ${escapeHtml(brand.name)} products">
         ${removable ? `<button type="button" class="picker-column-remove" data-action="remove-brand" data-domain="${escapeHtml(domain)}" aria-label="Remove ${escapeHtml(brand.name)}">${icon('cross-large', { size: 16 })}</button>` : ''}
+      </div>
+      <div class="picker-column-filter">
+        <input type="search" class="picker-filter" data-domain="${escapeHtml(domain)}" placeholder="Filter products" value="${escapeHtml(state.filters[domain] || '')}" aria-label="Filter ${escapeHtml(brand.name)} products">
       </div>
       <div class="picker-grid">${products.map(p => renderTile(domain, p)).join('') || '<p class="picker-grid-empty">No products match.</p>'}</div>
     </div>
