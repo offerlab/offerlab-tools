@@ -771,10 +771,10 @@ function stackImages() {
 // Slots for the fan, scaled to the shorter card. The far pair sits low enough that the midpoint
 // of its bottom edge lands just above the mid pair's.
 const STACK_SLOTS = [
-  { tilt: -22, shift: -58, size: 60, drop: 5 },  // far left
-  { tilt: 22, shift: 58, size: 60, drop: 5 },    // far right
-  { tilt: -11, shift: -31, size: 72, drop: 0 },  // mid left
-  { tilt: 11, shift: 31, size: 72, drop: 0 }     // mid right
+  { tilt: -22, shift: -58, size: 60, drop: 5, far: true },  // far left
+  { tilt: 22, shift: 58, size: 60, drop: 5, far: true },    // far right
+  { tilt: -11, shift: -31, size: 72, drop: 0 },             // mid left
+  { tilt: 11, shift: 31, size: 72, drop: 0 }                // mid right
 ];
 
 function renderProductStack() {
@@ -787,7 +787,9 @@ function renderProductStack() {
     const src = images[imageIndex];
     if (!src) return '';
     const slot = STACK_SLOTS[slotIndex];
-    return card(catalogThumbUrl(src, 240), '', `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px; --drop: ${slot.drop}px`);
+    // The outermost pair is what the narrow layout drops, so it is nameable in CSS.
+    const far = slot.far ? ' picker-stack-card--far' : '';
+    return card(catalogThumbUrl(src, 240), far, `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px; --drop: ${slot.drop}px`);
   }).join('');
   return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 240), ' picker-stack-card--front')}</div>`;
 }

@@ -5955,6 +5955,17 @@ position: absolute;
     align-items: flex-start;
   }
 
+  /* Three cards instead of five: the outermost pair is the widest part of the fan and the first
+     thing worth giving back at this size. The box narrows to what the mid pair spans. */
+  .picker-stack-card--far {
+    display: none;
+  }
+
+  /* The mid pair sits at +-31 but is tilted 11deg, so each card's box is ~84px wide, not 72 */
+  .picker-stack {
+    width: 148px;
+  }
+
   /* Back to full width here: the pill wraps to two rows at this size, and a shrink-wrapped
      box would wrap just the same while leaving dead margin on both sides */
   .picker-tray {
