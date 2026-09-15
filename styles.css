@@ -4519,6 +4519,9 @@ position: absolute;
 .picker-column {
   --picker-column-top: 132px;
   position: relative;
+  /* The grid scrolls inside the card, so the card has to clip it — otherwise tiles
+     ride over the rounded corners on their way past the head. */
+  overflow: hidden;
 }
 
 .picker-column-top {
@@ -4526,9 +4529,9 @@ position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1;
+  /* Above the tiles' add controls, which carry a z-index of their own */
+  z-index: 2;
   padding: 16px 16px 32px;
-  border-radius: 32px 32px 0 0;
   --scrim-start: 72%;
 }
 
