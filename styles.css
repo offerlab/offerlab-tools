@@ -6081,7 +6081,45 @@ position: absolute;
   /* heading-xs */
   .picker-concepts-title {
     font-size: 16px;
+    line-height: 20px;
+  }
+
+  /* body-sm, sitting directly under the headline rather than spaced off it */
+  .picker-concepts-subtitle {
+    font-size: 12px;
     line-height: 1.4;
+    letter-spacing: -0.01667em;
+  }
+
+  .picker-concepts-copy {
+    gap: 0;
+  }
+
+  /* One card at a time, scrolled rather than stacked: a column of full cards would bury the
+     catalog below. Full bleed inside the banner, with the padding put back inside the scroller so
+     the first and last still sit on the card's own inset. */
+  .picker-concepts-grid {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .picker-concepts-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Short of the full width, so the next card's edge shows and the row reads as scrollable */
+  .picker-concept {
+    flex: 0 0 85%;
+    min-width: 0;
+    max-width: none;
+    scroll-snap-align: start;
   }
 
   /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
