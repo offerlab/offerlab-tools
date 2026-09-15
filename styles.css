@@ -4319,6 +4319,8 @@ position: absolute;
               height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
               padding 0.42s cubic-bezier(0.22, 1, 0.36, 1),
               border-radius 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  /* The corners open with the box: the controller pins both ends as real lengths so the run has
+     something to interpolate. */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -4491,14 +4493,20 @@ position: absolute;
   padding: 12px;
 }
 
-/* Chip: the same box, shrunk to a pill around a single label. */
+/* Chip: the same box, shrunk to a pill. 999px is a stadium at any height because the radius is
+   clamped to half the box at paint time, which a fixed length cannot promise. The insets are not
+   even: 7px on three sides is set by the trailing button, which is the tallest thing in the row,
+   and 12px on the left because a text label fills its box where a round button does not. */
 .picker-concepts.is-minimized {
-  padding: 8px 16px;
-  border-radius: var(--rounded-full);
+  padding: 7px 7px 7px 12px;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .picker-concepts-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: none;
   padding: 0;
   background: none;
@@ -4510,6 +4518,25 @@ position: absolute;
   font-weight: 600;
   letter-spacing: -0.014em;
   color: var(--agent-ink);
+}
+
+/* The chip itself is the control, so this is a span: a real button here would nest one inside
+   another. It carries the affordance, and the whole pill is the hit area. */
+.picker-concepts-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--content-primary);
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.picker-concepts-chip:hover .picker-concepts-chip-icon {
+  background: var(--content-background-overlay);
 }
 
 /* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where

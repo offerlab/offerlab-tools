@@ -829,7 +829,8 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
   if (state.conceptsMinimized) {
     dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus} is-minimized`;
     dom.concepts.innerHTML = `<button type="button" class="picker-concepts-chip" data-action="toggle-minimize"
-      aria-expanded="false" aria-label="Expand bundle ideas">Bundle ideas</button>`;
+      aria-expanded="false" aria-label="Expand bundle ideas"><span class="picker-concepts-chip-label">Bundle ideas</span><span
+      class="picker-concepts-chip-icon" aria-hidden="true">${icon('expand-45', { size: 14 })}</span></button>`;
     return;
   }
 
@@ -906,6 +907,11 @@ function toggleMinimize() {
 
   const fromW = card.offsetWidth;
   const fromH = card.offsetHeight;
+  // A stadium's 999px only renders as one because the radius is clamped to half the box at paint.
+  // Both ends have to be the CLAMPED pixel value or the run sits above the clamp, changing nothing
+  // visible, and the corners appear to snap.
+  const clampedRadius = (h) => Math.min(parseFloat(getComputedStyle(card).borderTopLeftRadius), h / 2);
+  const fromRadius = clampedRadius(fromH);
 
   card.style.transition = 'none';
   card.style.width = '';
@@ -918,18 +924,22 @@ function toggleMinimize() {
   const toW = card.offsetWidth;
   const toH = card.offsetHeight;
 
+  const toRadius = clampedRadius(toH);
   card.style.width = `${fromW}px`;
   card.style.height = `${fromH}px`;
+  card.style.borderRadius = `${fromRadius}px`;
   void card.offsetHeight;
   card.style.transition = '';
 
   card.style.width = `${toW}px`;
   card.style.height = `${toH}px`;
+  card.style.borderRadius = `${toRadius}px`;
 
   const release = (e) => {
     if (e.target !== card || e.propertyName !== 'height') return;
     card.style.width = '';
     card.style.height = '';
+    card.style.borderRadius = '';
     shell.classList.toggle('is-chip', next);
     card.removeEventListener('transitionend', release);
   };
