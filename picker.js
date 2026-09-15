@@ -532,7 +532,7 @@ const PROMPT_EXCLUDE_TITLE = /wholesale|case of \d|gift card|subscription|\bsamp
 
 function promptProducts(brand) {
   return (brand.catalog?.products || [])
-    .filter(p => p.image && p.available)
+    .filter(p => p.available)
     .filter(p => !(p.tags || []).some(t => /^hidden$/i.test(t)))
     .filter(p => !PROMPT_EXCLUDE_TITLE.test(p.title))
     .slice(0, MAX_PRODUCTS_IN_PROMPT);
@@ -759,7 +759,7 @@ function renderSelectionState() {
 // Product images for the fanned stack on the concepts card: round-robin across the brands,
 // seller first, so a two-brand pair still fans five cards.
 function stackImages() {
-  const lists = state.brands.map(e => (e.brand.catalog?.products || []).filter(p => p.image).map(p => p.image));
+  const lists = state.brands.map(e => (e.brand.catalog?.products || []).map(p => p.image));
   const images = [];
   for (let i = 0; images.length < 5 && lists.some(l => l[i]); i++) {
     for (const list of lists) if (list[i] && images.length < 5) images.push(list[i]);
@@ -1070,7 +1070,7 @@ function renderTile(domain, p) {
   const key = productKey(domain, p.id);
   const selected = state.selection.has(key);
   const price = p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies';
-  const img = p.image ? `<img class="media-zoom" src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
+  const img = `<img class="media-zoom" src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">`;
   return `
     <div class="picker-product${selected ? ' is-selected' : ''}" role="button" tabindex="0" aria-pressed="${selected}" data-action="toggle" data-domain="${escapeHtml(domain)}" data-id="${escapeHtml(String(p.id))}" data-key="${escapeHtml(key)}" title="${escapeHtml(p.title)}">
       <div class="picker-product-art media-tile media-hairline">

@@ -700,7 +700,7 @@ function renderCatalogThumbs(catalog) {
     const skeleton = '<div class="card-catalog-thumb"></div>'.repeat(4);
     return `<div class="card-catalog card-catalog--loading"><div class="card-catalog-thumbs">${skeleton}</div></div>`;
   }
-  const products = (catalog.products || []).filter(p => p.image);
+  const products = catalog.products || [];
   if (products.length === 0) return '';
 
   const count = catalog.count || products.length;

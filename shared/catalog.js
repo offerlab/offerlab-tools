@@ -85,6 +85,10 @@ function normalizeProduct(product, storeUrl) {
   const prices = variants.map(v => toNumber(v.price)).filter(p => p !== null);
   const compareAt = variants.map(v => toNumber(v.compare_at_price)).filter(p => p !== null);
   const image = product.images?.[0]?.src || variants.find(v => v.featured_image?.src)?.featured_image?.src || null;
+  // A live storefront photographs what it sells. An entry with no image at all is almost always a
+  // wholesale or bulk listing the merchant is not really merchandising, so the catalog never
+  // carries one and no read site has to filter for it.
+  if (!image) return null;
 
   return {
     id: product.id,
