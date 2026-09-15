@@ -4205,51 +4205,100 @@ position: absolute;
   gap: 4px;
 }
 
-/* Concepts: a featured card with the onboarding hint ring (dotted moola, static at rest,
-   marching only while generating), a fanned product stack, and the bundle ideas once they exist */
+/* Concepts: the onboarding commissions insight card (atelier/onboarding.css) — the agent's
+   settled green surface, with two conic wedges sweeping its edge as it arrives. Green and still
+   means the agent has something to tell you; the moving light belongs to the arrival. */
+:root {
+  --agent-surface-start: #F7FDF5;
+  --agent-surface-end: #E2F8DD;
+  --agent-ink: #254F1A;
+}
+
+@property --reveal-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes revealSpinA {
+  from { --reveal-angle: 0deg; }
+  to { --reveal-angle: 230deg; }
+}
+
+@keyframes revealSpinB {
+  from { --reveal-angle: -180deg; }
+  to { --reveal-angle: 50deg; }
+}
+
+@keyframes revealShow {
+  from { opacity: 0; }
+  to { opacity: var(--reveal-peak); }
+}
+
+/* Collapses inward rather than dimming, so the light reads as drawn back into the card */
+@keyframes revealHide {
+  from { opacity: var(--reveal-peak); transform: scale(1); }
+  to { opacity: 0; transform: scale(0.5); }
+}
+
 .picker-concepts {
   position: relative;
-  background: var(--content-background-elevated);
-  border-radius: 36px;
-  padding: 24px 28px;
+  border-radius: 28px;
+  border: 1px solid var(--content-border-neutral);
+  background-image: linear-gradient(98deg, var(--agent-surface-start) 33%, var(--agent-surface-end) 100%);
+  color: var(--agent-ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* The reveal layers sit at a negative z-index, which resolves against this box */
+  isolation: isolate;
 }
 
-.picker-concepts-ring {
+.picker-concepts-reveal {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -2px;
+  border-radius: 29px;
+  z-index: -1;
+  opacity: 0;
   pointer-events: none;
-  overflow: visible;
+  filter: blur(4px);
+  --reveal-peak: 0.8;
+  /* A narrow lit wedge behind a long ramp, so the patch reads as light travelling rather than
+     a bar sliding around a track */
+  --reveal-alpha: 0.6;
 }
 
-.picker-concepts-ring rect {
-  x: 1.5px;
-  y: 1.5px;
-  width: calc(100% - 3px);
-  height: calc(100% - 3px);
-  rx: 36px;
-  fill: none;
-  stroke: var(--brand-secondary-moola);
-  /* Dots, not dashes: a zero-length dash with a round cap is a circle the width of the stroke */
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-dasharray: 0 8;
+.picker-concepts-reveal--a {
+  background: conic-gradient(from var(--reveal-angle) at 50% 50%,
+    rgba(244, 194, 255, 0) 0deg,
+    rgba(198, 173, 255, 0) 220deg,
+    rgba(198, 173, 255, var(--reveal-alpha)) 320deg,
+    rgba(160, 203, 255, var(--reveal-alpha)) 340deg,
+    rgba(244, 194, 255, var(--reveal-alpha)) 360deg);
 }
 
-.picker-concepts--loading .picker-concepts-ring rect {
-  animation: concepts-ring-march 14s linear infinite;
+/* Peach at the crest so the two patches do not read as one object seen twice */
+.picker-concepts-reveal--b {
+  background: conic-gradient(from var(--reveal-angle) at 50% 50%,
+    rgba(244, 194, 255, 0) 0deg,
+    rgba(198, 173, 255, 0) 220deg,
+    rgba(198, 173, 255, var(--reveal-alpha)) 320deg,
+    rgba(255, 216, 183, var(--reveal-alpha)) 340deg,
+    rgba(244, 194, 255, var(--reveal-alpha)) 360deg);
 }
 
-@keyframes concepts-ring-march {
-  to { stroke-dashoffset: -260; }
+.picker-concepts.is-revealing .picker-concepts-reveal--a {
+  animation: revealSpinA 1.5s linear forwards, revealShow 0.3s linear forwards, revealHide 0.3s linear forwards 1.25s;
+}
+
+.picker-concepts.is-revealing .picker-concepts-reveal--b {
+  animation: revealSpinB 1.5s linear forwards, revealShow 0.3s linear forwards, revealHide 0.3s linear forwards 1.25s;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker-concepts--loading .picker-concepts-ring rect {
+  .picker-concepts.is-revealing .picker-concepts-reveal {
     animation: none;
   }
 }
@@ -4270,47 +4319,73 @@ position: absolute;
 
 .picker-concepts-title {
   margin: 0;
-  font-size: 24px;
-  line-height: 26px;
-  letter-spacing: -1px;
+  font-size: 22px;
+  line-height: 24px;
+  letter-spacing: -0.6px;
   font-weight: 600;
-  color: var(--content-primary);
+  color: var(--agent-ink);
 }
 
 .picker-concepts-subtitle {
   margin: 0;
   font-size: var(--font-size-sm);
-  color: var(--content-secondary);
   line-height: var(--line-height-sm);
-  max-width: 60ch;
+  color: color-mix(in srgb, var(--agent-ink) 72%, transparent);
+  max-width: 48ch;
+}
+
+/* Copy crossfades when the brand set changes, so the card updates rather than redrawing */
+.picker-concepts-copy {
+  transition: opacity 0.2s ease;
+}
+
+.picker-concepts.is-swapping .picker-concepts-copy {
+  opacity: 0;
 }
 
 /* The fanned stack: the seller's product in front, the partners' fanned out behind */
 .picker-stack {
   position: relative;
   flex-shrink: 0;
-  width: 260px;
-  height: 132px;
+  width: 196px;
+  height: 92px;
 }
 
 .picker-stack-card {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--size, 96px);
-  height: var(--size, 96px);
-  border-radius: 16px;
+  width: var(--size, 72px);
+  height: var(--size, 72px);
+  border-radius: 14px;
   box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-sm);
   transform: translate(calc(-50% + var(--shift, 0px)), calc(-50% + var(--drop, 0px))) rotate(var(--tilt, 0deg));
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+/* Fan-out: every card behind the front one starts stacked under it and travels to its slot */
+.picker-stack--entering .picker-stack-card {
+  transform: translate(-50%, -50%) scale(0.72);
+  opacity: 0;
+}
+
+.picker-stack--entering .picker-stack-card--front {
+  opacity: 1;
 }
 
 .picker-stack-card--front {
-  width: 116px;
-  height: 116px;
-  border-radius: 20px;
+  width: 86px;
+  height: 86px;
+  border-radius: 16px;
   /* The 3px white ring every card in the stack wears, over the front card's heavier lift */
   box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-md);
   transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-stack-card {
+    transition: none;
+  }
 }
 
 /* AI actions wear moola, apart from the brew of the merchant cards' Build bundle */

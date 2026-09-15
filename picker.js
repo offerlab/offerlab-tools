@@ -27,6 +27,9 @@ const state = {
   activeConcept: -1,
   conceptsStatus: 'idle', // idle | loading | ready | error
   conceptsError: null,
+  copy: null,             // { headline, subtitle } written for this brand set
+  copyKey: null,          // the brand set that copy belongs to
+  copyAbort: null,
   filters: {},            // domain -> text
   abort: null
 };
@@ -87,6 +90,8 @@ async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
   if (!skipUrlUpdate) pushPickUrl();
 
   renderAll();
+  playCardReveal();
+  refreshConceptsCopy();
   showSection('picker');
   window.scrollTo({ top: 0 });
 
@@ -154,6 +159,10 @@ function resetState() {
   state.conceptsError = null;
   state.filters = {};
   state.abort = null;
+  if (state.copyAbort) state.copyAbort.abort();
+  state.copy = null;
+  state.copyKey = null;
+  state.copyAbort = null;
 }
 
 async function ensureFullCatalog(brand) {
@@ -187,6 +196,8 @@ async function addBrand(brand) {
   state.brands.push({ domain, brand });
   pushPickUrl();
   renderHeader();
+  renderConcepts({ reveal: true, swap: true });
+  refreshConceptsCopy();
   renderColumns();
   scrollToColumn(domain);
   await ensureFullCatalog(brand);
@@ -203,6 +214,7 @@ function removeBrand(domain) {
   state.conceptsStatus = 'idle';
   pushPickUrl();
   renderAll();
+  refreshConceptsCopy();
 }
 
 // Brands from the results list that can be added: buildable and not already a column.
@@ -248,6 +260,86 @@ function clearSelection() {
   state.selection = new Map();
   state.activeConcept = -1;
   renderSelectionState();
+}
+
+/* ---------------------------------------------------------------------------
+   The card's copy: written for whichever brands are on the rail, refreshed when that changes
+   --------------------------------------------------------------------------- */
+
+function brandSetKey() {
+  return state.brands.map(e => e.domain).join(',');
+}
+
+function brandNames() {
+  return state.brands.map(e => e.brand.name);
+}
+
+// Shown until the model answers, and whenever it cannot. Names the brands and says what happens.
+function fallbackCopy() {
+  const names = brandNames();
+  return {
+    headline: `${names.join(' \u00d7 ')}, bundled`,
+    subtitle: 'AI picks the pairs. You pick the winner.'
+  };
+}
+
+function buildCopyPrompt() {
+  const brands = state.brands.map(e => {
+    const b = e.brand;
+    return `${b.name} (${e.domain})${b.description ? `: ${b.description}` : ''}`;
+  }).join('\n');
+
+  return `Write the headline and subtitle for a card that offers to invent co-branded product bundles from these brands' catalogs. It sits on a screen at a trade show booth, where a merchant is looking at their own brand next to possible partners.
+
+Brands, the first being the one the bundles would be sold by:
+${brands}
+
+Headline: 6 words or fewer. Start with a capital letter and use ordinary sentence capitalization, not Title Case. Playful and specific to THESE brands: what they sell, who buys it, what the pairing would feel like on a shelf or a table. Riff on the products or ask a question. Never use a colon, and never the pattern "Brand and Brand: something". Do not reuse a slogan either brand already has.
+Subtitle: 8 words or fewer, starting with a capital letter. An instruction for what pressing the button does, in the same voice, naming bundles or pairings so it reads as a next step rather than a mood.
+
+No em dashes, no exclamation marks, no ampersands, no colons. Return JSON only: {"headline": "...", "subtitle": "..."}`;
+}
+
+// The model drifts on two details however the prompt is worded: it lowercases the whole line
+// when asked for sentence case, and it reaches for a colon. Fix both here rather than re-asking.
+function tidyCopy(value) {
+  const text = String(value || '').trim().replace(/\s*:\s*/g, ', ');
+  return text ? text[0].toUpperCase() + text.slice(1) : '';
+}
+
+async function refreshConceptsCopy() {
+  const key = brandSetKey();
+  if (!key || state.copyKey === key) return;
+  if (state.copyAbort) state.copyAbort.abort();
+  state.copyAbort = new AbortController();
+  state.copyKey = key;
+
+  try {
+    const response = await fetch(`${CONFIG.GEMINI_PROXY}?model=${encodeURIComponent(CONCEPT_MODEL)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: state.copyAbort.signal,
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: 'You write short, playful product copy for OfferLab. Return only valid JSON.' }] },
+        contents: [{ role: 'user', parts: [{ text: buildCopyPrompt() }] }],
+        // thinkingBudget 0: a short prompt like this spent its whole token budget on thoughts and
+        // returned MAX_TOKENS before writing any JSON.
+        generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 512, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } }
+      })
+    });
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    const parsed = parseJsonResponse(extractText(await response.json()));
+    if (!parsed?.headline) throw new Error('No copy returned');
+    // A late answer for a brand set that has since changed is dropped.
+    if (state.copyKey !== key) return;
+    state.copy = { headline: tidyCopy(parsed.headline), subtitle: tidyCopy(parsed.subtitle) };
+    renderConcepts();
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    console.warn('[Picker] Concept copy failed:', err.message);
+  } finally {
+    state.copyAbort = null;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -338,6 +430,7 @@ async function generateConcepts() {
   state.abort = new AbortController();
   state.conceptsStatus = 'loading';
   state.conceptsError = null;
+  let revealOnRender = false;
   renderConcepts();
   renderTray();
 
@@ -362,6 +455,7 @@ async function generateConcepts() {
     state.concepts = concepts;
     state.activeConcept = -1;
     state.conceptsStatus = 'ready';
+    revealOnRender = true;
   } catch (err) {
     if (err.name === 'AbortError') return;
     console.error('[Picker] Concept generation failed:', err);
@@ -370,7 +464,7 @@ async function generateConcepts() {
   } finally {
     state.abort = null;
   }
-  renderConcepts();
+  renderConcepts({ reveal: revealOnRender });
   renderTray();
 }
 
@@ -458,13 +552,13 @@ function stackImages() {
 
 // Five slots fanning out from the front card: a mid pair just behind it, tilted outward, and a
 // smaller far pair behind those. Painted back to front, so DOM order is far, mid, front.
-// The far pair sits low: the midpoint of its bottom edge lands 4px above the mid pair's
-// (40·cos22° ≈ 37 versus 48·cos11° ≈ 47, so a 6px drop closes the gap to 4).
+// Slots for the fan, scaled to the shorter card. The far pair sits low enough that the midpoint
+// of its bottom edge lands just above the mid pair's.
 const STACK_SLOTS = [
-  { tilt: -22, shift: -78, size: 80, drop: 6 },  // far left
-  { tilt: 22, shift: 78, size: 80, drop: 6 },    // far right
-  { tilt: -11, shift: -42, size: 96, drop: 0 },  // mid left
-  { tilt: 11, shift: 42, size: 96, drop: 0 }     // mid right
+  { tilt: -22, shift: -58, size: 60, drop: 5 },  // far left
+  { tilt: 22, shift: 58, size: 60, drop: 5 },    // far right
+  { tilt: -11, shift: -31, size: 72, drop: 0 },  // mid left
+  { tilt: 11, shift: 31, size: 72, drop: 0 }     // mid right
 ];
 
 function renderProductStack() {
@@ -479,65 +573,89 @@ function renderProductStack() {
     const slot = STACK_SLOTS[slotIndex];
     return card(catalogThumbUrl(src, 240), '', `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px; --drop: ${slot.drop}px`);
   }).join('');
-  return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 320), ' picker-stack-card--front')}</div>`;
+  return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 240), ' picker-stack-card--front')}</div>`;
 }
 
 function conceptsRing() {
   return `<svg class="picker-concepts-ring" aria-hidden="true"><rect/></svg>`;
 }
 
-function renderConcepts() {
+function renderConcepts({ reveal = false, swap = false } = {}) {
   const { conceptsStatus } = state;
-  const brandNames = state.brands.map(e => escapeHtml(e.brand.name)).join(' &times; ');
+  const copy = state.copy || fallbackCopy();
   let body = '';
   let head = '';
 
   if (conceptsStatus === 'ready') {
-    head = `
-      <div class="picker-concepts-head">
-        ${renderProductStack()}
-        <div class="picker-concepts-copy">
-          <h3 class="picker-concepts-title">${state.concepts.length} bundle ideas for ${brandNames}</h3>
-          <p class="picker-concepts-subtitle">Click a card to load it into the picker, or create it as it stands.</p>
-        </div>
-        <button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>
-      </div>`;
+    head = conceptsHead({
+      title: `${state.concepts.length} ways to pair these`,
+      subtitle: 'Click one to load it into the picker, or create it as it stands.',
+      action: `<button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
+    });
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
   } else if (conceptsStatus === 'loading') {
-    head = `
-      <div class="picker-concepts-head">
-        ${renderProductStack()}
-        <div class="picker-concepts-copy">
-          <h3 class="picker-concepts-title">Mixing these catalogs into bundles</h3>
-          <p class="picker-concepts-subtitle">Pairing products across ${brandNames} and pricing each bundle.</p>
-        </div>
-        <button type="button" class="btn btn--md btn--secondary" data-action="cancel">Stop</button>
-      </div>`;
+    head = conceptsHead({
+      title: 'Mixing these catalogs',
+      subtitle: 'Pairing products and pricing each bundle.',
+      action: `<button type="button" class="btn btn--md btn--secondary" data-action="cancel">Stop</button>`
+    });
     body = `<div class="picker-concepts-grid">${'<div class="picker-concept picker-concept--skeleton"></div>'.repeat(CONCEPT_COUNT)}</div>`;
   } else if (conceptsStatus === 'error') {
-    head = `
-      <div class="picker-concepts-head">
-        ${renderProductStack()}
-        <div class="picker-concepts-copy">
-          <h3 class="picker-concepts-title">That one didn't come together</h3>
-          <p class="picker-concepts-subtitle">${escapeHtml(state.conceptsError || 'Something went wrong.')}</p>
-        </div>
-        <button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Try again</button>
-      </div>`;
+    head = conceptsHead({
+      title: "That one didn't come together",
+      subtitle: state.conceptsError || 'Something went wrong.',
+      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Try again</button>`
+    });
   } else {
-    head = `
-      <div class="picker-concepts-head">
-        ${renderProductStack()}
-        <div class="picker-concepts-copy">
-          <h3 class="picker-concepts-title">Mix these catalogs into bundles</h3>
-          <p class="picker-concepts-subtitle">AI pairs products across ${brandNames} and prices each bundle. Load one into the picker with a click.</p>
-        </div>
-        <button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Suggest bundles</button>
-      </div>`;
+    head = conceptsHead({
+      title: copy.headline,
+      subtitle: copy.subtitle,
+      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Suggest bundles</button>`
+    });
   }
 
   dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
-  dom.concepts.innerHTML = `${conceptsRing()}${head}${body}`;
+  dom.concepts.innerHTML = `
+    <span class="picker-concepts-reveal picker-concepts-reveal--a" aria-hidden="true"></span>
+    <span class="picker-concepts-reveal picker-concepts-reveal--b" aria-hidden="true"></span>
+    ${head}${body}`;
+
+  fanOutStack();
+  if (reveal) playCardReveal();
+  if (swap) crossfadeCopy();
+}
+
+function conceptsHead({ title, subtitle, action }) {
+  return `
+    <div class="picker-concepts-head">
+      ${renderProductStack()}
+      <div class="picker-concepts-copy">
+        <h3 class="picker-concepts-title">${escapeHtml(title)}</h3>
+        <p class="picker-concepts-subtitle">${escapeHtml(subtitle)}</p>
+      </div>
+      ${action}
+    </div>`;
+}
+
+// The stack arrives collapsed under the front card and fans to its slots on the next frame.
+function fanOutStack() {
+  const stack = dom.concepts.querySelector('.picker-stack');
+  if (!stack) return;
+  stack.classList.add('picker-stack--entering');
+  requestAnimationFrame(() => requestAnimationFrame(() => stack.classList.remove('picker-stack--entering')));
+}
+
+function playCardReveal() {
+  dom.concepts.classList.remove('is-revealing');
+  // Reflow so a repeat reveal restarts the animation rather than being ignored as a no-op.
+  void dom.concepts.offsetWidth;
+  dom.concepts.classList.add('is-revealing');
+  setTimeout(() => dom.concepts.classList.remove('is-revealing'), 1600);
+}
+
+function crossfadeCopy() {
+  dom.concepts.classList.add('is-swapping');
+  requestAnimationFrame(() => requestAnimationFrame(() => dom.concepts.classList.remove('is-swapping')));
 }
 
 function renderConceptCard(concept, index) {
