@@ -4981,13 +4981,18 @@ position: absolute;
 
 /* The rail bleeds so more columns fit, not so they start at the viewport's edge: the track is
    inset back to the body container, which keeps the first pair centred on screen. */
-.picker-rail.is-bleeding .picker-columns {
+.picker-rail.is-bleeding {
   --picker-bleed-gutter: max(0px, (100vw - var(--picker-body-max)) / 2);
+}
+
+.picker-rail.is-bleeding .picker-columns {
   /* The bleed already opens the room past the body's right edge that the add column needs. */
   margin-right: -24px;
 }
 
 .picker-rail {
+  /* Zero until the rail bleeds; the columns and the pagination both measure from it. */
+  --picker-bleed-gutter: 0px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -5005,15 +5010,16 @@ position: absolute;
   display: contents;
 }
 
-/* Centred on the columns and inset from the rail's edges, which under full bleed are the
-   viewport's. Above the columns, which scroll beneath them. */
+/* Sized like the tiles' own add button, and straddling the edge of the first and last panel
+   rather than the viewport's. Above the columns, which scroll beneath them. */
 .picker-rail-btn {
+  --rail-btn-x: 0;
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(var(--rail-btn-x), -50%);
   z-index: 4;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid var(--content-border-neutral);
   background: var(--content-background-elevated);
@@ -5027,11 +5033,13 @@ position: absolute;
 }
 
 .picker-rail-btn--prev {
-  left: 12px;
+  left: var(--picker-bleed-gutter);
+  --rail-btn-x: -50%;
 }
 
 .picker-rail-btn--next {
-  right: 12px;
+  right: var(--picker-bleed-gutter);
+  --rail-btn-x: 50%;
 }
 
 .picker-rail-btn:hover {
@@ -5039,7 +5047,7 @@ position: absolute;
 }
 
 .picker-rail-btn:active {
-  transform: translateY(-50%) scale(0.96);
+  transform: translate(var(--rail-btn-x), -50%) scale(0.96);
 }
 
 .picker-rail-btn[disabled] {
@@ -5053,8 +5061,6 @@ position: absolute;
   /* A column's default is a share of the BODY container, not of the scroll box: the rail bleeds out
      to the viewport so more columns fit, but that must not make each one wider. */
   --picker-body-width: min(var(--picker-body-max), 100vw);
-  /* Zero until the rail bleeds; see .picker-rail.is-bleeding below. */
-  --picker-bleed-gutter: 0px;
   display: flex;
   gap: var(--picker-columns-gap);
   align-items: stretch;
