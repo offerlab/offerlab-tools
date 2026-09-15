@@ -5002,11 +5002,13 @@ position: absolute;
   color: var(--content-primary);
   font-size: var(--font-size-xs);
   font-weight: 500;
+  background: var(--background-light);
   transition: background 0.2s ease;
 }
 
+/* One step past the resting fill, which is now --background-light itself */
 .picker-add-column:hover {
-  background: var(--background-light);
+  background: var(--content-background-overlay);
 }
 
 .picker-add-btn {
