@@ -4859,6 +4859,8 @@ position: absolute;
 }
 
 .picker-concept-create {
+  /* 40px, the app's medium. This tool's .btn--md is 32px, which is the app's small. */
+  height: 40px;
   margin: 16px;
   align-self: stretch;
 }
