@@ -6231,7 +6231,6 @@ position: absolute;
 
   .picker-tray-pill {
     flex-wrap: wrap;
-    border-radius: 28px;
   }
 
   /* Auto bases, not 0. Both of these are free to compress to nothing on the desktop pill, which
