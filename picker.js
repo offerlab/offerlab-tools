@@ -984,6 +984,8 @@ function renderConceptCard(concept, index) {
 
 function renderColumns() {
   dom.columns.innerHTML = state.brands.map(e => renderColumnMarkup(e.domain)).join('') + renderAddColumn();
+  // The brand columns divide the content area between them; CSS needs the count to do the maths.
+  dom.columns.style.setProperty('--brand-count', String(Math.max(state.brands.length, 1)));
   updateRailControls();
 }
 

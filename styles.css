@@ -4957,8 +4957,13 @@ position: absolute;
 }
 
 .picker-columns {
+  --picker-columns-gap: 10px;
+  --picker-add-width: 96px;
+  /* The scroll box is wider than the content area by the add column it hangs outside, so a column's
+     share has to be measured against what is left rather than against 100%. */
+  --picker-content-width: calc(100% - var(--picker-add-width) - var(--picker-columns-gap));
   display: flex;
-  gap: 10px;
+  gap: var(--picker-columns-gap);
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
@@ -4967,9 +4972,12 @@ position: absolute;
   /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
      Only the sides are pulled back with negative margins; a negative TOP margin would add
      height the flex line has to absorb, and the columns would run past the viewport. The
-     section's own gap is reduced by this much so the banner sits where it did. */
+     section's own gap is reduced by this much so the banner sits where it did.
+     The right is pulled back further still, by the add column and its gap, so the brand columns
+     alone fill the content area and the add control hangs outside it. */
   padding: 20px 24px 0;
-  margin-inline: -24px;
+  margin-left: -24px;
+  margin-right: calc(-24px - var(--picker-add-width) - var(--picker-columns-gap));
   scroll-padding-inline: 24px;
   outline: none;
   flex: 1;
@@ -5058,7 +5066,12 @@ position: absolute;
    fits, they hold that width and the rail scrolls */
 .picker-column {
   position: relative;
-  flex: 1 1 0;
+  /* The brand columns divide the content area between them and nothing else, which is what keeps
+     them centred in the viewport however many there are. Past the floor they hold it and scroll. */
+  flex: 0 0 calc(
+    (var(--picker-content-width) - (var(--brand-count, 1) - 1) * var(--picker-columns-gap))
+    / var(--brand-count, 1)
+  );
   /* 300px leaves 268px inside the grid's padding, which auto-fill splits into two 120px tracks */
   min-width: min(var(--picker-column-min), 85vw);
   scroll-snap-align: start;
@@ -5322,7 +5335,7 @@ position: absolute;
 
 /* The skinny add column at the end of the rail */
 .picker-add-column {
-  flex: 0 0 96px;
+  flex: 0 0 var(--picker-add-width);
   align-self: stretch;
   scroll-snap-align: end;
   cursor: pointer;
