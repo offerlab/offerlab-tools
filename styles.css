@@ -6110,9 +6110,11 @@ position: absolute;
   }
 
   /* One card at a time, scrolled rather than stacked: a column of full cards would bury the
-     catalog below. Full bleed inside the banner, with the padding put back inside the scroller so
-     the first and last still sit on the card's own inset. */
+     catalog below. Each card centres in the banner, so its neighbours bleed by the same amount on
+     both sides. The card is the full content width and the inline padding IS that bleed, which is
+     what lets the first and last card settle centred too rather than against an end. */
   .picker-concepts-grid {
+    --concept-bleed: 38px;
     grid-area: 2 / 1 / auto / -1;
     flex-wrap: nowrap;
     justify-content: flex-start;
@@ -6121,8 +6123,7 @@ position: absolute;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     margin-inline: -16px;
-    padding-inline: 16px;
-    scroll-padding-inline: 16px;
+    padding-inline: var(--concept-bleed);
     /* overflow-x makes the block axis clip too, which cut the cards' shadows off at both edges.
        Opened here and taken straight back, so the row occupies exactly what it did. */
     padding-block: 28px;
@@ -6133,12 +6134,11 @@ position: absolute;
     display: none;
   }
 
-  /* Short of the full width, so the next card's edge shows and the row reads as scrollable */
   .picker-concept {
-    flex: 0 0 85%;
+    flex: 0 0 100%;
     min-width: 0;
     max-width: none;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 
   /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
