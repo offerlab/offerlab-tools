@@ -5251,9 +5251,10 @@ position: absolute;
 }
 
 .picker-column-favicon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--rounded-lg);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rounded-xl);
+  border: 1px solid var(--content-border-neutral);
   object-fit: contain;
   background: var(--content-background-base);
   padding: 4px;
