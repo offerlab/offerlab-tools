@@ -598,8 +598,10 @@ img {
   box-shadow: -0.5px -0.5px 1px #ffffff52 inset, 1px 1px 0.5px #ffffff52 inset, 0 4px 24px #0000003d;
 }
 
+/* Still a gradient on hover (both stops brew): swapping a gradient for a flat color
+   drops the background-image for a frame and blinks */
 .btn--primary:hover {
-  background: var(--brand-primary-brew);
+  background: linear-gradient(135deg, var(--brand-primary-brew), var(--brand-primary-brew));
   border-color: var(--brand-primary-brew);
 }
 
