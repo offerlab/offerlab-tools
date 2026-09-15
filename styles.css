@@ -6123,6 +6123,10 @@ position: absolute;
     margin-inline: -16px;
     padding-inline: 16px;
     scroll-padding-inline: 16px;
+    /* overflow-x makes the block axis clip too, which cut the cards' shadows off at both edges.
+       Opened here and taken straight back, so the row occupies exactly what it did. */
+    padding-block: 28px;
+    margin-block: -28px;
   }
 
   .picker-concepts-grid::-webkit-scrollbar {
