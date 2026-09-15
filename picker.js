@@ -780,26 +780,27 @@ function stackImages() {
 // smaller far pair behind those. Painted back to front, so DOM order is far, mid, front.
 // Slots for the fan, scaled to the shorter card. The far pair sits low enough that the midpoint
 // of its bottom edge lands just above the mid pair's.
+// Only the order and which pair is the outer one; the geometry itself lives in CSS as
+// .picker-stack-card--s0..s3, so a narrow layout can retune it without fighting inline styles.
 const STACK_SLOTS = [
-  { tilt: -22, shift: -58, size: 60, drop: 5, far: true },  // far left
-  { tilt: 22, shift: 58, size: 60, drop: 5, far: true },    // far right
-  { tilt: -11, shift: -31, size: 72, drop: 0 },             // mid left
-  { tilt: 11, shift: 31, size: 72, drop: 0 }                // mid right
+  { far: true },  // far left
+  { far: true },  // far right
+  {},             // mid left
+  {}              // mid right
 ];
 
 function renderProductStack() {
   const images = stackImages();
   if (images.length === 0) return '';
-  const card = (src, cls, style) => `<span class="picker-stack-card media-tile media-hairline${cls}"${style ? ` style="${style}"` : ''}><img class="media-zoom" src="${src}" alt=""></span>`;
+  const card = (src, cls) => `<span class="picker-stack-card media-tile media-hairline${cls}"><img class="media-zoom" src="${src}" alt=""></span>`;
   // images[1..2] take the mid pair, images[3..4] the far pair; with fewer images the far slots go empty.
   const order = [3, 4, 1, 2];
   const behind = order.map((imageIndex, slotIndex) => {
     const src = images[imageIndex];
     if (!src) return '';
-    const slot = STACK_SLOTS[slotIndex];
     // The outermost pair is what the narrow layout drops, so it is nameable in CSS.
-    const far = slot.far ? ' picker-stack-card--far' : '';
-    return card(catalogThumbUrl(src, 240), far, `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px; --drop: ${slot.drop}px`);
+    const far = STACK_SLOTS[slotIndex].far ? ' picker-stack-card--far' : '';
+    return card(catalogThumbUrl(src, 240), ` picker-stack-card--s${slotIndex}${far}`);
   }).join('');
   return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 240), ' picker-stack-card--front')}</div>`;
 }
@@ -814,7 +815,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     head = conceptsHead({
       title: `${state.concepts.length} ${state.concepts.length === 1 ? 'way' : 'ways'} to pair these`,
       subtitle: state.conceptsSummary || 'Four directions, one shared shopper.',
-      action: `<button type="button" class="btn btn--md btn--ghost" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
+      action: `<button type="button" class="btn btn--md btn--ghost" data-action="suggest" aria-label="Regenerate bundle ideas">${icon('arrow-rotate-clockwise', { size: 14 })}<span class="picker-concepts-action-label">Regenerate</span></button>`
     });
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
   } else if (conceptsStatus === 'loading') {
@@ -829,13 +830,13 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     head = conceptsHead({
       title: "That one didn't come together",
       subtitle: state.conceptsError || 'Something went wrong.',
-      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Try again</button>`
+      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest" aria-label="Try again">${icon('ai-sparkles-two-filled', { size: 16 })}<span class="picker-concepts-action-label">Try again</span></button>`
     });
   } else {
     head = conceptsHead({
       title: copy.headline,
       subtitle: copy.subtitle,
-      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Suggest bundles</button>`
+      action: `<button type="button" class="btn btn--md btn--ai" data-action="suggest" aria-label="Suggest bundles">${icon('ai-sparkles-two-filled', { size: 16 })}<span class="picker-concepts-action-label">Suggest bundles</span></button>`
     });
   }
 

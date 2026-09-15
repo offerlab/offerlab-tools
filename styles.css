@@ -4666,6 +4666,14 @@ position: absolute;
   height: 92px;
 }
 
+/* Five slots fanning out from the front card: a mid pair just behind it tilted outward, and a
+   smaller far pair behind those, sitting low enough that their bottom edges land just above the
+   mid pair's. Painted back to front, so DOM order is far, mid, front. */
+.picker-stack-card--s0 { --tilt: -22deg; --shift: -58px; --size: 60px; --drop: 5px; }
+.picker-stack-card--s1 { --tilt: 22deg; --shift: 58px; --size: 60px; --drop: 5px; }
+.picker-stack-card--s2 { --tilt: -11deg; --shift: -31px; --size: 72px; --drop: 0px; }
+.picker-stack-card--s3 { --tilt: 11deg; --shift: 31px; --size: 72px; --drop: 0px; }
+
 .picker-stack-card {
   position: absolute;
   left: 50%;
@@ -6053,14 +6061,69 @@ position: absolute;
   }
 
   /* Three cards instead of five: the outermost pair is the widest part of the fan and the first
-     thing worth giving back at this size. The box narrows to what the mid pair spans. */
+     thing worth giving back at this size. */
   .picker-stack-card--far {
     display: none;
   }
 
-  /* The mid pair sits at +-31 but is tilted 11deg, so each card's box is ~84px wide, not 72 */
+  /* DENSER HEAD: pile, copy and action share one row so the card is short enough to leave the
+     catalog below it real estate. Everything in it shrinks to pay for that. */
+  .picker-concepts {
+    padding: 16px;
+  }
+
+  .picker-concepts-head {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* heading-xs */
+  .picker-concepts-title {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
+     both edges still read behind the front one. */
+  .picker-stack-card--s2 { --shift: -14px; --size: 40px; }
+  .picker-stack-card--s3 { --shift: 14px; --size: 40px; }
+
+  .picker-stack-card--front {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  /* The mid pair sits at +-14 but is tilted 11deg, so each card's box is ~47px wide, not 40 */
   .picker-stack {
-    width: 148px;
+    width: 76px;
+    height: 54px;
+  }
+
+  /* THE ROW ONLY FITS IF THE CTA GIVES UP ITS LABEL. At 375px the button's text alone took 157px
+     of the 303 available and squeezed the headline to 28px. Icon only here; the label stays in the
+     DOM for the accessible name, which each button also carries explicitly. */
+  .picker-concepts-action-label {
+    display: none;
+  }
+
+  .picker-concepts-actions .btn {
+    width: 40px;
+    padding: 0;
+  }
+
+  /* The headline carries the card on its own at this size, and clamps rather than pushing the
+     row taller than the pile beside it. */
+  .picker-concepts-subtitle {
+    display: none;
+  }
+
+  .picker-concepts-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
   /* Back to full width here: the pill wraps to two rows at this size, and a shrink-wrapped
