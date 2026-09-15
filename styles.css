@@ -4408,11 +4408,13 @@ position: absolute;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: 0;
   scrollbar-width: none;
-  /* Open room for the columns' shadows without moving the track */
-  padding-block: 8px;
-  margin-block: -8px;
+  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur) with
+     padding and cancel it with matching negative margins; the track's layout position is unchanged
+     and snapping still lands on the content edge. */
+  padding: 32px 24px;
+  margin: -32px -24px;
+  scroll-padding-inline: 24px;
   outline: none;
 }
 
