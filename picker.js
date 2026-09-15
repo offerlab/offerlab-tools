@@ -1132,7 +1132,7 @@ function renderTray() {
         <span>${split}</span>
       </div>
       <div class="picker-tray-actions">
-        <button type="button" class="btn btn--md btn--overlay" data-action="clear">${icon('cross-large', { size: 14 })} Clear</button>
+        <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection">${icon('cross-large', { size: 14 })}<span class="picker-tray-action-label">Clear</span></button>
         <button type="button" class="btn btn--md btn--primary" data-action="suggest"${state.conceptsStatus === 'loading' ? ' disabled' : ''}>Create bundle</button>
       </div>
     </div>
