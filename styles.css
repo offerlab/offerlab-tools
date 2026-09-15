@@ -4233,6 +4233,7 @@ position: absolute;
   width: 100%;
   max-width: 1000px;
   margin-inline: auto;
+  padding-block-start: 16px;
   padding-inline: 12px;
 }
 
