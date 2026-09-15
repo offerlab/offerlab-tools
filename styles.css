@@ -210,6 +210,10 @@
   --mint-800: var(--brand-secondary-moola);
   --mint-900: #253C35FF;
   --mint-950: #11221DFF;
+  /* The lit end of the AI button's gradient: moola's hue and lightness with the saturation
+     pushed up, which is what chocolate is to brew. No mint step does this - they vary
+     lightness, not saturation. */
+  --moola-vivid: #11503A;
 
   /* Green palette */
   --green-50: #F3FCF1FF;
@@ -4399,14 +4403,16 @@ position: absolute;
 
 /* AI actions wear moola, apart from the brew of the merchant cards' Build bundle */
 .btn--ai {
-  background: var(--brand-secondary-moola);
+  background: linear-gradient(135deg, var(--moola-vivid), var(--brand-secondary-moola));
   color: var(--white);
   border-color: var(--brand-secondary-moola);
+  box-shadow: -0.5px -0.5px 1px #ffffff52 inset, 1px 1px 0.5px #ffffff52 inset, 0 4px 24px #0000003d;
 }
 
+/* Both stops moola rather than a flat color, for the reason .btn--primary:hover gives */
 .btn--ai:hover {
-  background: var(--brand-secondary-moola);
-  filter: brightness(1.12);
+  background: linear-gradient(135deg, var(--brand-secondary-moola), var(--brand-secondary-moola));
+  border-color: var(--brand-secondary-moola);
 }
 
 .picker-concepts-grid {
