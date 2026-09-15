@@ -721,8 +721,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    --scrim-start and eases to clear at --scrim-end. Set the knobs on the element that
    wears it; the stop multipliers are the easing curve and stay as they are.
    -------------------------------------------------------------------------- */
-.scrim,
-.picker-column-filter::after {
+.scrim {
   --scrim-rgb: 255 255 255;
   --scrim-angle: to bottom;
   --scrim-start: 40%;
@@ -4480,31 +4479,34 @@ position: absolute;
   min-height: 0;
 }
 
+/* The head and filter share one layer floating over the scrolling grid. It wears the scrim:
+   solid behind the rows, easing to clear across its bottom, so products dissolve under it
+   with the whole layer's height to smooth the fade. The grid pads its top to match. */
+.picker-column {
+  --picker-column-top: 132px;
+  position: relative;
+}
+
+.picker-column-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  padding: 16px 16px 32px;
+  border-radius: 32px 32px 0 0;
+  --scrim-start: 72%;
+}
+
 .picker-column-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 0;
+  padding-bottom: 12px;
 }
 
-/* The filter row sits over the scrolling grid; its scrim hangs 40px below it so products
-   dissolve under the bar instead of hitting a hard line */
 .picker-column-filter {
   position: relative;
-  z-index: 1;
-  padding: 12px 16px;
-  background: var(--content-background-elevated);
-}
-
-.picker-column-filter::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 40px;
-  pointer-events: none;
-  --scrim-start: 0%;
 }
 
 .picker-column-favicon {
@@ -4577,8 +4579,8 @@ position: absolute;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 16px;
-  padding: 32px 16px 16px; /* the first row starts clear of the filter bar's scrim */
-  max-height: 62vh;
+  padding: var(--picker-column-top) 16px 16px; /* the first row starts clear of the floating head */
+  max-height: calc(62vh + var(--picker-column-top));
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Minimal scrollbar: the standard properties for Chrome and Firefox, the WebKit

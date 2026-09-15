@@ -592,6 +592,7 @@ function renderColumnMarkup(domain) {
 
   return `
     <div class="picker-column" data-domain="${escapeHtml(domain)}">
+      <div class="picker-column-top scrim">
       <div class="picker-column-head">
         <img class="picker-column-favicon" src="${getFaviconUrl(domain)}" alt="">
         <div class="picker-column-labels">
@@ -602,6 +603,7 @@ function renderColumnMarkup(domain) {
       </div>
       <div class="picker-column-filter">
         <input type="search" class="picker-filter" data-domain="${escapeHtml(domain)}" placeholder="Filter products" value="${escapeHtml(state.filters[domain] || '')}" aria-label="Filter ${escapeHtml(brand.name)} products">
+      </div>
       </div>
       <div class="picker-grid">${products.map(p => renderTile(domain, p)).join('') || '<p class="picker-grid-empty">No products match.</p>'}</div>
     </div>
