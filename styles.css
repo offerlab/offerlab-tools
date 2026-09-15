@@ -6164,6 +6164,18 @@ position: absolute;
     grid-row: 3;
   }
 
+  /* Except while it is generating. The stop control belongs beside the thing it interrupts, not at
+     the foot of a card full of skeletons, so it takes a third column on the head row. That column
+     only exists while it is there; an empty one would hold a gap open on the copy's right. */
+  .picker-concepts:has(.stop-button) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .picker-concepts:has(.stop-button) .picker-concepts-actions {
+    grid-area: 1 / 3;
+    align-self: center;
+  }
+
   /* The pill exists to hold the minimise control next to the action, and that control is gone at
      this size. With one button in it the wrapper is just a white box drawn around a button, so it
      stops being a surface and the button goes back to standing on its own. */
