@@ -5061,6 +5061,14 @@ position: absolute;
   display: contents;
 }
 
+/* A finger scrolls the rail directly, and the mobile layout gives each column a screenful, so the
+   chevrons would float halfway down one. Nothing to offer that the gesture does not. */
+@media (pointer: coarse), (max-width: 900px) {
+  .picker-rail.has-overflow .picker-rail-controls {
+    display: none;
+  }
+}
+
 /* Sized like the tiles' own add button, and straddling the edge of the first and last panel
    rather than the viewport's. Above the columns, which scroll beneath them. */
 .picker-rail-btn {
@@ -5358,7 +5366,10 @@ position: absolute;
      corner and shows against the page. */
   border-radius: 32px 32px 0 0;
   clip-path: inset(0 round 32px 32px 0 0);
-  overscroll-behavior: contain;
+  /* Y only. overflow-y makes this a scroll port on BOTH axes, so a sideways gesture over the tiles
+     lands here, on an axis with nothing to scroll; containing it there left the rail unreachable
+     from the one part of the column a pointer is usually over. */
+  overscroll-behavior-y: contain;
   /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
      overlay their scrollbars it still fades out after scrolling stops. */
   scrollbar-width: thin;
