@@ -1681,9 +1681,9 @@ position: absolute;
 }
 
 .search-icon {
-  width: 20px;
-  --icon-rendered: 20;
-  height: 20px;
+  width: 18px;
+  --icon-rendered: 18;
+  height: 18px;
   color: var(--white);
 }
 
