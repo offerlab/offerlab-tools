@@ -4913,6 +4913,14 @@ position: absolute;
 }
 
 /* Rail: one column per brand, snap-scrolled, with arrows once it overflows */
+/* Full-bleed escape hatch (the app's .onboarding-scan-bleed): the columns want the whole viewport
+   as canvas once there is more than one of them, and the scroll box's own clipping contains them
+   so the page never scrolls sideways. */
+.picker-rail.is-bleeding {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
 .picker-rail {
   position: relative;
   display: flex;
@@ -4922,17 +4930,22 @@ position: absolute;
   min-height: 0;
 }
 
+/* display: contents so each button positions against the rail rather than against a row */
 .picker-rail-controls {
   display: none;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .picker-rail.has-overflow .picker-rail-controls {
-  display: flex;
+  display: contents;
 }
 
+/* Centred on the columns and inset from the rail's edges, which under full bleed are the
+   viewport's. Above the columns, which scroll beneath them. */
 .picker-rail-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -4947,8 +4960,20 @@ position: absolute;
   transition: background 0.2s ease, opacity 0.2s ease;
 }
 
+.picker-rail-btn--prev {
+  left: 12px;
+}
+
+.picker-rail-btn--next {
+  right: 12px;
+}
+
 .picker-rail-btn:hover {
   background: var(--content-background-overlay);
+}
+
+.picker-rail-btn:active {
+  transform: translateY(-50%) scale(0.96);
 }
 
 .picker-rail-btn[disabled] {
@@ -4967,7 +4992,9 @@ position: absolute;
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  /* proximity, not mandatory: the final page is a partial one, so a step that overshoots the last
+     reachable snap point gets forced back to the previous one and pagination appears to do nothing. */
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
   /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
      Only the sides are pulled back with negative margins; a negative TOP margin would add
