@@ -4443,9 +4443,15 @@ position: absolute;
 }
 
 .picker-concepts-grid {
+  --concepts-grid-gap: 16px;
+  --concepts-per-row: 5;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  /* Tracks stretch to fill the row (auto-fit), but never below a fifth of it, which is what
+     caps the row at five cards before it wraps. */
+  grid-template-columns: repeat(auto-fit, minmax(
+    max(240px, (100% - (var(--concepts-per-row) - 1) * var(--concepts-grid-gap)) / var(--concepts-per-row)),
+    1fr));
+  gap: var(--concepts-grid-gap);
 }
 
 .picker-concept {
