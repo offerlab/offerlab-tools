@@ -5080,7 +5080,7 @@ position: absolute;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .picker-rail-btn--prev {
@@ -5102,9 +5102,10 @@ position: absolute;
   transform: translate(var(--rail-btn-x), -50%) scale(0.96);
 }
 
+/* Gone rather than dimmed: the control is only worth drawing when there is track on that side to
+   reach. */
 .picker-rail-btn[disabled] {
-  opacity: 0.4;
-  cursor: default;
+  display: none;
 }
 
 .picker-columns {
