@@ -1521,6 +1521,8 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 /* Circular stop control with a sweeping ring. Set --stop-size to fit the row it sits in. */
 .stop-button {
   --stop-size: 40px;
+  --stop-surface: var(--content-primary);
+  --stop-ink: var(--white);
   position: relative;
   display: flex;
   align-items: center;
@@ -1530,7 +1532,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   height: var(--stop-size);
   border: none;
   border-radius: 50%;
-  background-color: var(--content-primary);
+  background-color: var(--stop-surface);
   box-shadow: 0 4px 24px rgba(52, 46, 38, 0.15);
   cursor: pointer;
   transition: transform var(--transition-fast);
@@ -1550,12 +1552,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   position: absolute;
   inset: calc(var(--stop-size) * 0.1);
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(255, 255, 255, 1) 270deg,
-    transparent 360deg
-  );
+  background: conic-gradient(from 0deg, transparent 0deg, var(--stop-ink) 270deg, transparent 360deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
   animation: spin-ring 1s linear infinite;
@@ -1565,7 +1562,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   width: calc(var(--stop-size) * 0.4);
   height: calc(var(--stop-size) * 0.4);
   --icon-rendered: calc(var(--stop-size) * 0.4);
-  color: var(--white);
+  color: var(--stop-ink);
   z-index: 1;
 }
 
@@ -4344,9 +4341,12 @@ position: absolute;
   gap: 28px;
 }
 
-/* Matches the height of the .btn--md actions it replaces */
+/* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where
+   the header's dark disc would read as a hole. */
 .picker-concepts-head .stop-button {
   --stop-size: 32px;
+  --stop-surface: var(--content-background-elevated);
+  --stop-ink: var(--brand-secondary-moola);
 }
 
 .picker-concepts-copy {
