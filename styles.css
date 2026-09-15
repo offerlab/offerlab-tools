@@ -4503,6 +4503,7 @@ position: absolute;
   height: 64px;
   border-radius: 14px;
   flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
   transform: rotate(var(--tilt, 0deg));
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
