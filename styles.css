@@ -1133,7 +1133,9 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 .main-content {
   position: relative;
   z-index: var(--z-content);
-  min-height: 100vh;
+  /* The sticky header sits above this in flow, so a full 100vh here would always leave the
+     page 84px scrollable with nothing in it. */
+  min-height: calc(100vh - var(--header-h, 0px));
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -4164,21 +4166,25 @@ position: absolute;
    Bundle picker: brand catalogs on a snap rail, concepts above, selection tray below.
    Tiles and tray follow the main app's collab-builder catalog picker (OL-3571).
    -------------------------------------------------------------------------- */
+/* The picker fills the viewport: the header and concepts take their height, the rail takes
+   what is left, and the columns run to the bottom edge rather than ending in mid-air. */
 .picker-section {
   --picker-column-width: 440px;
-  padding-top: 72px;
-  padding-bottom: 72px;
+  height: calc(100vh - var(--header-h, 0px));
+  padding-top: 24px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
   position: relative;
 }
 
-.picker-section.has-tray {
-  padding-bottom: 140px; /* room for the floating tray */
+/* The tray floats over the columns' last rows; the grid pads its own bottom so the final
+   row can still be scrolled clear of it. */
+.picker-section.has-tray .picker-grid {
+  padding-bottom: 104px;
 }
 
 .picker-header {
@@ -4437,6 +4443,8 @@ position: absolute;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 .picker-rail-controls {
@@ -4481,13 +4489,15 @@ position: absolute;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur) with
-     padding and cancel it with matching negative margins; the track's layout position is unchanged
-     and snapping still lands on the content edge. */
-  padding: 32px 24px;
-  margin: -32px -24px;
+  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
+     Only the sides are pulled back with negative margins; a negative TOP margin would add
+     height the flex line has to absorb, and the columns would run past the viewport. */
+  padding: 20px 24px 0;
+  margin-inline: -24px;
   scroll-padding-inline: 24px;
   outline: none;
+  flex: 1;
+  min-height: 0;
 }
 
 .picker-columns::-webkit-scrollbar {
@@ -4507,7 +4517,8 @@ position: absolute;
   scroll-snap-align: start;
   background: var(--content-background-elevated);
   border: 1px solid var(--content-border-neutral);
-  border-radius: 32px;
+  /* Square at the bottom: the column runs off the viewport's edge rather than ending there */
+  border-radius: 32px 32px 0 0;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -4618,7 +4629,9 @@ position: absolute;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 16px;
   padding: var(--picker-column-top) 16px 16px; /* the first row starts clear of the floating head */
-  max-height: calc(62vh + var(--picker-column-top));
+  flex: 1;
+  min-height: 0;
+  align-content: start; /* rows stack from the top rather than stretching to fill the column */
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
@@ -4755,6 +4768,7 @@ position: absolute;
 /* The skinny add column at the end of the rail */
 .picker-add-column {
   flex: 0 0 96px;
+  align-self: stretch;
   scroll-snap-align: end;
   cursor: pointer;
   outline: none;
@@ -4763,9 +4777,8 @@ position: absolute;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: 28px;
   border: 1px dashed var(--content-border-neutral);
-  min-height: 320px;
+  border-radius: 32px 32px 0 0;
   color: var(--content-primary);
   font-size: var(--font-size-xs);
   font-weight: 500;

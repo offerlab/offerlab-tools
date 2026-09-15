@@ -3433,8 +3433,21 @@ function initEventListeners() {
    Initialize App
    -------------------------------------------------------------------------- */
 
+// The sticky header sits in flow above the app container, so anything sizing itself to the
+// viewport (the picker) has to subtract it. Republished whenever the header's height changes,
+// which it does between the landing and results states.
+function trackHeaderHeight() {
+  const header = elements.siteHeader;
+  if (!header) return;
+  const publish = () => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+  publish();
+  if (window.ResizeObserver) new ResizeObserver(publish).observe(header);
+  else window.addEventListener('resize', publish);
+}
+
 function init() {
   hydrateIcons();
+  trackHeaderHeight();
   initPicker();
   console.log('[init] Starting...');
   console.log('[init] elements.searchInput:', elements.searchInput);
