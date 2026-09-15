@@ -5241,7 +5241,9 @@ position: absolute;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 12px 12px 20px;
+  /* Even inset: the close button carries a visible fill, so its box edge is the edge that
+     should line up with the heading rather than its glyph. */
+  padding: 20px 20px 12px;
 }
 
 .dialog-heading {
@@ -5252,14 +5254,13 @@ position: absolute;
   color: var(--content-primary);
 }
 
-/* Ghost on desktop, like the app's inline close */
 .dialog-close {
   width: 32px;
   height: 32px;
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: transparent;
+  background: var(--content-background-overlay);
   color: var(--content-primary);
   display: inline-flex;
   align-items: center;
@@ -5269,7 +5270,7 @@ position: absolute;
 }
 
 .dialog-close:hover {
-  background: var(--content-background-overlay);
+  background: var(--content-background-overlay-hover);
 }
 
 .dialog-body {
@@ -5445,6 +5446,15 @@ position: absolute;
 
   .dialog-heading {
     font-size: 21px;
+  }
+
+  /* Ghost at this size, so the header pulls back to optically align the glyph */
+  .dialog-header {
+    padding-right: 12px;
+  }
+
+  .dialog-close {
+    background: transparent;
   }
 }
 
