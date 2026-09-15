@@ -6249,14 +6249,30 @@ position: absolute;
     flex: 1;
   }
 
-  /* Icon only, so the row the actions share is spent on the primary */
-  .picker-tray-action-label {
-    display: none;
+  /* Clear becomes an eyebrow tucked under the pill's top edge instead of a third thing in a row
+     that is already carrying the pile, the count and the primary. Out of flow, so the pill's own
+     row is just those three. The tray is its containing block and the pill fills the tray, so
+     bottom: 100% is the pill's top edge; the 2px past it hides this one's bottom border under it. */
+  .picker-tray-actions .btn--overlay {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 2px);
+    transform: translateX(-50%);
+    /* Behind the pill's surface. The tray is the stacking context, and its background is
+       transparent, so this lands under the pill's fill rather than under the page. */
+    z-index: -1;
+    width: auto;
+    height: 36px;
+    padding: 0 16px 2px;
+    border-radius: 20px 20px 0 0;
+    background: var(--content-background-elevated);
+    border-color: var(--content-border-neutral);
+    border-bottom: none;
+    box-shadow: var(--shadow-md);
   }
 
-  .picker-tray-actions .btn--overlay {
-    flex: 0 0 44px;
-    padding: 0;
+  .picker-tray-actions .btn--overlay:hover {
+    background: var(--content-background-base);
   }
 
   /* A pair of long brand names runs past the pill on its own */
