@@ -4621,23 +4621,13 @@ position: absolute;
   max-height: calc(62vh + var(--picker-column-top));
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* Minimal scrollbar: the standard properties for Chrome and Firefox, the WebKit
-     pseudo-elements for Safari, which reads only those */
+  /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
+     overlay their scrollbars it still fades out after scrolling stops. */
   scrollbar-width: thin;
-  scrollbar-color: var(--content-border-neutral) transparent;
 }
 
 .picker-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.picker-grid::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.picker-grid::-webkit-scrollbar-thumb {
-  background: rgba(52, 46, 38, 0.16);
-  border-radius: var(--rounded-full);
+  width: 4px;
 }
 
 .picker-grid-empty {
