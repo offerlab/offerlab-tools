@@ -4302,7 +4302,8 @@ position: absolute;
   width: 116px;
   height: 116px;
   border-radius: 20px;
-  box-shadow: var(--shadow-md);
+  /* The 3px white ring every card in the stack wears, over the front card's heavier lift */
+  box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-md);
   transform: translate(-50%, -50%);
 }
 
