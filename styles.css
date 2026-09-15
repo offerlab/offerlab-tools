@@ -4922,6 +4922,14 @@ position: absolute;
   margin-inline: calc(50% - 50vw);
 }
 
+/* The rail bleeds so more columns fit, not so they start at the viewport's edge: the track is
+   inset back to the body container, which keeps the first pair centred on screen. */
+.picker-rail.is-bleeding .picker-columns {
+  --picker-bleed-gutter: max(0px, (100vw - var(--picker-body-max)) / 2);
+  /* The bleed already opens the room past the body's right edge that the add column needs. */
+  margin-right: -24px;
+}
+
 .picker-rail {
   position: relative;
   display: flex;
@@ -4988,6 +4996,8 @@ position: absolute;
   /* A column's default is a share of the BODY container, not of the scroll box: the rail bleeds out
      to the viewport so more columns fit, but that must not make each one wider. */
   --picker-body-width: min(var(--picker-body-max), 100vw);
+  /* Zero until the rail bleeds; see .picker-rail.is-bleeding below. */
+  --picker-bleed-gutter: 0px;
   display: flex;
   gap: var(--picker-columns-gap);
   align-items: stretch;
@@ -5003,10 +5013,10 @@ position: absolute;
      section's own gap is reduced by this much so the banner sits where it did.
      The right is pulled back further still, by the add column and its gap, so the brand columns
      alone fill the content area and the add control hangs outside it. */
-  padding: 20px 24px 0;
+  padding: 20px 24px 0 calc(24px + var(--picker-bleed-gutter));
   margin-left: -24px;
   margin-right: calc(-24px - var(--picker-add-width) - var(--picker-columns-gap));
-  scroll-padding-inline: 24px;
+  scroll-padding-inline: calc(24px + var(--picker-bleed-gutter)) 24px;
   outline: none;
   flex: 1;
   min-height: 0;
