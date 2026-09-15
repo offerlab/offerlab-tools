@@ -590,16 +590,17 @@ img {
   height: 14px;
 }
 
-/* Primary button variant - solid dark background */
+/* Primary button variant: chocolate-to-brew gradient with an inset highlight, solid brew on hover */
 .btn--primary {
-  background: var(--content-primary);
+  background: linear-gradient(135deg, var(--brand-primary-chocolate), var(--brand-primary-brew));
   color: var(--content-background-elevated);
-  border-color: var(--content-primary);
+  border-color: var(--brand-primary-brew);
+  box-shadow: -0.5px -0.5px 1px #ffffff52 inset, 1px 1px 0.5px #ffffff52 inset, 0 4px 24px #0000003d;
 }
 
 .btn--primary:hover {
-  background: var(--content-secondary);
-  border-color: var(--content-secondary);
+  background: var(--brand-primary-brew);
+  border-color: var(--brand-primary-brew);
 }
 
 /* Secondary button variant - light background with border (default .btn style) */
