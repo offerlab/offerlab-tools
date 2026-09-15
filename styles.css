@@ -5307,8 +5307,9 @@ position: absolute;
   left: 50%;
   bottom: 20px;
   transform: translate(-50%, 24px);
-  width: calc(100% - 32px);
-  max-width: 640px;
+  /* Shrink-wraps the pill; the cap keeps it off the viewport edges once brand names run long */
+  width: auto;
+  max-width: calc(100% - 32px);
   z-index: var(--z-dropdown);
   opacity: 0;
   pointer-events: none;
@@ -5380,6 +5381,11 @@ position: absolute;
   flex-shrink: 0;
 }
 
+.picker-tray-actions .btn {
+  height: 44px;
+  padding: 0 20px;
+}
+
 .btn[disabled] {
   opacity: 0.5;
   cursor: default;
@@ -5394,6 +5400,12 @@ position: absolute;
   .picker-concepts-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  /* Back to full width here: the pill wraps to two rows at this size, and a shrink-wrapped
+     box would wrap just the same while leaving dead margin on both sides */
+  .picker-tray {
+    width: calc(100% - 32px);
   }
 
   .picker-tray-pill {
