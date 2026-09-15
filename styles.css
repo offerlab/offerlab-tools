@@ -1193,15 +1193,8 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   to { --ai-input-angle: 360deg; }
 }
 
-.omni-ai-box-container::before,
-.omni-ai-box-container::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  background: conic-gradient(
+:root {
+  --ai-input-conic: conic-gradient(
     from var(--ai-input-angle),
     #c6adff 0deg,
     #b3bcff 22deg,
@@ -1216,6 +1209,17 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
     #f4c2ff 315deg,
     #ddb8ff 337deg
   );
+}
+
+.omni-ai-box-container::before,
+.omni-ai-box-container::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: var(--ai-input-conic);
 }
 
 .omni-ai-box-container::before {
@@ -4801,53 +4805,270 @@ position: absolute;
   color: var(--content-secondary);
 }
 
-/* URL dialog */
-.picker-url-dialog.hidden {
+/* --------------------------------------------------------------------------
+   Dialog (the app's atelier dialog at desktop): centered card, blurred scrim, heading row
+   with a ghost close, body, and a grid actions bar. Used by the add-brand-by-URL dialog.
+   -------------------------------------------------------------------------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: modalOverlayFadeIn 0.2s ease;
+}
+
+.dialog-backdrop.hidden {
   display: none;
 }
 
-.picker-url-modal {
-  max-width: 420px;
-  padding: 24px;
-  gap: 16px;
+.dialog {
+  width: 480px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--content-background-elevated);
+  border-radius: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  animation: dialogSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.picker-section-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--content-primary);
-  margin: 0;
+@keyframes dialogSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.picker-url-head {
+.dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  padding: 20px 12px 12px 20px;
 }
 
-.picker-url-field {
+.dialog-heading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.48px;
+  color: var(--content-primary);
+}
+
+/* Ghost on desktop, like the app's inline close */
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--content-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dialog-close:hover {
+  background: var(--content-background-overlay);
+}
+
+.dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+  padding: 0 20px 24px;
+}
+
+.dialog-lead {
+  margin: 0;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   color: var(--content-secondary);
 }
 
-.picker-url-field input {
-  height: 48px;
-  padding: 0 16px;
-  border-radius: var(--rounded-full);
-  border: 1px solid var(--content-border-neutral);
+.dialog-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  padding: 20px;
   background: var(--content-background-elevated);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  color: var(--content-primary);
+  border-radius: 0 0 32px 32px;
 }
 
-.picker-url-field input:focus {
+/* The app's text buttons (atelier/tailwind/buttons.css), large size */
+.button-secondary,
+.button-primary-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+}
+
+.button-secondary:active,
+.button-primary-dark:active {
+  transform: scale(0.99);
+}
+
+.button-secondary {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.button-secondary:hover {
+  background: rgba(104, 67, 0, 0.12);
+}
+
+.button-primary-dark {
+  background: var(--brand-primary-brew);
+  color: var(--brand-primary-crisp);
+}
+
+.button-primary-dark:hover {
+  background: var(--brand-primary-chocolate);
+}
+
+.button-primary-dark[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Floating-label field (atelier/fields/floating_label.css) */
+.floating-input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-input-field {
+  width: 100%;
+  padding: 22px 14px 8px;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--content-background-elevated);
+  border: none;
+  box-shadow: 0 0 0 1px inset rgba(52, 46, 38, 0.12);
+  border-radius: 12px;
+  color: var(--content-primary);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-input-field::placeholder {
+  color: var(--content-secondary);
+}
+
+.floating-input-field:focus {
   outline: none;
-  border-color: var(--content-primary);
+  box-shadow: 0 0 0 2px inset var(--content-primary);
+}
+
+.floating-input-field:hover:not(:focus) {
+  box-shadow: 0 0 0 1px inset var(--content-primary);
+}
+
+.floating-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%) scale(1);
+  transform-origin: left center;
+  font-size: 16px;
+  font-weight: normal;
+  color: var(--content-secondary);
+  pointer-events: none;
+  user-select: none;
+  transition: top 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* Floats when focused, filled, or (as here) the field shows a placeholder of its own */
+.floating-input:focus-within .floating-label,
+.floating-input .floating-input-field:not(:placeholder-shown) + .floating-label,
+.floating-input .floating-input-field[placeholder]:not([placeholder=' ']) + .floating-label {
+  top: 8px;
+  transform: translateY(0) scale(0.75);
+  line-height: 16px;
+}
+
+/* AI input, compact (atelier/ai_input.css): the conic glow behind the field, frozen at rest and
+   spinning on focus, with an outset hairline ring so the field sits over the glow */
+.ai-input {
+  position: relative;
+  isolation: isolate;
+}
+
+.ai-input__field {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-input .floating-input-field {
+  box-shadow: 0 0 0 1px var(--content-border-neutral) !important;
+}
+
+.ai-input:focus-within .floating-input-field {
+  box-shadow: 0 0 0 1px var(--content-border-neutral), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.ai-input__glow {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--ai-input-conic);
+  transition: opacity 0.3s ease;
+}
+
+.ai-input__glow--1 {
+  inset: 0;
+  border-radius: 12px;
+  filter: blur(4px);
+  opacity: 0.32;
+}
+
+.ai-input__glow--2 {
+  inset: -4px;
+  border-radius: 16px;
+  filter: blur(11px);
+  opacity: 0.16;
+}
+
+.ai-input:focus-within .ai-input__glow {
+  animation: aiInputSpin 6s linear infinite;
+}
+
+.ai-input:focus-within .ai-input__glow--1 {
+  filter: blur(9px);
+  opacity: 0.6;
+}
+
+.ai-input:focus-within .ai-input__glow--2 {
+  filter: blur(28px);
+  opacity: 0.42;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-input__glow {
+    animation: none;
+  }
 }
 
 .picker-url-error {
@@ -4858,9 +5079,22 @@ position: absolute;
   color: var(--brand-secondary-spice);
 }
 
-.picker-url-actions {
-  display: flex;
-  justify-content: flex-end;
+.picker-url-error:empty {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .dialog {
+    border-radius: 28px;
+  }
+
+  .dialog-actions {
+    border-radius: 0 0 28px 28px;
+  }
+
+  .dialog-heading {
+    font-size: 21px;
+  }
 }
 
 /* Floating selection tray (the app's picker tray): thumb pile, count, actions */

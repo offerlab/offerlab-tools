@@ -244,19 +244,27 @@
         </div>
         <div class="picker-add-popover hidden" id="pickerAddPopover" role="menu"></div>
         <div class="picker-tray" id="pickerTray" aria-hidden="true"></div>
-        <form class="modal-overlay picker-url-dialog hidden" id="pickerUrlDialog">
-          <div class="modal picker-url-modal">
-            <div class="picker-url-head">
-              <h3 class="picker-section-title">Add a brand by URL</h3>
-              <button type="button" class="modal-close-btn" data-action="close-dialog" aria-label="Close"><span data-icon="cross-large"></span></button>
+        <form class="dialog-backdrop picker-url-dialog hidden" id="pickerUrlDialog" novalidate>
+          <div class="dialog picker-url-modal" role="dialog" aria-modal="true" aria-labelledby="pickerUrlHeading">
+            <div class="dialog-header">
+              <h2 class="dialog-heading" id="pickerUrlHeading">Add a brand</h2>
+              <button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close"><span data-icon="cross-large" data-icon-size="16"></span></button>
             </div>
-            <label class="picker-url-field">
-              <span>Brand website</span>
-              <input type="text" name="url" placeholder="brand.com" autocomplete="off" spellcheck="false">
-            </label>
-            <p class="picker-url-error" role="alert"></p>
-            <div class="picker-url-actions">
-              <button type="submit" class="btn btn--lg btn--primary">Add brand</button>
+            <div class="dialog-body">
+              <p class="dialog-lead">Tell me the website of a brand. I'll pull its catalog in as a new column.</p>
+              <div class="ai-input ai-input--compact">
+                <span class="ai-input__glow ai-input__glow--1" aria-hidden="true"></span>
+                <span class="ai-input__glow ai-input__glow--2" aria-hidden="true"></span>
+                <div class="ai-input__field floating-input">
+                  <input type="text" name="url" id="pickerUrlInput" class="floating-input-field" placeholder="glossier.com" autocomplete="off" spellcheck="false" inputmode="url">
+                  <label class="floating-label" for="pickerUrlInput">Brand website</label>
+                </div>
+              </div>
+              <p class="picker-url-error" role="alert"></p>
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="button-secondary button-large" data-action="close-dialog">Cancel</button>
+              <button type="submit" class="button-primary-dark button-large">Add brand</button>
             </div>
           </div>
         </form>
