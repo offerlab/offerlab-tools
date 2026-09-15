@@ -625,6 +625,7 @@ img {
   background: var(--content-background-overlay);
   color: var(--content-primary);
   border-color: transparent;
+  box-shadow: none;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
