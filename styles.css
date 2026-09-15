@@ -4407,7 +4407,7 @@ position: absolute;
 
 .picker-columns:focus-visible {
   box-shadow: 0 0 0 2px var(--content-primary);
-  border-radius: 28px;
+  border-radius: 32px;
 }
 
 /* Columns grow to share the rail with the add column; once their minimum width no longer
@@ -4417,9 +4417,9 @@ position: absolute;
   min-width: min(var(--picker-column-width), 85vw);
   scroll-snap-align: start;
   background: var(--content-background-elevated);
-  border: 0.5px solid var(--content-border-neutral);
-  border-radius: 28px;
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--content-border-neutral);
+  border-radius: 32px;
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   min-height: 0;
