@@ -6254,9 +6254,9 @@ position: absolute;
   .picker-tray-actions .btn--overlay {
     position: absolute;
     /* Inset from the tray on both sides rather than centred on a width: no transform to be wiped
-       out by the one .btn:active applies, and the 16px reads as 32px off the composer's own edge. */
-    left: 16px;
-    right: 16px;
+       out by the one .btn:active applies. */
+    left: 20px;
+    right: 20px;
     bottom: calc(100% - 2px);
     /* Behind the pill's surface. The tray is the stacking context, and its background is
        transparent, so this lands under the pill's fill rather than under the page. */
