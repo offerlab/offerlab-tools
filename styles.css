@@ -4680,7 +4680,9 @@ position: absolute;
   box-shadow: var(--shadow-sm);
 }
 
-.picker-column-remove {
+/* Ghost controls at the end of a column's header row */
+.picker-column-action {
+  position: relative;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -4692,9 +4694,10 @@ position: absolute;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.picker-column-remove:hover {
+.picker-column-action:hover {
   background: var(--content-background-overlay);
   color: var(--content-primary);
 }
@@ -4981,6 +4984,13 @@ position: absolute;
   height: 0.5px;
   background: var(--content-border-neutral);
   margin: 6px 8px;
+}
+
+.picker-add-heading {
+  margin: 4px 8px 8px;
+  font-size: var(--font-size-xs);
+  line-height: 16px;
+  color: var(--content-secondary);
 }
 
 .picker-add-empty {

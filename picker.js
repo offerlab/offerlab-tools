@@ -30,6 +30,7 @@ const state = {
   copy: null,             // { headline, subtitle } written for this brand set
   copyKey: null,          // the brand set that copy belongs to
   copyAbort: null,
+  swapDomain: null,       // the column the popover is replacing, when it was opened from one
   filters: {},            // domain -> text
   abort: null
 };
@@ -160,6 +161,7 @@ function resetState() {
   state.filters = {};
   state.abort = null;
   if (state.copyAbort) state.copyAbort.abort();
+  state.swapDomain = null;
   state.copy = null;
   state.copyKey = null;
   state.copyAbort = null;
@@ -202,6 +204,36 @@ async function addBrand(brand) {
   scrollToColumn(domain);
   await ensureFullCatalog(brand);
   renderColumn(domain);
+}
+
+// Swaps one column's brand for another, keeping its position on the rail. The old brand's
+// picks go with it; the rest of the selection stands.
+async function replaceBrand(domain, brand) {
+  const entry = entryFor(domain);
+  const nextDomain = extractDomain(brand.url || '');
+  if (!entry || !nextDomain || !canBuildWith(brand) || nextDomain === domain) return;
+  if (entryFor(nextDomain)) {
+    scrollToColumn(nextDomain);
+    return;
+  }
+
+  [...state.selection.keys()].filter(key => key.startsWith(`${domain}:`)).forEach(key => state.selection.delete(key));
+  entry.domain = nextDomain;
+  entry.brand = brand;
+  // The concepts referenced the old catalog, so they start over.
+  state.concepts = [];
+  state.activeConcept = -1;
+  state.conceptsStatus = 'idle';
+
+  pushPickUrl();
+  renderHeader();
+  renderConcepts({ reveal: true, swap: true });
+  refreshConceptsCopy();
+  renderColumns();
+  renderTray();
+  scrollToColumn(nextDomain);
+  await ensureFullCatalog(brand);
+  renderColumn(nextDomain);
 }
 
 function removeBrand(domain) {
@@ -717,7 +749,11 @@ function renderColumnMarkup(domain) {
           <div class="picker-column-name">${escapeHtml(brand.name)}</div>
           <div class="picker-column-count">${catalog.count} products${loadingMore ? ' · loading the rest' : ''}</div>
         </div>
-        ${removable ? `<button type="button" class="picker-column-remove" data-action="remove-brand" data-domain="${escapeHtml(domain)}" aria-label="Remove ${escapeHtml(brand.name)}">${icon('cross-large', { size: 16 })}</button>` : ''}
+        <button type="button" class="picker-column-action has-tooltip" data-action="swap-brand" data-domain="${escapeHtml(domain)}" aria-label="Switch ${escapeHtml(brand.name)} for another brand" aria-haspopup="true">
+          ${icon('arrow-rotate-right-left', { size: 16 })}
+          <span class="tooltip tooltip--end" aria-hidden="true">Switch brand</span>
+        </button>
+        ${removable ? `<button type="button" class="picker-column-action" data-action="remove-brand" data-domain="${escapeHtml(domain)}" aria-label="Remove ${escapeHtml(brand.name)}">${icon('cross-large', { size: 16 })}</button>` : ''}
       </div>
       <div class="picker-column-filter">
         <input type="search" class="picker-filter" data-domain="${escapeHtml(domain)}" placeholder="Filter products" value="${escapeHtml(state.filters[domain] || '')}" aria-label="Filter ${escapeHtml(brand.name)} products">
@@ -841,12 +877,14 @@ function onRailKeydown(e) {
    Add-brand popover and URL dialog
    --------------------------------------------------------------------------- */
 
-function showAddPopover(anchor) {
+function showAddPopover(anchor, { swapDomain = null } = {}) {
+  state.swapDomain = swapDomain;
+  const swapping = !!swapDomain;
   const brands = addableBrands();
   const rows = brands.map(b => {
     const domain = extractDomain(b.url || '');
     return `
-      <button type="button" class="picker-add-row" data-action="add-result-brand" data-domain="${escapeHtml(domain)}">
+      <button type="button" class="picker-add-row" data-action="pick-brand" data-domain="${escapeHtml(domain)}">
         <img class="picker-add-row-favicon" src="${getFaviconUrl(domain)}" alt="">
         <span class="picker-add-row-labels">
           <span class="picker-add-row-name">${escapeHtml(b.name)}</span>
@@ -856,9 +894,10 @@ function showAddPopover(anchor) {
   }).join('');
 
   dom.popover.innerHTML = `
+    ${swapping ? `<p class="picker-add-heading">Switch ${escapeHtml(entryFor(swapDomain)?.brand.name || 'this brand')} for</p>` : ''}
     <button type="button" class="picker-add-row picker-add-row--url" data-action="add-url">
       <span class="picker-add-row-icon">${icon('link-3-chain', { size: 16 })}</span>
-      <span class="picker-add-row-labels"><span class="picker-add-row-name">Add a brand by URL</span></span>
+      <span class="picker-add-row-labels"><span class="picker-add-row-name">${swapping ? 'Use a brand URL' : 'Add a brand by URL'}</span></span>
     </button>
     ${rows ? `<div class="picker-add-divider"></div><div class="picker-add-list">${rows}</div>` : '<p class="picker-add-empty">Every recommended brand with a catalog is already here.</p>'}
   `;
@@ -883,10 +922,14 @@ function showAddPopover(anchor) {
 
 function hideAddPopover() {
   dom.popover?.classList.add('hidden');
+  state.swapDomain = null;
 }
 
 function showUrlDialog() {
+  // hideAddPopover clears the swap target, so carry it across.
+  const swapDomain = state.swapDomain;
   hideAddPopover();
+  state.swapDomain = swapDomain;
   dom.dialog.classList.remove('hidden');
   dom.dialog.querySelector('.picker-url-error').textContent = '';
   const input = dom.dialog.querySelector('input');
@@ -909,7 +952,7 @@ async function onUrlSubmit(e) {
     error.textContent = 'Enter a brand website, like graza.co.';
     return;
   }
-  if (entryFor(domain)) {
+  if (entryFor(domain) && domain !== state.swapDomain) {
     hideUrlDialog();
     scrollToColumn(domain);
     return;
@@ -928,8 +971,11 @@ async function onUrlSubmit(e) {
     const known = (getResults()?.brands || []).find(b => extractDomain(b.url || '') === domain);
     const brand = known || { name: brandNameFromDomain(domain), url: `https://${domain}`, catalog };
     brand.catalog = catalog;
+    const swapDomain = state.swapDomain;
     hideUrlDialog();
-    await addBrand(brand);
+    state.swapDomain = null;
+    if (swapDomain) await replaceBrand(swapDomain, brand);
+    else await addBrand(brand);
   } finally {
     button.disabled = false;
     button.textContent = 'Add brand';
@@ -967,12 +1013,23 @@ function onSectionClick(e) {
       e.stopPropagation();
       if (dom.popover.classList.contains('hidden')) showAddPopover(target.querySelector('.picker-add-btn') || target); else hideAddPopover();
       break;
-    case 'add-result-brand': {
+    case 'pick-brand': {
       const brand = (getResults()?.brands || []).find(b => extractDomain(b.url || '') === target.dataset.domain);
+      const swapDomain = state.swapDomain;
       hideAddPopover();
-      if (brand) addBrand(brand);
+      if (!brand) break;
+      if (swapDomain) replaceBrand(swapDomain, brand);
+      else addBrand(brand);
       break;
     }
+    case 'swap-brand':
+      e.stopPropagation();
+      if (dom.popover.classList.contains('hidden') || state.swapDomain !== target.dataset.domain) {
+        showAddPopover(target, { swapDomain: target.dataset.domain });
+      } else {
+        hideAddPopover();
+      }
+      break;
     case 'add-url': showUrlDialog(); break;
     case 'remove-brand': removeBrand(target.dataset.domain); break;
   }
