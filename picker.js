@@ -826,7 +826,14 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     });
   }
 
-  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}${state.conceptsMinimized ? ' is-minimized' : ''}`;
+  if (state.conceptsMinimized) {
+    dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus} is-minimized`;
+    dom.concepts.innerHTML = `<button type="button" class="picker-concepts-chip" data-action="toggle-minimize"
+      aria-expanded="false" aria-label="Expand bundle ideas">Bundle ideas</button>`;
+    return;
+  }
+
+  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
   dom.concepts.innerHTML = `${head}${body ? `<div class="picker-concepts-body" id="pickerConceptsBody">${body}</div>` : ''}`;
 
   fanOutStack();
@@ -878,6 +885,57 @@ function playCardReveal() {
   void dom.conceptsShell.offsetWidth;
   dom.conceptsShell.classList.add('is-revealing');
   setTimeout(() => dom.conceptsShell.classList.remove('is-revealing'), 1600);
+}
+
+// Chip and banner are one box. fit-content to 100% has nothing to interpolate, so both ends are
+// pinned in pixels and released once the run finishes; a shrink-wrapped shell follows the pinned
+// child, which is what keeps the glow tracking the box frame by frame.
+const MORPH_MS = 420;
+
+function toggleMinimize() {
+  const card = dom.concepts;
+  const shell = dom.conceptsShell;
+  const next = !state.conceptsMinimized;
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    state.conceptsMinimized = next;
+    shell.classList.toggle('is-chip', next);
+    renderConcepts();
+    return;
+  }
+
+  const fromW = card.offsetWidth;
+  const fromH = card.offsetHeight;
+
+  card.style.transition = 'none';
+  card.style.width = '';
+  card.style.height = '';
+  state.conceptsMinimized = next;
+  // The shell shrink-wraps for BOTH directions of the run; expanding hands it back on release,
+  // or the glow would snap to full width while the card is still travelling.
+  shell.classList.add('is-chip');
+  renderConcepts();
+  const toW = card.offsetWidth;
+  const toH = card.offsetHeight;
+
+  card.style.width = `${fromW}px`;
+  card.style.height = `${fromH}px`;
+  void card.offsetHeight;
+  card.style.transition = '';
+
+  card.style.width = `${toW}px`;
+  card.style.height = `${toH}px`;
+
+  const release = (e) => {
+    if (e.target !== card || e.propertyName !== 'height') return;
+    card.style.width = '';
+    card.style.height = '';
+    shell.classList.toggle('is-chip', next);
+    card.removeEventListener('transitionend', release);
+  };
+  card.addEventListener('transitionend', release);
+  // A run that never fires transitionend (an interrupted morph) still has to hand the box back.
+  setTimeout(() => release({ target: card, propertyName: 'height' }), MORPH_MS + 120);
 }
 
 function crossfadeCopy() {
@@ -1213,10 +1271,7 @@ function onSectionClick(e) {
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
     // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
     case 'create-concept': applyConcept(Number(target.dataset.index)); break;
-    case 'toggle-minimize':
-      state.conceptsMinimized = !state.conceptsMinimized;
-      renderConcepts();
-      break;
+    case 'toggle-minimize': toggleMinimize(); break;
     case 'rail-prev': scrollRail(-1); break;
     case 'rail-next': scrollRail(1); break;
     case 'add-brand':

@@ -4288,6 +4288,23 @@ position: absolute;
   isolation: isolate;
 }
 
+/* Shrink-wrapped so the glow rings follow the card's pinned width through the morph. max-content
+   rather than fit-content: two fit-content boxes resolve against each other and the card overhangs. */
+.picker-concepts-shell.is-chip {
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/* The chip is the working state, so it wears the aura rather than borrowing it for a beat */
+.picker-concepts-shell.is-chip .picker-concepts-glow {
+  opacity: var(--glow-lit);
+}
+
+.picker-concepts-shell.is-chip .picker-concepts-glow::before {
+  animation: conceptsGlowSpin 6s linear infinite;
+}
+
 .picker-concepts {
   position: relative;
   border-radius: 28px;
@@ -4298,6 +4315,10 @@ position: absolute;
      lands between the two and reads as a ramp instead of an edge. */
   box-shadow: inset 0 0 0 1px var(--content-border-neutral), 0 1px 2px rgba(0, 0, 0, 0.05);
   padding: 20px;
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              border-radius 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -4470,17 +4491,25 @@ position: absolute;
   padding: 12px;
 }
 
-.picker-concepts.is-minimized .picker-concepts-body {
-  display: none;
+/* Chip: the same box, shrunk to a pill around a single label. */
+.picker-concepts.is-minimized {
+  padding: 8px 16px;
+  border-radius: var(--rounded-full);
+  overflow: hidden;
 }
 
-/* The fanned pile is the expanded card's flourish; a chip is just the line and its controls. */
-.picker-concepts.is-minimized .picker-stack {
-  display: none;
-}
-
-.picker-concepts.is-minimized .picker-concepts-head {
-  gap: 16px;
+.picker-concepts-chip {
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--agent-ink);
 }
 
 /* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where
