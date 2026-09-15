@@ -4558,7 +4558,7 @@ position: absolute;
 
 .picker-concept-create {
   margin-top: auto;
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 .picker-concept-thumbs {
