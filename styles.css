@@ -4194,7 +4194,7 @@ position: absolute;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 12px;
   position: relative;
 }
 
@@ -4573,10 +4573,11 @@ position: absolute;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  /* The scroll box clips on every side, so open room at the sides for shadow-md (24px blur).
-     Negative margins pull those back; a negative TOP margin would add height the flex line
-     has to absorb, and the columns would run past the viewport. */
-  padding-inline: 24px;
+  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
+     Only the sides are pulled back with negative margins; a negative TOP margin would add
+     height the flex line has to absorb, and the columns would run past the viewport. The
+     section's own gap is reduced by this much so the banner sits where it did. */
+  padding: 20px 24px 0;
   margin-inline: -24px;
   scroll-padding-inline: 24px;
   outline: none;
@@ -4720,8 +4721,11 @@ position: absolute;
   align-content: start; /* rows stack from the top rather than stretching to fill the column */
   overflow-y: auto;
   /* The grid does its own clipping (the column cannot, or a header tooltip would be cut off),
-     so tiles scrolling past the head follow the card's rounded top corners. */
+     so tiles scrolling past the head follow the card's rounded top corners. clip-path as well as
+     border-radius: a radius clips the content but not the scrollbar, which then rides over the
+     corner and shows against the page. */
   border-radius: 32px 32px 0 0;
+  clip-path: inset(0 round 32px 32px 0 0);
   overscroll-behavior: contain;
   /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
      overlay their scrollbars it still fades out after scrolling stops. */
