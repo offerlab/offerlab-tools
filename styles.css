@@ -4247,15 +4247,15 @@ position: absolute;
 }
 
 /* The banner ranges narrower than the rail below it, and takes the rail's full width once it is
-   carrying concept cards and needs the room. The jump is not tweened: a length-to-percentage
-   max-width will not interpolate, it parks at the start value, and the card swaps its whole
-   body at the same moment anyway. */
+   carrying concept cards and needs the room. No side padding: it would inset the expanded card
+   from the columns, which start at this element's own edges. The collapsed cap states the
+   content width it wants. The jump is not tweened: a length-to-percentage max-width will not
+   interpolate, it parks at the start value, and the card swaps its whole body anyway. */
 .picker-concepts-layout {
   width: 100%;
-  max-width: 1000px;
+  max-width: 976px;
   margin-inline: auto;
   padding-block-start: 16px;
-  padding-inline: 12px;
 }
 
 .picker-concepts-layout:has(.picker-concepts--ready),
