@@ -5296,55 +5296,6 @@ position: absolute;
   border-radius: 0 0 32px 32px;
 }
 
-/* The app's text buttons (atelier/tailwind/buttons.css), large size */
-.button-secondary,
-.button-primary-dark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 48px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 12px;
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  line-height: 1.5;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
-}
-
-.button-secondary:active,
-.button-primary-dark:active {
-  transform: scale(0.99);
-}
-
-.button-secondary {
-  background: var(--content-background-overlay);
-  color: var(--content-primary);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.button-secondary:hover {
-  background: rgba(104, 67, 0, 0.12);
-}
-
-.button-primary-dark {
-  background: var(--brand-primary-brew);
-  color: var(--brand-primary-crisp);
-}
-
-.button-primary-dark:hover {
-  background: var(--brand-primary-chocolate);
-}
-
-.button-primary-dark[disabled] {
-  opacity: 0.6;
-  cursor: default;
-}
-
 /* Floating-label field (atelier/fields/floating_label.css) */
 .floating-input {
   position: relative;
