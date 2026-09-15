@@ -4612,18 +4612,15 @@ position: absolute;
 /* Everything above the Includes panel. Carries the card's inset so the panel below can run to
    the card's own edges. */
 .picker-concept-main {
+  /* Cards stretch to their row's tallest. The slack goes here rather than under the button, which
+     would leave the buttons across a row at different heights. */
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--concept-gap);
   padding: 16px 16px 0;
   background: var(--content-background-elevated);
   border-radius: 27px 27px 0 0;
-}
-
-/* The card stretches to its row's tallest, and the slack belongs to the light ground below the
-   Includes panel rather than to a gap above it. */
-.picker-concept-includes {
-  margin-bottom: auto;
 }
 
 .picker-concept-create {
@@ -4726,7 +4723,6 @@ position: absolute;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 16px;
   padding: 12px 16px;
   border-radius: var(--rounded-4xl) var(--rounded-4xl) 0 0;
   background: var(--content-background-base);
