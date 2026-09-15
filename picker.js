@@ -41,6 +41,7 @@ export function initPicker() {
   dom.section = document.getElementById('pickerSection');
   if (!dom.section) return;
   dom.concepts = document.getElementById('pickerConcepts');
+  dom.conceptsShell = document.getElementById('pickerConceptsShell');
   dom.rail = document.getElementById('pickerRail');
   dom.columns = document.getElementById('pickerColumns');
   dom.tray = document.getElementById('pickerTray');
@@ -611,10 +612,6 @@ function renderProductStack() {
   return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 240), ' picker-stack-card--front')}</div>`;
 }
 
-function conceptsRing() {
-  return `<svg class="picker-concepts-ring" aria-hidden="true"><rect/></svg>`;
-}
-
 function renderConcepts({ reveal = false, swap = false } = {}) {
   const { conceptsStatus } = state;
   const copy = state.copy || fallbackCopy();
@@ -650,10 +647,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
   }
 
   dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
-  dom.concepts.innerHTML = `
-    <span class="picker-concepts-reveal picker-concepts-reveal--a" aria-hidden="true"></span>
-    <span class="picker-concepts-reveal picker-concepts-reveal--b" aria-hidden="true"></span>
-    ${head}${body}`;
+  dom.concepts.innerHTML = `${head}${body}`;
 
   fanOutStack();
   if (reveal) playCardReveal();
@@ -681,11 +675,11 @@ function fanOutStack() {
 }
 
 function playCardReveal() {
-  dom.concepts.classList.remove('is-revealing');
+  dom.conceptsShell.classList.remove('is-revealing');
   // Reflow so a repeat reveal restarts the animation rather than being ignored as a no-op.
-  void dom.concepts.offsetWidth;
-  dom.concepts.classList.add('is-revealing');
-  setTimeout(() => dom.concepts.classList.remove('is-revealing'), 1600);
+  void dom.conceptsShell.offsetWidth;
+  dom.conceptsShell.classList.add('is-revealing');
+  setTimeout(() => dom.conceptsShell.classList.remove('is-revealing'), 1600);
 }
 
 function crossfadeCopy() {

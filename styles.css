@@ -4201,31 +4201,19 @@ position: absolute;
   --agent-ink: #254F1A;
 }
 
-@property --reveal-angle {
+@property --concepts-glow-angle {
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
 }
 
-@keyframes revealSpinA {
-  from { --reveal-angle: 0deg; }
-  to { --reveal-angle: 230deg; }
+@keyframes conceptsGlowSpin {
+  to { --concepts-glow-angle: 360deg; }
 }
 
-@keyframes revealSpinB {
-  from { --reveal-angle: -180deg; }
-  to { --reveal-angle: 50deg; }
-}
-
-@keyframes revealShow {
-  from { opacity: 0; }
-  to { opacity: var(--reveal-peak); }
-}
-
-/* Collapses inward rather than dimming, so the light reads as drawn back into the card */
-@keyframes revealHide {
-  from { opacity: var(--reveal-peak); transform: scale(1); }
-  to { opacity: 0; transform: scale(0.5); }
+@keyframes conceptsGlowFade {
+  0%, 100% { opacity: 0; }
+  18%, 78% { opacity: var(--glow-lit); }
 }
 
 /* The banner ranges narrower than the rail below it */
@@ -4235,6 +4223,13 @@ position: absolute;
   margin-inline: auto;
   padding-block-start: 16px;
   padding-inline: 12px;
+}
+
+/* Glow spans are siblings of the card, never children: the card isolates and paints an opaque
+   surface, so a child ring would land on top of it instead of behind. Six spans required. */
+.picker-concepts-shell {
+  position: relative;
+  isolation: isolate;
 }
 
 .picker-concepts {
@@ -4248,53 +4243,56 @@ position: absolute;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* The reveal layers sit at a negative z-index, which resolves against this box */
   isolation: isolate;
+  overflow: hidden;
 }
 
-.picker-concepts-reveal {
+/* Each span is a masked stroke, not a filled plate, so only the outset rim reads */
+.picker-concepts-glow {
   position: absolute;
-  inset: -2px;
-  border-radius: 29px;
   z-index: -1;
+  border-radius: 28px;
   opacity: 0;
   pointer-events: none;
-  filter: blur(4px);
-  --reveal-peak: 0.8;
-  /* A narrow lit wedge behind a long ramp, so the patch reads as light travelling rather than
-     a bar sliding around a track */
-  --reveal-alpha: 0.6;
+  background: none;
 }
 
-.picker-concepts-reveal--a {
-  background: conic-gradient(from var(--reveal-angle) at 50% 50%,
-    rgba(244, 194, 255, 0) 0deg,
-    rgba(198, 173, 255, 0) 220deg,
-    rgba(198, 173, 255, var(--reveal-alpha)) 320deg,
-    rgba(160, 203, 255, var(--reveal-alpha)) 340deg,
-    rgba(244, 194, 255, var(--reveal-alpha)) 360deg);
+.picker-concepts-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--concepts-glow-angle, 0deg),
+    #c6adff 0deg,   #b3bcff 22deg,  #a0cbff 45deg,  #b3bcff 90deg,
+    #c6adff 135deg, #ddb8ff 157deg, #f4c2ff 180deg, #facddb 202deg,
+    #ffd8b7 225deg, #facddb 270deg, #f4c2ff 315deg, #ddb8ff 337deg
+  );
+  padding: var(--glow-stroke, 1px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
 
-/* Peach at the crest so the two patches do not read as one object seen twice */
-.picker-concepts-reveal--b {
-  background: conic-gradient(from var(--reveal-angle) at 50% 50%,
-    rgba(244, 194, 255, 0) 0deg,
-    rgba(198, 173, 255, 0) 220deg,
-    rgba(198, 173, 255, var(--reveal-alpha)) 320deg,
-    rgba(255, 216, 183, var(--reveal-alpha)) 340deg,
-    rgba(244, 194, 255, var(--reveal-alpha)) 360deg);
+.picker-concepts-glow:nth-of-type(1) { inset: -0.5px; filter: blur(2px);  --glow-stroke: 1px;  --glow-lit: 0.48; }
+.picker-concepts-glow:nth-of-type(2) { inset: -1px;   filter: blur(4px);  --glow-stroke: 2px;  --glow-lit: 0.20; }
+.picker-concepts-glow:nth-of-type(3) { inset: -2px;   filter: blur(8px);  --glow-stroke: 4px;  --glow-lit: 0.18; }
+.picker-concepts-glow:nth-of-type(4) { inset: -3px;   filter: blur(12px); --glow-stroke: 6px;  --glow-lit: 0.09; }
+.picker-concepts-glow:nth-of-type(5) { inset: -5px;   filter: blur(20px); --glow-stroke: 10px; --glow-lit: 0.09; }
+.picker-concepts-glow:nth-of-type(6) { inset: -8px;   filter: blur(28px); --glow-stroke: 14px; --glow-lit: 0.09; }
+
+/* One clockwise pass on arrival, then the rim goes dark again */
+.picker-concepts-shell.is-revealing .picker-concepts-glow {
+  animation: conceptsGlowFade 1.5s ease forwards;
 }
 
-.picker-concepts.is-revealing .picker-concepts-reveal--a {
-  animation: revealSpinA 1.5s linear forwards, revealShow 0.3s linear forwards, revealHide 0.3s linear forwards 1.25s;
-}
-
-.picker-concepts.is-revealing .picker-concepts-reveal--b {
-  animation: revealSpinB 1.5s linear forwards, revealShow 0.3s linear forwards, revealHide 0.3s linear forwards 1.25s;
+.picker-concepts-shell.is-revealing .picker-concepts-glow::before {
+  animation: conceptsGlowSpin 1.5s linear;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker-concepts.is-revealing .picker-concepts-reveal {
+  .picker-concepts-shell.is-revealing .picker-concepts-glow,
+  .picker-concepts-shell.is-revealing .picker-concepts-glow::before {
     animation: none;
   }
 }
@@ -4560,10 +4558,10 @@ position: absolute;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
-     Only the sides are pulled back with negative margins; a negative TOP margin would add
-     height the flex line has to absorb, and the columns would run past the viewport. */
-  padding: 20px 24px 0;
+  /* The scroll box clips on every side, so open room at the sides for shadow-md (24px blur).
+     Negative margins pull those back; a negative TOP margin would add height the flex line
+     has to absorb, and the columns would run past the viewport. */
+  padding-inline: 24px;
   margin-inline: -24px;
   scroll-padding-inline: 24px;
   outline: none;
