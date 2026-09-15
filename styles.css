@@ -6008,6 +6008,50 @@ position: absolute;
     padding-inline: 20px;
   }
 
+  /* THE PAGE SCROLLS, NOT THE SECTION. On a phone there is no room to pin the banner and the rail
+     into one viewport, so the section sizes to its content and each catalog takes a screenful of
+     its own. Scrolling past the banner lands you on a full-height column. */
+  .picker-section {
+    height: auto;
+  }
+
+  .picker-rail,
+  .picker-columns {
+    flex: none;
+    min-height: 0;
+  }
+
+  .picker-columns {
+    padding-bottom: 10px;
+  }
+
+  /* A screenful less the bar above it and the gap below, so the panel's own bottom edge is on
+     screen rather than running off it. */
+  .picker-column {
+    height: calc(100vh - var(--header-h, 0px) - 10px);
+  }
+
+  /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
+  .picker-column,
+  .picker-column-top {
+    border-radius: 32px;
+  }
+
+  .picker-column-top {
+    border-radius: 32px 32px 0 0;
+  }
+
+  .picker-grid {
+    border-radius: 32px;
+    clip-path: inset(0 round 32px);
+  }
+
+  /* Nothing to minimise into: the rail is no longer competing with the banner for one viewport. */
+  .picker-concepts-actions [data-action="toggle-minimize"],
+  .picker-concepts-actions-divider {
+    display: none;
+  }
+
   /* Three cards instead of five: the outermost pair is the widest part of the fan and the first
      thing worth giving back at this size. The box narrows to what the mid pair spans. */
   .picker-stack-card--far {

@@ -88,7 +88,16 @@ export function initPicker() {
     const handle = e.target.closest('.picker-column-resizer');
     if (handle) disarmResizer(handle);
   });
-  window.addEventListener('resize', updateRailControls);
+  window.addEventListener('resize', () => {
+    updateRailControls();
+    // The minimise control is hidden below this width, so a chip carried in from a wider
+    // viewport would have no way back. Expand it rather than stranding the user.
+    if (state.conceptsMinimized && window.matchMedia('(max-width: 900px)').matches) {
+      state.conceptsMinimized = false;
+      dom.conceptsShell.classList.remove('is-chip');
+      renderConcepts();
+    }
+  });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#pickerAddPopover') && !e.target.closest('[data-action="add-brand"]')) hideAddPopover();
   });
