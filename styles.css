@@ -6025,6 +6025,8 @@ position: absolute;
   .picker-section {
     --picker-column-width: 85vw;
     --picker-gutter: 20px;
+    /* Flush to the header: the bar above already supplies the space at this size. */
+    padding-top: 0;
   }
 
   /* Flush to the header: at this size the banner is the first thing on screen and the bar above
