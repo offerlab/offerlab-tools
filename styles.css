@@ -4660,14 +4660,19 @@ position: absolute;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 12px;
+  border-radius: var(--rounded-3xl);
+  border: 1px solid var(--content-border-neutral);
+  background: var(--background-light);
 }
 
+/* body-md */
 .picker-concept-includes-label {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--content-tertiary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 400;
+  letter-spacing: -0.01429em;
+  color: var(--content-secondary);
 }
 
 .picker-concept-items {
