@@ -310,7 +310,7 @@ function brandNames() {
 function fallbackCopy() {
   const names = brandNames();
   return {
-    headline: `${names.join(' \u00d7 ')}, bundled`,
+    headline: `${names.join(' x ')}, bundled`,
     subtitle: 'AI picks the pairs. You pick the winner.'
   };
 }
@@ -326,16 +326,36 @@ function buildCopyPrompt() {
 Brands, the first being the one the bundles would be sold by:
 ${brands}
 
-Headline: 6 words or fewer. Start with a capital letter and use ordinary sentence capitalization, not Title Case. Playful and specific to THESE brands: what they sell, who buys it, what the pairing would feel like on a shelf or a table. Riff on the products or ask a question. Never use a colon, and never the pattern "Brand and Brand: something". Do not reuse a slogan either brand already has.
-Subtitle: 8 words or fewer, starting with a capital letter. An instruction for what pressing the button does, in the same voice, naming bundles or pairings so it reads as a next step rather than a mood.
+Headline: 7 words or fewer. Start with a capital letter and use ordinary sentence capitalization, not Title Case. It has to make clear this is about BUNDLING these brands' products together, and must contain one of these exact words: bundle, bundled, bundles, pair, paired, pairing, box, kit, or set. Playful and specific to THESE brands: what they sell, who buys it, what the pairing would feel like on a shelf or a table. Never use a colon, and never the pattern "Brand and Brand: something". Do not reuse a slogan either brand already has.
+Subtitle: 8 words or fewer, starting with a capital letter. An instruction for what pressing the button does, in the same voice.
+
+When you name more than one brand together, join them with " x " (a lowercase x with a space each side), never "and", "+", or "&".
 
 No em dashes, no exclamation marks, no ampersands, no colons. Return JSON only: {"headline": "...", "subtitle": "..."}`;
 }
 
-// The model drifts on two details however the prompt is worded: it lowercases the whole line
-// when asked for sentence case, and it reaches for a colon. Fix both here rather than re-asking.
+// The model drifts on the same details however the prompt is worded: it lowercases the whole
+// line, reaches for a colon or an exclamation mark, and drops the x between brand names. Fixed
+// here rather than re-asked.
 function tidyCopy(value) {
-  const text = String(value || '').trim().replace(/\s*:\s*/g, ', ');
+  let text = String(value || '').trim()
+    // A colon becomes a comma, and the clause after it drops back to lowercase — the model
+    // capitalises it as the start of its own sentence.
+    .replace(/\s*:\s*(\w)/g, (_, c) => `, ${c.toLowerCase()}`)
+    .replace(/\s*:\s*/g, ', ')
+    .replace(/!+/g, '')
+    .replace(/\s*&\s*|\s+\+\s+/g, ' x ');
+
+  // "Graza and Fishwife" / "Graza Fishwife" -> "Graza x Fishwife", for the brands on the rail.
+  const names = brandNames().map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  for (const a of names) {
+    for (const b of names) {
+      if (a === b) continue;
+      text = text.replace(new RegExp(`\\b${a}\\s+(?:and\\s+)?${b}\\b`, 'gi'), `${a.replace(/\\(.)/g, '$1')} x ${b.replace(/\\(.)/g, '$1')}`);
+    }
+  }
+
+  text = text.trim().replace(/\s{2,}/g, ' ');
   return text ? text[0].toUpperCase() + text.slice(1) : '';
 }
 
