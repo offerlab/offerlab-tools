@@ -6001,6 +6001,13 @@ position: absolute;
     align-items: flex-start;
   }
 
+  /* Gutters instead of the section's own, and flush to the header: at this size the banner is the
+     first thing on screen and the bar above it already supplies the space. */
+  .picker-concepts-layout {
+    padding-block-start: 0;
+    padding-inline: 20px;
+  }
+
   /* Three cards instead of five: the outermost pair is the widest part of the fan and the first
      thing worth giving back at this size. The box narrows to what the mid pair spans. */
   .picker-stack-card--far {
