@@ -4509,7 +4509,6 @@ position: absolute;
 }
 
 .picker-concept {
-  --concept-gap: 16px;
   /* Starts at a fifth of the row, which is what caps a row at five, then grows into whatever is
      left. The cap keeps a lone card from stretching the full banner. */
   flex: 1 1 calc((100% - (var(--concepts-per-row) - 1) * var(--concepts-grid-gap)) / var(--concepts-per-row));
@@ -4627,7 +4626,6 @@ position: absolute;
 .picker-concept-main {
   display: flex;
   flex-direction: column;
-  gap: var(--concept-gap);
   padding: 16px 16px 0;
 }
 
@@ -4651,7 +4649,7 @@ position: absolute;
   align-items: center;
   /* The pile leans past the card's padding on the left, so the first tile still clears it */
   padding-left: 4px;
-  margin-bottom: calc(16px - var(--concept-gap));
+  margin-bottom: 16px;
 }
 
 .picker-concept-thumb {
@@ -4773,6 +4771,7 @@ position: absolute;
 
 /* label-md, matching the bundle name */
 .picker-concept-total {
+  margin-top: 2px;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: 600;
