@@ -649,11 +649,10 @@ function renderTray() {
     return;
   }
 
-  const split = state.brands
-    .map(e => ({ name: e.brand.name, n: selectedFor(e.domain).length }))
-    .filter(x => x.n > 0)
-    .map(x => `${x.n} ${escapeHtml(x.name)}`)
-    .join(', ');
+  // Brands with picks, in the order they were first picked: "Our Place × Graza"
+  const firstPick = new Map();
+  picks.forEach(p => { if (!firstPick.has(p.domain)) firstPick.set(p.domain, p.sequence); });
+  const split = [...firstPick.keys()].map(domain => escapeHtml(entryFor(domain)?.brand.name || domain)).join(' &times; ');
   const thumbs = picks.slice(-TRAY_THUMBS).map(pick => {
     const tilt = THUMB_TILTS[pick.sequence % THUMB_TILTS.length];
     return `<div class="picker-tray-thumb media-tile media-hairline" data-key="${escapeHtml(productKey(pick.domain, pick.product.id))}" style="transform: translateX(${tilt.shift}px) rotate(${tilt.rotate}deg)" title="${escapeHtml(pick.product.title)}"><img src="${catalogThumbUrl(pick.product.image, 96)}" alt=""></div>`;
