@@ -344,6 +344,9 @@
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
+  /* Side gutter for the page's own sections, so their content never sits on the viewport's edge
+     once the viewport is narrower than the section's cap. */
+  --page-gutter: 24px;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
   --spacing-3xl: 4rem;
@@ -2033,9 +2036,10 @@ position: absolute;
    Results Section
    -------------------------------------------------------------------------- */
 .results-section {
-  padding-top: 72px;
-  padding-bottom: 72px;
-  max-width: 1154px;
+  padding: 72px var(--page-gutter);
+  /* Same as the picker's: the cap carries the gutter, so the content box is still 1154px wide on
+     a large screen and the narrower ones get their sides back. */
+  max-width: calc(1154px + 2 * var(--page-gutter));
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -2935,8 +2939,6 @@ position: absolute;
 
   .results-section {
     padding-top: 0;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
     padding-bottom: var(--spacing-lg);
   }
 
@@ -4281,9 +4283,9 @@ position: absolute;
   --picker-column-min: 300px;
   --picker-column-max: 900px;
   --picker-body-max: 1400px;
-  /* Page gutter. The cap carries it on top of the body max, so the content box is still
+  /* The cap carries the gutter on top of the body max, so the content box is still
      --picker-body-max wide on a large screen and only narrower viewports pay for it. */
-  --picker-gutter: 24px;
+  --picker-gutter: var(--page-gutter);
   height: calc(100vh - var(--header-h, 0px));
   padding: 24px var(--picker-gutter) 0;
   max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
