@@ -456,13 +456,27 @@ function stackImages() {
   return images;
 }
 
+// Five slots fanning out from the front card: a mid pair just behind it, tilted outward, and a
+// smaller far pair behind those. Painted back to front, so DOM order is far, mid, front.
+const STACK_SLOTS = [
+  { tilt: -22, shift: -78, size: 80 },  // far left
+  { tilt: 22, shift: 78, size: 80 },    // far right
+  { tilt: -11, shift: -42, size: 96 },  // mid left
+  { tilt: 11, shift: 42, size: 96 }     // mid right
+];
+
 function renderProductStack() {
   const images = stackImages();
   if (images.length === 0) return '';
-  // Fan the rest behind the front card, alternating sides.
-  const fan = [-14, 12, -7, 6];
   const card = (src, cls, style) => `<span class="picker-stack-card media-tile media-hairline${cls}"${style ? ` style="${style}"` : ''}><img class="media-zoom" src="${src}" alt=""></span>`;
-  const behind = images.slice(1).map((src, i) => card(catalogThumbUrl(src, 240), '', `--tilt: ${fan[i] ?? 0}deg; --shift: ${(i % 2 === 0 ? -1 : 1) * (28 + i * 6)}px`)).join('');
+  // images[1..2] take the mid pair, images[3..4] the far pair; with fewer images the far slots go empty.
+  const order = [3, 4, 1, 2];
+  const behind = order.map((imageIndex, slotIndex) => {
+    const src = images[imageIndex];
+    if (!src) return '';
+    const slot = STACK_SLOTS[slotIndex];
+    return card(catalogThumbUrl(src, 240), '', `--tilt: ${slot.tilt}deg; --shift: ${slot.shift}px; --size: ${slot.size}px`);
+  }).join('');
   return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 320), ' picker-stack-card--front')}</div>`;
 }
 

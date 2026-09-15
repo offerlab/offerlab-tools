@@ -4216,7 +4216,7 @@ position: absolute;
 .picker-stack {
   position: relative;
   flex-shrink: 0;
-  width: 200px;
+  width: 260px;
   height: 132px;
 }
 
@@ -4224,8 +4224,8 @@ position: absolute;
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 96px;
-  height: 96px;
+  width: var(--size, 96px);
+  height: var(--size, 96px);
   border-radius: 16px;
   box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-sm);
   transform: translate(calc(-50% + var(--shift, 0px)), -50%) rotate(var(--tilt, 0deg));
