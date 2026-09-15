@@ -6264,14 +6264,15 @@ position: absolute;
     height: 36px;
     padding: 0 16px 2px;
     border-radius: 20px 20px 0 0;
-    background: var(--content-background-elevated);
-    border-color: var(--content-border-neutral);
-    border-bottom: none;
-    box-shadow: var(--shadow-md);
+    background: var(--content-background-base);
+    border: none;
+    box-shadow: none;
   }
 
+  /* Opaque, unlike the overlay fill this variant hovers to elsewhere: the eyebrow is over the page,
+     not over a surface, and a translucent one would show the catalog through it. */
   .picker-tray-actions .btn--overlay:hover {
-    background: var(--content-background-base);
+    background: var(--content-background-elevated);
   }
 
   /* A pair of long brand names runs past the pill on its own */
