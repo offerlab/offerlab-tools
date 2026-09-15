@@ -4521,7 +4521,9 @@ position: absolute;
   padding: 0;
   border-radius: var(--rounded-28);
   border: 1px solid var(--content-border-neutral);
-  background: var(--background-light);
+  background: var(--content-background-elevated);
+  /* Clips the foot's square bottom to the card's own rounded corners */
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
   text-align: left;
   cursor: pointer;
@@ -4620,23 +4622,23 @@ position: absolute;
 /* Everything above the Includes panel. Carries the card's inset so the panel below can run to
    the card's own edges. */
 .picker-concept-main {
-  /* Cards stretch to their row's tallest. The slack goes here rather than under the button, which
-     would leave the buttons across a row at different heights. */
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--concept-gap);
   padding: 16px 16px 0;
-  background: var(--content-background-elevated);
-  border-radius: 27px 27px 0 0;
 }
 
-/* The Includes panel and the button are one block, so the card's own gap does not fall between
-   them; the button's margin is the only space there. */
+/* The Includes list and the button are one light block, so the card's 16px gap falls above it
+   rather than between them; the button's own margin is the only space inside. */
 .picker-concept-foot {
+  /* Cards stretch to their row's tallest and the light block takes the slack, so the gap above it
+     stays exactly the card's own and the block still reaches the card's bottom edge. */
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0;
+  background: var(--background-light);
+  border-radius: var(--rounded-4xl) var(--rounded-4xl) 0 0;
 }
 
 .picker-concept-create {
@@ -4733,15 +4735,13 @@ position: absolute;
   color: var(--content-secondary);
 }
 
-/* Full bleed to the card's sides, so it carries no border of its own. One step warmer than the
-   card's ground, which is what lets the top corners read as a curve. */
+/* Absorbs the block's slack, which keeps the list at its top and the button at its bottom */
 .picker-concept-includes {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 16px;
-  border-radius: var(--rounded-4xl) var(--rounded-4xl) 0 0;
-  background: var(--content-background-base);
+  padding: 16px 16px 0;
 }
 
 /* body-md */
