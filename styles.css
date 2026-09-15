@@ -6010,11 +6010,6 @@ position: absolute;
     --picker-gutter: 20px;
   }
 
-  .picker-concepts-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   /* Flush to the header: at this size the banner is the first thing on screen and the bar above
      it already supplies the space. */
   .picker-concepts-layout {
@@ -6071,16 +6066,30 @@ position: absolute;
     display: none;
   }
 
-  /* DENSER HEAD: pile, copy and action share one row so the card is short enough to leave the
-     catalog below it real estate. Everything in it shrinks to pay for that. */
+  /* DENSER CARD: the pile and the copy share one row so the card is short enough to leave the
+     catalog below it real estate. Everything in that row shrinks to pay for it.
+     The head and the body flatten into the card's own grid so the action can be placed under the
+     cards instead of beside the headline, which at 375px left the headline 28px. */
   .picker-concepts {
     padding: 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
   }
 
-  .picker-concepts-head {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
+  .picker-concepts-head,
+  .picker-concepts-body {
+    display: contents;
+  }
+
+  .picker-stack {
+    grid-area: 1 / 1;
+    align-self: center;
+  }
+
+  .picker-concepts-copy {
+    grid-area: 1 / 2;
+    align-self: center;
   }
 
   /* heading-xs */
@@ -6104,6 +6113,7 @@ position: absolute;
      catalog below. Full bleed inside the banner, with the padding put back inside the scroller so
      the first and last still sit on the card's own inset. */
   .picker-concepts-grid {
+    grid-area: 2 / 1 / auto / -1;
     flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 12px;
@@ -6144,14 +6154,14 @@ position: absolute;
     height: 54px;
   }
 
-  /* The action takes a row of its own: at 375px the pile and the copy already use the width, and a
-     labelled button beside them left the headline 28px. Wrapping is what buys it the full span. */
-  .picker-concepts-head {
-    flex-wrap: wrap;
+  /* Below the cards, the full span of the card. Row 2 while there are none yet, so the empty
+     row does not spend a second gap on nothing. */
+  .picker-concepts-actions {
+    grid-area: 2 / 1 / auto / -1;
   }
 
-  .picker-concepts-actions {
-    flex: 0 0 100%;
+  .picker-concepts:has(.picker-concepts-grid) .picker-concepts-actions {
+    grid-row: 3;
   }
 
   /* The pill exists to hold the minimise control next to the action, and that control is gone at
