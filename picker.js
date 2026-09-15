@@ -1187,7 +1187,7 @@ function showAddPopover(anchor, { swapDomain = null } = {}) {
       <span class="picker-add-row-icon">${icon('link-3-chain', { size: 16 })}</span>
       <span class="picker-add-row-labels"><span class="picker-add-row-name">${swapping ? 'Use a brand URL' : 'Add a brand by URL'}</span></span>
     </button>
-    ${rows ? `<div class="picker-add-divider"></div><div class="picker-add-list">${rows}</div>` : '<p class="picker-add-empty">Every recommended brand with a catalog is already here.</p>'}
+    ${rows ? `<div class="picker-add-divider"></div><div class="picker-add-list scrim-mask-y">${rows}</div>` : '<p class="picker-add-empty">Every recommended brand with a catalog is already here.</p>'}
   `;
 
   // Anchor to the add button, kept inside the section.

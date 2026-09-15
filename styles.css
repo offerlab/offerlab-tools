@@ -779,6 +779,34 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   );
 }
 
+/* The scrim's easing as a MASK, for a scroll box whose content should fade at both ends rather
+   than stop at a hard edge. Two ramps intersected: one written, used twice, the second flipped. */
+.scrim-mask-y {
+  --scrim-mask-fade: 24px;
+  --scrim-mask-ramp:
+    rgb(0 0 0 / 0) 0,
+    rgb(0 0 0 / 0.013) calc(var(--scrim-mask-fade) * 0.08),
+    rgb(0 0 0 / 0.049) calc(var(--scrim-mask-fade) * 0.153),
+    rgb(0 0 0 / 0.104) calc(var(--scrim-mask-fade) * 0.223),
+    rgb(0 0 0 / 0.175) calc(var(--scrim-mask-fade) * 0.29),
+    rgb(0 0 0 / 0.259) calc(var(--scrim-mask-fade) * 0.352),
+    rgb(0 0 0 / 0.352) calc(var(--scrim-mask-fade) * 0.412),
+    rgb(0 0 0 / 0.45) calc(var(--scrim-mask-fade) * 0.47),
+    rgb(0 0 0 / 0.55) calc(var(--scrim-mask-fade) * 0.528),
+    rgb(0 0 0 / 0.648) calc(var(--scrim-mask-fade) * 0.588),
+    rgb(0 0 0 / 0.741) calc(var(--scrim-mask-fade) * 0.647),
+    rgb(0 0 0 / 0.825) calc(var(--scrim-mask-fade) * 0.71),
+    rgb(0 0 0 / 0.896) calc(var(--scrim-mask-fade) * 0.773),
+    rgb(0 0 0 / 0.951) calc(var(--scrim-mask-fade) * 0.843),
+    rgb(0 0 0 / 0.987) calc(var(--scrim-mask-fade) * 0.92),
+    rgb(0 0 0 / 1) var(--scrim-mask-fade),
+    rgb(0 0 0 / 1) 100%;
+  -webkit-mask-image: linear-gradient(to bottom, var(--scrim-mask-ramp)), linear-gradient(to top, var(--scrim-mask-ramp));
+  mask-image: linear-gradient(to bottom, var(--scrim-mask-ramp)), linear-gradient(to top, var(--scrim-mask-ramp));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
 .card-actions {
   display: flex;
   gap: 6px;
@@ -5463,6 +5491,11 @@ position: absolute;
   scrollbar-width: none;
   display: flex;
   flex-direction: column;
+  /* Runs to the popover's own edges rather than stopping at its padding, so rows fade out where
+     the menu ends. The padding puts the inset back inside the scroll box. */
+  --scrim-mask-fade: 20px;
+  margin-block: -6px -8px;
+  padding-block: 6px 8px;
 }
 
 .picker-add-list::-webkit-scrollbar {
