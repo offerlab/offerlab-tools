@@ -4189,23 +4189,8 @@ position: absolute;
   padding-bottom: 104px;
 }
 
-.picker-header {
-  display: flex;
-  align-items: flex-start;
-}
 
-.picker-title {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  --favicon-duo-size: 48px;
-}
 
-.picker-title-labels {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
 /* Concepts: the onboarding commissions insight card (atelier/onboarding.css) — the agent's
    settled green surface, with two conic wedges sweeping its edge as it arrives. Green and still

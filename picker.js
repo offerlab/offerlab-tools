@@ -4,7 +4,7 @@
  * tray follow the main app's collab-builder catalog picker (OL-3571).
  */
 import {
-  elements, CONFIG, getResults, extractDomain, getFaviconUrl, renderFaviconDuo, escapeHtml,
+  elements, CONFIG, getResults, extractDomain, getFaviconUrl, escapeHtml,
   parseJsonResponse, extractText, fetchCatalog, catalogThumbUrl, showSection
 } from './app.js';
 import { icon } from './icons.js';
@@ -40,7 +40,6 @@ const dom = {};
 export function initPicker() {
   dom.section = document.getElementById('pickerSection');
   if (!dom.section) return;
-  dom.header = document.getElementById('pickerHeader');
   dom.concepts = document.getElementById('pickerConcepts');
   dom.rail = document.getElementById('pickerRail');
   dom.columns = document.getElementById('pickerColumns');
@@ -197,7 +196,6 @@ async function addBrand(brand) {
   }
   state.brands.push({ domain, brand });
   pushPickUrl();
-  renderHeader();
   renderConcepts({ reveal: true, swap: true });
   refreshConceptsCopy();
   renderColumns();
@@ -226,7 +224,6 @@ async function replaceBrand(domain, brand) {
   state.conceptsStatus = 'idle';
 
   pushPickUrl();
-  renderHeader();
   renderConcepts({ reveal: true, swap: true });
   refreshConceptsCopy();
   renderColumns();
@@ -561,7 +558,6 @@ function money(value) {
 }
 
 function renderAll() {
-  renderHeader();
   renderConcepts();
   renderColumns();
   renderTray();
@@ -577,18 +573,6 @@ function renderSelectionState() {
   renderConcepts();
 }
 
-function renderHeader() {
-  const [seller, ...partners] = state.brands;
-  const title = state.brands.map(e => escapeHtml(e.brand.name)).join(' &times; ');
-  dom.header.innerHTML = `
-    <div class="picker-title">
-      ${renderFaviconDuo(seller.domain, partners[0]?.domain || seller.domain)}
-      <div class="picker-title-labels">
-        <h2 class="results-group-title">${title}</h2>
-      </div>
-    </div>
-  `;
-}
 
 // Product images for the fanned stack on the concepts card: round-robin across the brands,
 // seller first, so a two-brand pair still fans five cards.
