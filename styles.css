@@ -4084,36 +4084,126 @@ position: absolute;
   gap: 4px;
 }
 
-.picker-section-head {
+/* Concepts: a featured card with the onboarding hint ring (dotted moola, static at rest,
+   marching only while generating), a fanned product stack, and the bundle ideas once they exist */
+.picker-concepts {
+  position: relative;
+  background: var(--content-background-elevated);
+  border-radius: 36px;
+  padding: 24px 28px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.picker-section-title {
-  font-size: var(--font-size-base);
+.picker-concepts-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.picker-concepts-ring rect {
+  x: 1.5px;
+  y: 1.5px;
+  width: calc(100% - 3px);
+  height: calc(100% - 3px);
+  rx: 36px;
+  fill: none;
+  stroke: var(--brand-secondary-moola);
+  /* Dots, not dashes: a zero-length dash with a round cap is a circle the width of the stroke */
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0 8;
+}
+
+.picker-concepts--loading .picker-concepts-ring rect {
+  animation: concepts-ring-march 14s linear infinite;
+}
+
+@keyframes concepts-ring-march {
+  to { stroke-dashoffset: -260; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concepts--loading .picker-concepts-ring rect {
+    animation: none;
+  }
+}
+
+.picker-concepts-head {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.picker-concepts-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.picker-concepts-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 26px;
+  letter-spacing: -1px;
   font-weight: 600;
   color: var(--content-primary);
-  margin: 0;
 }
 
-/* Concepts */
-.picker-concepts-empty {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px;
-  border-radius: 24px;
-  border: 1px dashed var(--content-border-neutral);
-  color: var(--content-secondary);
+.picker-concepts-subtitle {
+  margin: 0;
   font-size: var(--font-size-sm);
+  color: var(--content-secondary);
+  line-height: 1.5;
+  max-width: 60ch;
 }
 
-.picker-concepts-empty p {
-  margin: 0;
+/* The fanned stack: the seller's product in front, the partners' fanned out behind */
+.picker-stack {
+  position: relative;
+  flex-shrink: 0;
+  width: 200px;
+  height: 132px;
+}
+
+.picker-stack-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 3px solid var(--content-background-elevated);
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-sm);
+  transform: translate(calc(-50% + var(--shift, 0px)), -50%) rotate(var(--tilt, 0deg));
+}
+
+.picker-stack-card--front {
+  width: 116px;
+  height: 116px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  transform: translate(-50%, -50%);
+}
+
+/* AI actions wear moola, apart from the brew of the merchant cards' Build bundle */
+.btn--ai {
+  background: var(--brand-secondary-moola);
+  color: var(--white);
+  border-color: var(--brand-secondary-moola);
+}
+
+.btn--ai:hover {
+  background: var(--brand-secondary-moola);
+  filter: brightness(1.12);
 }
 
 .picker-concepts-grid {
@@ -4144,14 +4234,25 @@ position: absolute;
 }
 
 .picker-concept.is-active {
-  border-color: var(--content-primary);
+  border-color: var(--brand-secondary-moola);
+  box-shadow: 0 0 0 2px var(--brand-secondary-moola);
+}
+
+.picker-concept:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 2px var(--content-primary);
 }
 
 .picker-concept--skeleton {
-  min-height: 180px;
+  min-height: 200px;
   animation: catalog-shimmer 1.2s ease-in-out infinite;
   background: var(--content-background-base);
+  border-color: transparent;
+}
+
+.picker-concept-create {
+  margin-top: auto;
+  align-self: flex-start;
 }
 
 .picker-concept-thumbs {
@@ -4659,6 +4760,13 @@ position: absolute;
   gap: 16px;
 }
 
+.picker-section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--content-primary);
+  margin: 0;
+}
+
 .picker-url-head {
   display: flex;
   align-items: center;
@@ -4793,7 +4901,7 @@ position: absolute;
     --picker-column-width: 85vw;
   }
 
-  .picker-concepts-empty {
+  .picker-concepts-head {
     flex-direction: column;
     align-items: flex-start;
   }

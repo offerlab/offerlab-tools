@@ -445,38 +445,82 @@ function renderHeader() {
   `;
 }
 
+// Product images for the fanned stack on the concepts card: round-robin across the brands,
+// seller first, so a two-brand pair still fans five cards.
+function stackImages() {
+  const lists = state.brands.map(e => (e.brand.catalog?.products || []).filter(p => p.image).map(p => p.image));
+  const images = [];
+  for (let i = 0; images.length < 5 && lists.some(l => l[i]); i++) {
+    for (const list of lists) if (list[i] && images.length < 5) images.push(list[i]);
+  }
+  return images;
+}
+
+function renderProductStack() {
+  const images = stackImages();
+  if (images.length === 0) return '';
+  // Fan the rest behind the front card, alternating sides.
+  const fan = [-14, 12, -7, 6];
+  const behind = images.slice(1).map((src, i) => `<img class="picker-stack-card" style="--tilt: ${fan[i] ?? 0}deg; --shift: ${(i % 2 === 0 ? -1 : 1) * (28 + i * 6)}px" src="${catalogThumbUrl(src, 240)}" alt="">`).join('');
+  return `<div class="picker-stack" aria-hidden="true">${behind}<img class="picker-stack-card picker-stack-card--front" src="${catalogThumbUrl(images[0], 320)}" alt=""></div>`;
+}
+
+function conceptsRing() {
+  return `<svg class="picker-concepts-ring" aria-hidden="true"><rect/></svg>`;
+}
+
 function renderConcepts() {
   const { conceptsStatus } = state;
-  let body;
-  if (conceptsStatus === 'loading') {
+  const brandNames = state.brands.map(e => escapeHtml(e.brand.name)).join(' &times; ');
+  let body = '';
+  let head = '';
+
+  if (conceptsStatus === 'ready') {
+    head = `
+      <div class="picker-concepts-head">
+        ${renderProductStack()}
+        <div class="picker-concepts-copy">
+          <h3 class="picker-concepts-title">${state.concepts.length} bundle ideas for ${brandNames}</h3>
+          <p class="picker-concepts-subtitle">Click a card to load it into the picker, or create it as it stands.</p>
+        </div>
+        <button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>
+      </div>`;
+    body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
+  } else if (conceptsStatus === 'loading') {
+    head = `
+      <div class="picker-concepts-head">
+        ${renderProductStack()}
+        <div class="picker-concepts-copy">
+          <h3 class="picker-concepts-title">Mixing these catalogs into bundles</h3>
+          <p class="picker-concepts-subtitle">Pairing products across ${brandNames} and pricing each bundle.</p>
+        </div>
+        <button type="button" class="btn btn--md btn--secondary" data-action="cancel">Stop</button>
+      </div>`;
     body = `<div class="picker-concepts-grid">${'<div class="picker-concept picker-concept--skeleton"></div>'.repeat(CONCEPT_COUNT)}</div>`;
   } else if (conceptsStatus === 'error') {
-    body = `<div class="picker-concepts-empty">
-      <p>${escapeHtml(state.conceptsError || 'Something went wrong.')}</p>
-      <button type="button" class="btn btn--md btn--primary" data-action="suggest">Try again</button>
-    </div>`;
-  } else if (conceptsStatus === 'ready') {
-    body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
+    head = `
+      <div class="picker-concepts-head">
+        ${renderProductStack()}
+        <div class="picker-concepts-copy">
+          <h3 class="picker-concepts-title">That one didn't come together</h3>
+          <p class="picker-concepts-subtitle">${escapeHtml(state.conceptsError || 'Something went wrong.')}</p>
+        </div>
+        <button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Try again</button>
+      </div>`;
   } else {
-    body = `<div class="picker-concepts-empty">
-      <p>Four bundle ideas built from the catalogs, each with a suggested price. Click one to load it into the picker.</p>
-      <button type="button" class="btn btn--md btn--primary" data-action="suggest">Suggest bundles</button>
-    </div>`;
+    head = `
+      <div class="picker-concepts-head">
+        ${renderProductStack()}
+        <div class="picker-concepts-copy">
+          <h3 class="picker-concepts-title">Mix these catalogs into bundles</h3>
+          <p class="picker-concepts-subtitle">AI pairs products across ${brandNames} and prices each bundle. Load one into the picker with a click.</p>
+        </div>
+        <button type="button" class="btn btn--md btn--ai" data-action="suggest">${icon('ai-sparkles-two-filled', { size: 16 })} Suggest bundles</button>
+      </div>`;
   }
 
-  const action = conceptsStatus === 'loading'
-    ? `<button type="button" class="btn btn--md btn--secondary" data-action="cancel">Stop</button>`
-    : conceptsStatus === 'ready'
-      ? `<button type="button" class="btn btn--md btn--secondary" data-action="suggest">Regenerate</button>`
-      : '';
-
-  dom.concepts.innerHTML = `
-    <div class="picker-section-head">
-      <h3 class="picker-section-title">Bundle concepts</h3>
-      ${action}
-    </div>
-    ${body}
-  `;
+  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
+  dom.concepts.innerHTML = `${conceptsRing()}${head}${body}`;
 }
 
 function renderConceptCard(concept, index) {
@@ -492,7 +536,7 @@ function renderConceptCard(concept, index) {
     .join(' · ');
   const active = index === state.activeConcept;
   return `
-    <button type="button" class="picker-concept${active ? ' is-active' : ''}" data-action="apply-concept" data-index="${index}">
+    <div class="picker-concept${active ? ' is-active' : ''}" role="button" tabindex="0" data-action="apply-concept" data-index="${index}">
       <div class="picker-concept-thumbs">${thumbs}${more}</div>
       <div class="picker-concept-name">${escapeHtml(concept.name)}${concept.edited ? ' <span class="picker-concept-edited">edited</span>' : ''}</div>
       <p class="picker-concept-hook">${escapeHtml(concept.hook)}</p>
@@ -501,7 +545,8 @@ function renderConceptCard(concept, index) {
         <span>${money(separate)} separately · save ${concept.discountPercent}%</span>
       </div>
       <div class="picker-concept-meta">${split}</div>
-    </button>
+      <button type="button" class="btn btn--md btn--ai picker-concept-create" data-action="create-concept" data-index="${index}">Create bundle</button>
+    </div>
   `;
 }
 
@@ -765,6 +810,8 @@ function onSectionClick(e) {
       renderTray();
       break;
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
+    // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
+    case 'create-concept': applyConcept(Number(target.dataset.index)); break;
     case 'rail-prev': scrollRail(-1); break;
     case 'rail-next': scrollRail(1); break;
     case 'add-brand':
