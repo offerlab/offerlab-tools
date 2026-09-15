@@ -43,6 +43,7 @@ const state = {
   activeConcept: -1,
   conceptsStatus: 'idle', // idle | loading | ready | error
   conceptsError: null,
+  conceptsSummary: '',
   copy: null,             // { headline, subtitle } written for this brand set
   copyKey: null,          // the brand set that copy belongs to
   copyAbort: null,
@@ -171,6 +172,7 @@ function resetState() {
   state.selection = new Map();
   state.sequence = 0;
   state.concepts = [];
+  state.conceptsSummary = '';
   state.activeConcept = -1;
   state.conceptsStatus = 'idle';
   state.conceptsError = null;
@@ -237,6 +239,7 @@ async function replaceBrand(domain, brand) {
   entry.brand = brand;
   // The concepts referenced the old catalog, so they start over.
   state.concepts = [];
+  state.conceptsSummary = '';
   state.activeConcept = -1;
   state.conceptsStatus = 'idle';
 
@@ -256,6 +259,7 @@ function removeBrand(domain) {
   [...state.selection.keys()].filter(key => key.startsWith(`${domain}:`)).forEach(key => state.selection.delete(key));
   // Concepts referenced that catalog; start those over.
   state.concepts = [];
+  state.conceptsSummary = '';
   state.activeConcept = -1;
   state.conceptsStatus = 'idle';
   pushPickUrl();
@@ -367,6 +371,14 @@ function tidyCopy(value) {
 
   text = text.trim().replace(/\s{2,}/g, ' ');
   return text ? text[0].toUpperCase() + text.slice(1) : '';
+}
+
+// The head's supporting line is a sentence, so it keeps tidyCopy's brand "x" and punctuation
+// rules but has to close on a full stop.
+function tidySummary(value) {
+  const text = tidyCopy(value);
+  if (!text) return '';
+  return /[.?]$/.test(text) ? text : `${text}.`;
 }
 
 async function refreshConceptsCopy() {
@@ -551,7 +563,8 @@ person first, and choose products that serve them. Picking obvious products and 
       "why": "One sentence for the merchandiser on why these products belong together",
       "discountPercent": 15
     }
-  ]
+  ],
+  "summary": "Written last, once the bundles above exist. ONE short sentence, 16 words or fewer, naming the thread running through them. Concrete and a little playful, the way you would say it out loud to a colleague: what kind of person, or what stretch of the year, this set is for. Open on the person or the moment, never on the list. Banned: collection, selection, curated, thoughtfully, seamlessly, diverse, elevate, essentials, offerings, targeting, culinary moments, and any opener of the shape 'This X brings together' or 'Here are'."
 }`;
 
   return { text, handles };
@@ -587,9 +600,11 @@ async function generateConcepts() {
       throw new Error(err.error || `Request failed (${response.status})`);
     }
     const data = await response.json();
-    const concepts = normalizeConcepts(parseJsonResponse(extractText(data))?.concepts, prompt.handles);
+    const parsed = parseJsonResponse(extractText(data));
+    const concepts = normalizeConcepts(parsed?.concepts, prompt.handles);
     if (concepts.length === 0) throw new Error('No usable bundles came back. Try again.');
     state.concepts = concepts;
+    state.conceptsSummary = tidySummary(parsed?.summary);
     state.activeConcept = -1;
     state.conceptsStatus = 'ready';
     revealOnRender = true;
@@ -710,7 +725,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
   if (conceptsStatus === 'ready') {
     head = conceptsHead({
       title: `${state.concepts.length} ways to pair these`,
-      subtitle: 'Click one to load it into the picker, or create it as it stands.',
+      subtitle: state.conceptsSummary || 'Four directions, one shared shopper.',
       action: `<button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
     });
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
