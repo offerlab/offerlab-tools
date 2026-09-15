@@ -4202,6 +4202,8 @@ position: absolute;
    what is left, and the columns run to the bottom edge rather than ending in mid-air. */
 .picker-section {
   --picker-column-width: 440px;
+  --picker-column-min: 300px;
+  --picker-column-max: 900px;
   height: calc(100vh - var(--header-h, 0px));
   padding-top: 24px;
   max-width: 1400px;
@@ -4341,6 +4343,31 @@ position: absolute;
   gap: 28px;
 }
 
+.picker-concepts-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.picker-concepts-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  color: var(--agent-ink);
+}
+
+.picker-concepts-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: color-mix(in srgb, var(--agent-ink) 72%, transparent);
+  max-width: 48ch;
+}
+
 /* Ported from the app's .text-shimmer / .text-shimmer-ink (atelier/animations.css). The sweep
    DARKENS rather than lightens: on a light surface a light sheen makes the emphasised word the
    one closest to the background, so it reads as erasing rather than as attention. */
@@ -4349,7 +4376,9 @@ position: absolute;
   --animation-duration: 3s;
   --shimmer-peak: var(--agent-ink);
   --shimmer-edge: rgba(37, 79, 26, 0);
-  color: rgba(37, 79, 26, 0.42);
+  /* Resting text is faded and the sweep peaks at full ink, so the band is the darkest thing on
+     the line. Equal colours would animate nothing. */
+  color: rgba(37, 79, 26, 0.38);
   display: inline-block;
   background-size: 250% 100%;
   background-repeat: no-repeat;
@@ -4394,30 +4423,6 @@ position: absolute;
   --stop-ink: var(--brand-secondary-moola);
 }
 
-.picker-concepts-copy {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.picker-concepts-title {
-  margin: 0;
-  font-size: 18px;
-  line-height: 24px;
-  letter-spacing: -0.6px;
-  font-weight: 600;
-  color: var(--agent-ink);
-}
-
-.picker-concepts-subtitle {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-  color: color-mix(in srgb, var(--agent-ink) 72%, transparent);
-  max-width: 48ch;
-}
 
 /* Copy crossfades when the brand set changes, so the card updates rather than redrawing */
 .picker-concepts-copy {
@@ -4499,7 +4504,7 @@ position: absolute;
 }
 
 .picker-concept {
-  --concept-gap: 8px;
+  --concept-gap: 16px;
   /* Starts at a fifth of the row, which is what caps a row at five, then grows into whatever is
      left. The cap keeps a lone card from stretching the full banner. */
   flex: 1 1 calc((100% - (var(--concepts-per-row) - 1) * var(--concepts-grid-gap)) / var(--concepts-per-row));
@@ -4838,11 +4843,82 @@ position: absolute;
   border-radius: 32px;
 }
 
+/* A dragged column holds the width the drag wrote; clamp owns the floor and ceiling so the
+   controller can write any value and read back what was allowed. */
+.picker-column[data-resized] {
+  flex: 0 0 clamp(var(--picker-column-min), var(--col-w), var(--picker-column-max));
+}
+
+/* 16px of hit area centred on the 10px gutter: -3px puts the strip's middle on the gutter's */
+.picker-column-resizer-zone {
+  position: absolute;
+  left: 100%;
+  margin-left: -3px;
+  top: 24px;
+  bottom: 24px;
+  width: 16px;
+  z-index: 3;
+}
+
+/* No later column to resize against. :last-of-type would match the add column, which is a div too. */
+.picker-column:not(:has(~ .picker-column)) .picker-column-resizer-zone {
+  display: none;
+}
+
+.picker-column-resizer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.picker-column-resizer span {
+  width: 3px;
+  height: 48px;
+  border-radius: var(--rounded-full);
+  background-color: var(--content-tertiary);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+/* data-armed rather than :hover, so a cursor crossing the gutter does not flash the handle */
+.picker-column-resizer[data-armed] span,
+.picker-column-resizer:focus-visible span,
+.picker-rail[data-resizing] .picker-column-resizer span {
+  opacity: 1;
+}
+
+.picker-column-resizer:focus {
+  outline: none;
+}
+
+.picker-column-resizer:focus-visible span {
+  background-color: var(--content-primary);
+}
+
+/* Once the pointer leaves the 16px strip the cursor has to stay, and nothing may select */
+.picker-rail[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.picker-rail[data-resizing] .picker-product {
+  pointer-events: none;
+}
+
 /* Columns grow to share the rail with the add column; once their minimum width no longer
    fits, they hold that width and the rail scrolls */
 .picker-column {
+  position: relative;
   flex: 1 1 0;
-  min-width: min(var(--picker-column-width), 85vw);
+  /* 300px leaves 268px inside the grid's padding, which auto-fill splits into two 120px tracks */
+  min-width: min(var(--picker-column-min), 85vw);
   scroll-snap-align: start;
   background: var(--content-background-elevated);
   border: 1px solid var(--content-border-neutral);

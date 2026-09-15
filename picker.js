@@ -73,6 +73,19 @@ export function initPicker() {
   dom.section.addEventListener('input', onSectionInput);
   dom.columns.addEventListener('keydown', onRailKeydown);
   dom.columns.addEventListener('scroll', updateRailControls, { passive: true });
+  // Delegated, since the columns are re-rendered whole on every catalog change.
+  dom.columns.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.picker-column-resizer');
+    if (handle) startColumnResize(handle, e);
+  });
+  dom.columns.addEventListener('pointerover', (e) => {
+    const handle = e.target.closest('.picker-column-resizer');
+    if (handle) armResizer(handle);
+  });
+  dom.columns.addEventListener('pointerout', (e) => {
+    const handle = e.target.closest('.picker-column-resizer');
+    if (handle) disarmResizer(handle);
+  });
   window.addEventListener('resize', updateRailControls);
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#pickerAddPopover') && !e.target.closest('[data-action="add-brand"]')) hideAddPopover();
@@ -196,6 +209,70 @@ async function ensureFullCatalog(brand) {
 /* ---------------------------------------------------------------------------
    Brands (columns)
    --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Column resizing (ported from the app's builder preview panel)
+   --------------------------------------------------------------------------- */
+
+// Hover intent, so a cursor crossing the gutter does not flash the handle.
+const RESIZER_ARM_DELAY = 100;
+const RESIZE_STEP = 16;
+const RESIZE_STEP_LARGE = 64;
+let armTimer = null;
+
+function armResizer(handle) {
+  clearTimeout(armTimer);
+  armTimer = setTimeout(() => { handle.dataset.armed = ''; }, RESIZER_ARM_DELAY);
+}
+
+function disarmResizer(handle) {
+  clearTimeout(armTimer);
+  delete handle.dataset.armed;
+}
+
+// Writes a preferred width, then reads back what clamp() allowed. Parking a far-out value would
+// leave a dead zone before the drag bites on the way back.
+function setColumnWidth(column, px) {
+  column.dataset.resized = '';
+  column.style.setProperty('--col-w', `${Math.round(px)}px`);
+  column.style.setProperty('--col-w', `${Math.round(column.getBoundingClientRect().width)}px`);
+}
+
+function startColumnResize(handle, event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  const column = handle.closest('.picker-column');
+  if (!column) return;
+  event.preventDefault();
+
+  const startX = event.clientX;
+  const startWidth = column.getBoundingClientRect().width;
+  handle.setPointerCapture?.(event.pointerId);
+  dom.rail.setAttribute('data-resizing', '');
+
+  const onMove = (e) => setColumnWidth(column, startWidth + (e.clientX - startX));
+  const onUp = () => {
+    dom.rail.removeAttribute('data-resizing');
+    updateRailControls();
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  };
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+
+// Keyboard equivalent of the drag, for anyone not holding a pointer.
+function resizeColumnByKey(handle, event) {
+  const step = event.shiftKey ? RESIZE_STEP_LARGE : RESIZE_STEP;
+  const delta = { ArrowLeft: -step, ArrowRight: step }[event.key];
+  if (delta === undefined) return;
+  const column = handle.closest('.picker-column');
+  if (!column) return;
+  event.preventDefault();
+  setColumnWidth(column, column.getBoundingClientRect().width + delta);
+}
 
 function entryFor(domain) {
   return state.brands.find(e => e.domain === domain) || null;
@@ -862,6 +939,10 @@ function renderColumnMarkup(domain) {
       </div>
       </div>
       <div class="picker-grid">${products.map(p => renderTile(domain, p)).join('') || '<p class="picker-grid-empty">No products match.</p>'}</div>
+      <div class="picker-column-resizer-zone">
+        <button type="button" class="picker-column-resizer" data-action="resize-column" data-domain="${escapeHtml(domain)}"
+          role="separator" aria-orientation="vertical" aria-label="Resize the ${escapeHtml(brand.name)} column"><span aria-hidden="true"></span></button>
+      </div>
     </div>
   `;
 }
@@ -964,6 +1045,9 @@ function updateRailControls() {
 
 function onRailKeydown(e) {
   if (e.target.closest('input')) return;
+  // A focused handle takes the arrows for width before the rail takes them for scroll.
+  const handle = e.target.closest('.picker-column-resizer');
+  if (handle) { resizeColumnByKey(handle, e); return; }
   if (e.key === 'ArrowRight') { scrollRail(1); e.preventDefault(); }
   else if (e.key === 'ArrowLeft') { scrollRail(-1); e.preventDefault(); }
   else if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.picker-add-column')) {
