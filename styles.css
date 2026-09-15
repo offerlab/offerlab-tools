@@ -1511,11 +1511,16 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: var(--brand-secondary-moola);
+  /* The moola treatment from .btn--ai: the same gradient and inset highlights, over an outer
+     glow cast in moola rather than that variant's neutral black. */
+  background: linear-gradient(135deg, var(--moola-vivid), var(--brand-secondary-moola));
   border-radius: 50%;
   color: var(--white);
   transition: background var(--transition-fast), transform var(--transition-fast);
-  box-shadow: 0 4px 24px rgba(38, 67, 57, 0.4);
+  box-shadow:
+    -0.5px -0.5px 1px #ffffff52 inset,
+    1px 1px 0.5px #ffffff52 inset,
+    0 4px 24px rgba(38, 67, 57, 0.4);
 }
 
 /* Circular stop control with a sweeping ring. Set --stop-size to fit the row it sits in. */
