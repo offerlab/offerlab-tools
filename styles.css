@@ -4475,7 +4475,7 @@ position: absolute;
 
 .picker-columns {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
