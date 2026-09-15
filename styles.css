@@ -619,6 +619,20 @@ img {
   background: var(--content-background-overlay);
 }
 
+/* Mirrors the app's button-secondary. --background-overlay is a translucent fill, so the blur
+   gives the label something opaque enough to sit on wherever the button lands. */
+.btn--overlay {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+  border-color: transparent;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.btn--overlay:hover {
+  background: var(--content-background-overlay-hover);
+}
+
 /* Card body - contains reason bubble and actions with tighter gap */
 .card-body {
   display: flex;
@@ -5359,6 +5373,13 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+.picker-tray-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .btn[disabled] {
   opacity: 0.5;
   cursor: default;
@@ -5380,7 +5401,11 @@ position: absolute;
     border-radius: 28px;
   }
 
-  .picker-tray-pill .btn {
+  .picker-tray-actions {
+    flex: 1;
+  }
+
+  .picker-tray-actions .btn {
     flex: 1;
   }
 }

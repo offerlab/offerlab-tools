@@ -814,8 +814,10 @@ function renderTray() {
         <strong>${count} ${count === 1 ? 'product' : 'products'}</strong>
         <span>${split}</span>
       </div>
-      <button type="button" class="btn btn--md btn--secondary" data-action="clear">Clear</button>
-      <button type="button" class="btn btn--md btn--primary" data-action="suggest"${state.conceptsStatus === 'loading' ? ' disabled' : ''}>Suggest bundles</button>
+      <div class="picker-tray-actions">
+        <button type="button" class="btn btn--md btn--overlay" data-action="clear">Clear</button>
+        <button type="button" class="btn btn--md btn--primary" data-action="suggest"${state.conceptsStatus === 'loading' ? ' disabled' : ''}>Create bundle</button>
+      </div>
     </div>
   `;
 }
