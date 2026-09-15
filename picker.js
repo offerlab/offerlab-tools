@@ -585,7 +585,6 @@ function renderHeader() {
       ${renderFaviconDuo(seller.domain, partners[0]?.domain || seller.domain)}
       <div class="picker-title-labels">
         <h2 class="results-group-title">${title}</h2>
-        <p class="results-group-title text-content-tertiary">Pick products across the catalogs, or let AI suggest a few bundles to start from.</p>
       </div>
     </div>
   `;
