@@ -6114,7 +6114,6 @@ position: absolute;
      both sides. The card is the full content width and the inline padding IS that bleed, which is
      what lets the first and last card settle centred too rather than against an end. */
   .picker-concepts-grid {
-    --concept-bleed: 38px;
     grid-area: 2 / 1 / auto / -1;
     flex-wrap: nowrap;
     justify-content: flex-start;
@@ -6123,11 +6122,11 @@ position: absolute;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     margin-inline: -16px;
-    padding-inline: var(--concept-bleed);
+    padding: 16px;
     /* overflow-x makes the block axis clip too, which cut the cards' shadows off at both edges.
-       Opened here and taken straight back, so the row occupies exactly what it did. */
-    padding-block: 28px;
-    margin-block: -28px;
+       The block padding opens the room and is taken straight back, so the row occupies exactly
+       what it did. */
+    margin-block: -16px;
   }
 
   .picker-concepts-grid::-webkit-scrollbar {
@@ -6135,10 +6134,20 @@ position: absolute;
   }
 
   .picker-concept {
-    flex: 0 0 100%;
+    flex: 0 0 calc(100% - 32px);
     min-width: 0;
     max-width: none;
     scroll-snap-align: center;
+  }
+
+  /* The ends need the room their neighbours give the middle cards, or they cannot reach a centred
+     position and rest against the track's edge with a different bleed from everything else. */
+  .picker-concept:first-child {
+    margin-inline-start: 16px;
+  }
+
+  .picker-concept:last-child {
+    margin-inline-end: 16px;
   }
 
   /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
