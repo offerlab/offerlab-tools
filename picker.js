@@ -461,8 +461,9 @@ function renderProductStack() {
   if (images.length === 0) return '';
   // Fan the rest behind the front card, alternating sides.
   const fan = [-14, 12, -7, 6];
-  const behind = images.slice(1).map((src, i) => `<img class="picker-stack-card" style="--tilt: ${fan[i] ?? 0}deg; --shift: ${(i % 2 === 0 ? -1 : 1) * (28 + i * 6)}px" src="${catalogThumbUrl(src, 240)}" alt="">`).join('');
-  return `<div class="picker-stack" aria-hidden="true">${behind}<img class="picker-stack-card picker-stack-card--front" src="${catalogThumbUrl(images[0], 320)}" alt=""></div>`;
+  const card = (src, cls, style) => `<span class="picker-stack-card media-tile media-hairline${cls}"${style ? ` style="${style}"` : ''}><img class="media-zoom" src="${src}" alt=""></span>`;
+  const behind = images.slice(1).map((src, i) => card(catalogThumbUrl(src, 240), '', `--tilt: ${fan[i] ?? 0}deg; --shift: ${(i % 2 === 0 ? -1 : 1) * (28 + i * 6)}px`)).join('');
+  return `<div class="picker-stack" aria-hidden="true">${behind}${card(catalogThumbUrl(images[0], 320), ' picker-stack-card--front')}</div>`;
 }
 
 function conceptsRing() {
@@ -527,7 +528,7 @@ function renderConceptCard(concept, index) {
   const products = concept.picks.map(p => p.product);
   const separate = conceptSeparatePrice(concept);
   const bundle = conceptBundlePrice(concept);
-  const thumbs = products.slice(0, CONCEPT_THUMBS).map(p => `<img src="${catalogThumbUrl(p.image, 120)}" alt="" title="${escapeHtml(p.title)}">`).join('');
+  const thumbs = products.slice(0, CONCEPT_THUMBS).map(p => `<span class="picker-concept-thumb media-tile media-hairline" title="${escapeHtml(p.title)}"><img class="media-zoom" src="${catalogThumbUrl(p.image, 120)}" alt=""></span>`).join('');
   const more = products.length > CONCEPT_THUMBS ? `<span class="picker-concept-more">+${products.length - CONCEPT_THUMBS}</span>` : '';
   const split = state.brands
     .map(e => ({ name: e.brand.name, n: concept.picks.filter(p => p.domain === e.domain).length }))
@@ -597,10 +598,10 @@ function renderTile(domain, p) {
   const key = productKey(domain, p.id);
   const selected = state.selection.has(key);
   const price = p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies';
-  const img = p.image ? `<img src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
+  const img = p.image ? `<img class="media-zoom" src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">` : '';
   return `
     <div class="picker-product${selected ? ' is-selected' : ''}" role="button" tabindex="0" aria-pressed="${selected}" data-action="toggle" data-domain="${escapeHtml(domain)}" data-id="${escapeHtml(String(p.id))}" data-key="${escapeHtml(key)}" title="${escapeHtml(p.title)}">
-      <div class="picker-product-art">
+      <div class="picker-product-art media-tile media-hairline">
         ${img}
         <span class="picker-product-add" aria-hidden="true">${icon('plus-to-check')}</span>
       </div>
@@ -638,7 +639,7 @@ function renderTray() {
     .join(', ');
   const thumbs = picks.slice(-TRAY_THUMBS).map(pick => {
     const tilt = THUMB_TILTS[pick.sequence % THUMB_TILTS.length];
-    return `<div class="picker-tray-thumb" data-key="${escapeHtml(productKey(pick.domain, pick.product.id))}" style="transform: translateX(${tilt.shift}px) rotate(${tilt.rotate}deg)"><img src="${catalogThumbUrl(pick.product.image, 96)}" alt="" title="${escapeHtml(pick.product.title)}"></div>`;
+    return `<div class="picker-tray-thumb media-tile media-hairline" data-key="${escapeHtml(productKey(pick.domain, pick.product.id))}" style="transform: translateX(${tilt.shift}px) rotate(${tilt.rotate}deg)" title="${escapeHtml(pick.product.title)}"><img src="${catalogThumbUrl(pick.product.image, 96)}" alt=""></div>`;
   }).join('');
 
   dom.tray.innerHTML = `

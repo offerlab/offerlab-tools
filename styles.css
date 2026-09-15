@@ -657,6 +657,59 @@ svg.icon.icon-size-18 { width: 18px; height: 18px; --icon-rendered: 18; }
 svg.icon.icon-size-20 { width: 20px; height: 20px; --icon-rendered: 20; }
 svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
+/* --------------------------------------------------------------------------
+   Media treatments (from the main app's atelier utilities): a hairline frame drawn on a
+   pseudo-element so it survives the zoom, an opaque tile with a 4% richBlack veil over the
+   artwork, and a hover zoom. Hosts are positioned, rounded, and clip.
+   -------------------------------------------------------------------------- */
+.media-hairline,
+.media-tile {
+  position: relative;
+  overflow: hidden;
+}
+
+.media-hairline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: var(--media-hairline-width, 1px) solid var(--content-border-neutral);
+  pointer-events: none;
+}
+
+.media-tile {
+  background-color: var(--content-background-elevated);
+}
+
+.media-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: rgba(11, 5, 29, 0.04);
+  pointer-events: none;
+}
+
+.media-tile > img,
+.media-hairline > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-zoom {
+  transition: transform 0.3s ease-out;
+}
+
+.card-catalog-thumb:hover .media-zoom,
+.picker-product:hover .media-zoom,
+.picker-product:active .media-zoom,
+.picker-concept:hover .media-zoom,
+.picker-stack-card:hover .media-zoom {
+  transform: scale(1.05);
+}
+
 .card-actions {
   display: flex;
   gap: 6px;
@@ -2102,24 +2155,11 @@ position: absolute;
   height: 100px;
   flex-shrink: 0;
   border-radius: 20px;
-  object-fit: cover;
-  background: var(--content-background-base);
-  border: 0.5px solid var(--content-border-neutral);
 }
 
 /* Overflow tile: the last image under a blurred 20% black scrim with the remaining count */
 .card-catalog-thumb--more {
-  position: relative;
-  overflow: hidden;
   isolation: isolate;
-  border: none;
-}
-
-.card-catalog-thumb--more .card-catalog-thumb {
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  border: none;
 }
 
 /* A backdrop-filter layer ignores the parent's rounded clip, so the scrim rounds itself */
@@ -2139,6 +2179,7 @@ position: absolute;
 }
 
 .card-catalog--loading .card-catalog-thumb {
+  background: var(--content-background-base);
   animation: catalog-shimmer 1.2s ease-in-out infinite;
 }
 
@@ -4166,11 +4207,8 @@ position: absolute;
   top: 50%;
   width: 96px;
   height: 96px;
-  object-fit: cover;
   border-radius: 16px;
-  border: 3px solid var(--content-background-elevated);
-  background: var(--content-background-base);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-sm);
   transform: translate(calc(-50% + var(--shift, 0px)), -50%) rotate(var(--tilt, 0deg));
 }
 
@@ -4249,13 +4287,11 @@ position: absolute;
   align-items: center;
 }
 
-.picker-concept-thumbs img {
+.picker-concept-thumb {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  object-fit: cover;
-  background: var(--content-background-base);
-  border: 0.5px solid var(--content-border-neutral);
+  flex-shrink: 0;
 }
 
 .picker-concept-more {
@@ -4493,24 +4529,8 @@ position: absolute;
 }
 
 .picker-product-art {
-  position: relative;
   aspect-ratio: 1;
   border-radius: 20px;
-  overflow: hidden;
-  background: var(--content-background-base);
-  box-shadow: inset 0 0 0 0.5px var(--content-border-neutral);
-}
-
-.picker-product-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.4s ease;
-}
-
-.picker-product:hover .picker-product-art img {
-  transform: scale(1.04);
 }
 
 .picker-product:focus-visible .picker-product-art {
@@ -4520,6 +4540,7 @@ position: absolute;
 /* The app's elevated icon button: 40px circle, white, hairline ring, 20px glyph */
 .picker-product-add {
   position: absolute;
+  z-index: 1;
   right: 10px;
   bottom: 10px;
   width: 40px;
@@ -4841,16 +4862,7 @@ position: absolute;
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--content-border-neutral);
-  background: var(--content-background-base);
   box-shadow: var(--shadow-sm);
-}
-
-.picker-tray-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .picker-tray-summary {

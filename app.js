@@ -708,11 +708,9 @@ function renderCatalogThumbs(catalog) {
   // Past the row, the last tile blurs over its image and carries the count it stands in for.
   const overflow = count > CATALOG_THUMBS ? count - (CATALOG_THUMBS - 1) : 0;
   const thumbs = shown.map((p, i) => {
-    const img = `<img class="card-catalog-thumb" src="${catalogThumbUrl(p.image, 240)}" alt="" title="${escapeHtml(p.title)}" loading="lazy" onerror="this.remove()">`;
-    if (overflow && i === shown.length - 1) {
-      return `<div class="card-catalog-thumb card-catalog-thumb--more">${img}<span class="card-catalog-thumb-count">+${overflow}</span></div>`;
-    }
-    return img;
+    const img = `<img class="media-zoom" src="${catalogThumbUrl(p.image, 240)}" alt="" loading="lazy" onerror="this.parentElement.remove()">`;
+    const more = overflow && i === shown.length - 1;
+    return `<div class="card-catalog-thumb media-tile media-hairline${more ? ' card-catalog-thumb--more' : ''}" title="${escapeHtml(p.title)}">${img}${more ? `<span class="card-catalog-thumb-count">+${overflow}</span>` : ''}</div>`;
   }).join('');
   return `<div class="card-catalog card-catalog--${catalog.status}"><div class="card-catalog-thumbs">${thumbs}</div></div>`;
 }
