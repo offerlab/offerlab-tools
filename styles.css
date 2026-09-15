@@ -4468,8 +4468,7 @@ position: absolute;
   max-width: 560px;
   display: flex;
   flex-direction: column;
-  gap: var(--concept-gap);
-  padding: 16px;
+  padding: 0;
   border-radius: var(--rounded-28);
   border: 1px solid var(--content-border-neutral);
   background: var(--content-background-elevated);
@@ -4566,7 +4565,17 @@ position: absolute;
   }
 }
 
+/* Everything above the Includes panel. Carries the card's inset so the panel below can run to
+   the card's own edges. */
+.picker-concept-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--concept-gap);
+  padding: 16px 16px 0;
+}
+
 .picker-concept-create {
+  margin: 16px;
   margin-top: auto;
   align-self: stretch;
 }
@@ -4660,13 +4669,13 @@ position: absolute;
   color: var(--content-secondary);
 }
 
+/* Full bleed: the panel runs to the card's edges, so its own edge would only echo the card's */
 .picker-concept-includes {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px;
-  border-radius: var(--rounded-3xl);
-  border: 1px solid var(--content-border-neutral);
+  margin-top: 16px;
+  padding: 12px 16px;
   background: var(--background-light);
 }
 

@@ -806,14 +806,16 @@ function renderConceptCard(concept, index) {
   const active = index === state.activeConcept;
   return `
     <div class="picker-concept${active ? ' is-active' : ''}" role="button" tabindex="0" data-action="apply-concept" data-index="${index}">
-      <div class="picker-concept-thumbs">${thumbs}${more}</div>
-      <div class="picker-concept-name">${escapeHtml(concept.name)}${concept.edited ? ' <span class="picker-concept-edited">edited</span>' : ''}</div>
-      <p class="picker-concept-hook">${escapeHtml(concept.hook)}</p>
+      <div class="picker-concept-main">
+        <div class="picker-concept-thumbs">${thumbs}${more}</div>
+        <div class="picker-concept-name">${escapeHtml(concept.name)}${concept.edited ? ' <span class="picker-concept-edited">edited</span>' : ''}</div>
+        <p class="picker-concept-hook">${escapeHtml(concept.hook)}</p>
+        <div class="picker-concept-total">${money(bundle)}</div>
+      </div>
       <div class="picker-concept-includes">
         <div class="picker-concept-includes-label">Includes</div>
         <ul class="picker-concept-items">${items}</ul>
       </div>
-      <div class="picker-concept-total">${money(bundle)}</div>
       <button type="button" class="btn btn--md btn--ai picker-concept-create" data-action="create-concept" data-index="${index}">Create bundle</button>
     </div>
   `;
