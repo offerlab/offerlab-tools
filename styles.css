@@ -4378,7 +4378,7 @@ position: absolute;
    one closest to the background, so it reads as erasing rather than as attention. */
 .text-shimmer-ink {
   --spread: 16%;
-  --animation-duration: 3s;
+  --animation-duration: 2s;
   --shimmer-peak: var(--agent-ink);
   --shimmer-edge: rgba(37, 79, 26, 0);
   /* Resting text is faded and the sweep peaks at full ink, so the band is the darkest thing on
@@ -4399,11 +4399,12 @@ position: absolute;
   animation: shimmerSlide var(--animation-duration) linear infinite;
 }
 
-/* Sweeps over the first two thirds, then parks off-screen, since a CSS animation cannot rest
-   between iterations. At 3s that is a 2s pass and a 1s beat. */
+/* One continuous pass, no hold. The band is off-screen for part of every cycle anyway: it travels
+   1.5 box-widths across a 250% background and is only over the text for 1.0 of them, so the rhythm
+   is geometry rather than a keyframe that stops. */
 @keyframes shimmerSlide {
-  0% { background-position: 100% center, 0% center; }
-  66%, 100% { background-position: 0% center, 0% center; }
+  from { background-position: 100% center, 0% center; }
+  to { background-position: 0% center, 0% center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
