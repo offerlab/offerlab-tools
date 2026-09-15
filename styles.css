@@ -5053,20 +5053,19 @@ position: absolute;
   color: var(--content-primary);
   font-size: var(--font-size-xs);
   font-weight: 500;
-  background: var(--background-light);
+  background: var(--content-background-elevated);
   transition: background 0.2s ease;
 }
 
-/* One step past the resting fill, which is now --background-light itself */
 .picker-add-column:hover {
-  background: var(--content-background-overlay);
+  background: var(--background-light);
 }
 
 .picker-add-btn {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--content-background-elevated);
+  background: var(--content-background-base);
   color: var(--content-primary);
   box-shadow: var(--shadow-sm);
   outline: 1px solid var(--content-border-neutral);
