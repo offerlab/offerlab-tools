@@ -4646,7 +4646,7 @@ position: absolute;
   border-radius: 28px;
   border: 1px dashed var(--content-border-neutral);
   min-height: 320px;
-  color: var(--content-secondary);
+  color: var(--content-primary);
   font-size: var(--font-size-xs);
   font-weight: 500;
 }
