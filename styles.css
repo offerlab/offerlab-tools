@@ -4219,10 +4219,11 @@ position: absolute;
 .picker-section {
   --picker-column-width: 440px;
   --picker-column-min: 300px;
-  --picker-column-max: 1200px;
+  --picker-column-max: 900px;
+  --picker-body-max: 1400px;
   height: calc(100vh - var(--header-h, 0px));
   padding-top: 24px;
-  max-width: 1400px;
+  max-width: var(--picker-body-max);
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -4984,9 +4985,9 @@ position: absolute;
 .picker-columns {
   --picker-columns-gap: 10px;
   --picker-add-width: 96px;
-  /* The scroll box is wider than the content area by the add column it hangs outside, so a column's
-     share has to be measured against what is left rather than against 100%. */
-  --picker-content-width: calc(100% - var(--picker-add-width) - var(--picker-columns-gap));
+  /* A column's default is a share of the BODY container, not of the scroll box: the rail bleeds out
+     to the viewport so more columns fit, but that must not make each one wider. */
+  --picker-body-width: min(var(--picker-body-max), 100vw);
   display: flex;
   gap: var(--picker-columns-gap);
   align-items: stretch;
@@ -5098,7 +5099,7 @@ position: absolute;
   /* A new column arrives at the width the first pair gets, rather than squeezing everything to fit:
      the divisor stops at 2, so the third onward overflow and the rail paginates to them. */
   flex: 0 0 calc(
-    (var(--picker-content-width) - (min(var(--brand-count, 1), 2) - 1) * var(--picker-columns-gap))
+    (var(--picker-body-width) - (min(var(--brand-count, 1), 2) - 1) * var(--picker-columns-gap))
     / min(var(--brand-count, 1), 2)
   );
   /* 300px leaves 268px inside the grid's padding, which auto-fill splits into two 120px tracks */
