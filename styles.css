@@ -520,13 +520,39 @@ img {
   border-radius: 50%;
   color: var(--content-primary);
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--content-border-neutral);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+/* The GLYPH lifts, not the button: the box is a fixed size, so scaling it would shove its
+   neighbours. Ported from the app's .button-icon; :active covers touch, where there is no hover. */
+.icon-button svg,
+.picker-rail-btn svg,
+.picker-product-add svg,
+.picker-add-btn svg,
+.picker-column-action svg,
+.dialog-close svg {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-button:hover svg,
+.icon-button:active svg,
+.picker-rail-btn:hover svg,
+.picker-rail-btn:active svg,
+.picker-product:hover .picker-product-add svg,
+.picker-add-column:hover .picker-add-btn svg,
+.picker-column-action:hover svg,
+.picker-column-action:active svg,
+.dialog-close:hover svg,
+.dialog-close:active svg {
+  transform: scale(1.1);
+}
+
+/* Elevated buttons lift on hover: a step darker and a step further off the surface. */
 .icon-button:hover {
-  background: var(--content-background-overlay);
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
 }
 
 .icon-button:active {
@@ -5029,7 +5055,7 @@ position: absolute;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, opacity 0.2s ease;
+  transition: background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
 .picker-rail-btn--prev {
@@ -5043,7 +5069,8 @@ position: absolute;
 }
 
 .picker-rail-btn:hover {
-  background: var(--content-background-overlay);
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
 }
 
 .picker-rail-btn:active {
@@ -5359,7 +5386,7 @@ position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease, color 0.2s ease, outline-color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, outline-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .picker-product-add svg {
@@ -5370,6 +5397,7 @@ position: absolute;
 
 .picker-product:hover .picker-product-add {
   background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
 }
 
 .picker-product.is-selected .picker-product-add,
@@ -5473,13 +5501,13 @@ position: absolute;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .picker-add-column:hover .picker-add-btn,
 .picker-add-column:focus-visible .picker-add-btn {
   background: var(--content-background-base);
-  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
 }
 
 .picker-add-column:focus-visible {
