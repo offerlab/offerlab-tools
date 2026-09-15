@@ -1085,26 +1085,36 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   }
 }
 
-/* Hide tiles when loading, results, empty, or error - only show on landing */
+/* Hide tiles when loading, results, empty, or error - only show on landing. The delay holds
+   them visible while they whip out; --tiles-exit is how long that takes, and the fast variant
+   below shortens both together so the tiles are never left sitting on the new view. */
 .app-container.showing-results .floating-tiles {
   pointer-events: none;
   visibility: hidden;
-  transition: visibility 0s linear 0.7s;
+  transition: visibility 0s linear var(--tiles-exit, 0.7s);
 }
 
 /* Whip-out animation: fade tiles right-to-left when search is submitted */
 .floating-tiles.whip-out .tile {
-  animation: tileWhipOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: tileWhipOut var(--tile-exit-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: calc(var(--tile-exit-stagger, 0.04s) * var(--tile-order, 0));
 }
 
-.floating-tiles.whip-out .tile-4 { animation-delay: 0s; }
-.floating-tiles.whip-out .tile-3 { animation-delay: 0.04s; }
-.floating-tiles.whip-out .tile-7 { animation-delay: 0.08s; }
-.floating-tiles.whip-out .tile-8 { animation-delay: 0.12s; }
-.floating-tiles.whip-out .tile-6 { animation-delay: 0.16s; }
-.floating-tiles.whip-out .tile-2 { animation-delay: 0.2s; }
-.floating-tiles.whip-out .tile-1 { animation-delay: 0.24s; }
-.floating-tiles.whip-out .tile-5 { animation-delay: 0.28s; }
+.floating-tiles .tile-4 { --tile-order: 0; }
+.floating-tiles .tile-3 { --tile-order: 1; }
+.floating-tiles .tile-7 { --tile-order: 2; }
+.floating-tiles .tile-8 { --tile-order: 3; }
+.floating-tiles .tile-6 { --tile-order: 4; }
+.floating-tiles .tile-2 { --tile-order: 5; }
+.floating-tiles .tile-1 { --tile-order: 6; }
+.floating-tiles .tile-5 { --tile-order: 7; }
+
+/* Jumping to a cached search has nothing to wait for, so the tiles clear out quickly
+   rather than holding the old view over the new one. */
+.floating-tiles.whip-out--fast .tile {
+  --tile-exit-duration: 0.2s;
+  --tile-exit-stagger: 0.015s;
+}
 
 @keyframes tileWhipOut {
   0% {

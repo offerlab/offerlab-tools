@@ -445,7 +445,7 @@ function showSection(sectionName) {
       elements.landingSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.remove('showing-results');
       document.body.classList.remove('showing-results');
-      elements.floatingTiles.classList.remove('whip-out');
+      elements.floatingTiles.classList.remove('whip-out', 'whip-out--fast');
       if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.remove('hidden');
       break;
     case 'loading':
@@ -2879,6 +2879,10 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       console.log(`[performSearch] Loading from cache: ${cached.brands.length} brands`);
       const searchedBrand = cached.searchedBrand || buildFallbackSearchedBrand(domain);
       currentResults = { brands: cached.brands, searchedBrand };
+      // Landing is on screen: let the tiles clear before the results replace them.
+      if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) {
+        await whipOutTiles({ fast: true });
+      }
       renderResults(cached.brands, searchedBrand);
       elements.resultsSearchInput.value = domain;
       syncResultsSearchDisplay();
@@ -2895,6 +2899,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
     }
     
     if (cached.type === 'empty') {
+      if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) {
+        await whipOutTiles({ fast: true });
+      }
       if (!fromUrlRestore) updateUrlForSearch(domain);
       showSection('empty');
       return;
@@ -2920,7 +2927,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   isSearchCancelled = false;
   searchAbortController = new AbortController();
   
-  elements.floatingTiles.classList.add('whip-out');
+  whipOutTiles();
   showSection('loading');
   
   // Set the results header search input to show current search (after header is visible)
@@ -3054,6 +3061,27 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
    -------------------------------------------------------------------------- */
 
 const TILT_MAX_DEG = 2.5;
+
+// Plays the tiles' exit and resolves when the last one has gone. `fast` is for jumping to a
+// cached search, where there is no loading state to cover the gap. Publishes --tiles-exit so the
+// visibility swap in CSS waits exactly as long as the animation runs.
+const TILE_EXIT = { normal: 680, fast: 305 };
+
+function whipOutTiles({ fast = false } = {}) {
+  const tiles = elements.floatingTiles;
+  if (!tiles) return Promise.resolve();
+
+  const container = document.querySelector('.app-container');
+  const duration = fast ? TILE_EXIT.fast : TILE_EXIT.normal;
+  container.style.setProperty('--tiles-exit', `${duration}ms`);
+  tiles.classList.toggle('whip-out--fast', fast);
+  tiles.classList.add('whip-out');
+  return new Promise(resolve => setTimeout(() => {
+    // The exit is over, so a section change from here hides the tiles outright.
+    container.style.setProperty('--tiles-exit', '0s');
+    resolve();
+  }, duration));
+}
 
 function isTileTiltActive() {
   return elements.appContainer &&
