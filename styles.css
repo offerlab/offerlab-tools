@@ -4341,6 +4341,12 @@ position: absolute;
   gap: 28px;
 }
 
+/* The head's action button, whichever state is showing: Suggest bundles, Regenerate, Try again */
+.picker-concepts-head .btn {
+  padding-inline: 10px;
+  gap: 6px;
+}
+
 /* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where
    the header's dark disc would read as a hole. */
 .picker-concepts-head .stop-button {
