@@ -4518,7 +4518,9 @@ position: absolute;
   align-items: center;
   flex-shrink: 0;
   gap: 2px;
-  padding: 2px;
+  /* 3px, for 2px of visible gap: the hairline is an INSET shadow, so it paints over the first
+     pixel of the padding rather than outside it the way a border would. */
+  padding: 3px;
   border-radius: var(--rounded-full);
   background: var(--content-background-elevated);
   box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
