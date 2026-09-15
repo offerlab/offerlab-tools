@@ -1100,102 +1100,93 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   transform: translateX(-50%);
   width: 100%;
   max-width: 600px;
-  padding: 8px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   isolation: isolate;
-  outline-width: 4px;
-  outline-style: solid;
-  outline-color: rgba(255, 255, 255, .2);
-  box-shadow: 0 4px 24px #0000001f, 0 0 0 4.5px #0000000a;
-  background: rgba(255, 255, 255, .95);
   border-radius: 32px;
   transition: min-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   z-index: 20;
   overflow: visible;
 }
 
-/* Focus state: the main app's `.ai-glow` conic aura (atelier/animations.css),
-   ported as-is but hidden at rest and bloomed in on :focus-within, since the
-   composer has no hover state of its own. */
-@property --ai-glow-angle {
+/* The form is the pill itself. Keeping the surface on a child (not the container) lets the
+   glow layers below paint behind it, so only their blurred edge shows past the pill. */
+.omni-ai-box-container > .search-form {
+  position: relative;
+  z-index: 1;
+  padding: 8px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  outline: 4px solid rgba(255, 255, 255, .2);
+  box-shadow: 0 4px 24px #0000001f, 0 0 0 4.5px #0000000a;
+  background: rgba(255, 255, 255, .95);
+  border-radius: 32px;
+}
+
+/* Focus glow, from the main app's AI input (atelier/ai_input.css): two conic layers behind the
+   pill, blurred outward so only a thin halo shows past its edge. Hidden at rest here; focus fades
+   them in and spins the colours around. The palette is the app's --ai-input-conic. */
+@property --ai-input-angle {
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
 }
-@property --ai-glow-x {
-  syntax: "<percentage>";
-  initial-value: 50%;
-  inherits: false;
+
+@keyframes aiInputSpin {
+  to { --ai-input-angle: 360deg; }
 }
-@property --ai-glow-y {
-  syntax: "<percentage>";
-  initial-value: 50%;
-  inherits: false;
-}
-.ai-glow {
-  position: relative;
-  isolation: isolate;
-}
-.ai-glow::before {
+
+.omni-ai-box-container::before,
+.omni-ai-box-container::after {
   content: "";
   position: absolute;
-  inset: 0;
   z-index: -1;
-  border-radius: inherit;
-  filter: blur(0.75rem);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 200ms ease;
+  opacity: 0;
+  transition: opacity 0.3s ease;
   background: conic-gradient(
-    from var(--ai-glow-angle) at var(--ai-glow-x) var(--ai-glow-y),
-    rgba(255, 244, 181, 0.32) 54deg,
-    rgba(245, 195, 249, 0.32),
-    rgba(245, 195, 249, 0.32) 126deg,
-    rgba(255, 244, 181, 0.2),
-    rgba(245, 195, 249, 0.32) 234deg,
-    rgba(245, 195, 249, 0.32),
-    rgba(255, 244, 181, 0.32) 306deg,
-    rgba(245, 195, 249, 0.32) 360deg
+    from var(--ai-input-angle),
+    #c6adff 0deg,
+    #b3bcff 22deg,
+    #a0cbff 45deg,
+    #b3bcff 90deg,
+    #c6adff 135deg,
+    #ddb8ff 157deg,
+    #f4c2ff 180deg,
+    #facddb 202deg,
+    #ffd8b7 225deg,
+    #facddb 270deg,
+    #f4c2ff 315deg,
+    #ddb8ff 337deg
   );
-  animation:
-    aiGlowSpin 9s linear infinite,
-    aiGlowDrift 14s ease-in-out infinite;
-  animation-play-state: paused;
 }
-.ai-glow:focus-within::before {
-  opacity: 1;
-  animation-play-state: running;
+
+.omni-ai-box-container::before {
+  inset: 0;
+  border-radius: 32px;
+  filter: blur(9px);
 }
-@keyframes aiGlowSpin {
-  to {
-    --ai-glow-angle: 360deg;
-  }
+
+.omni-ai-box-container::after {
+  inset: -4px;
+  border-radius: 36px;
+  filter: blur(28px);
 }
-@keyframes aiGlowDrift {
-  0% {
-    --ai-glow-x: 32%;
-    --ai-glow-y: 36%;
-  }
-  25% {
-    --ai-glow-x: 68%;
-    --ai-glow-y: 30%;
-  }
-  50% {
-    --ai-glow-x: 64%;
-    --ai-glow-y: 68%;
-  }
-  75% {
-    --ai-glow-x: 34%;
-    --ai-glow-y: 64%;
-  }
-  100% {
-    --ai-glow-x: 32%;
-    --ai-glow-y: 36%;
-  }
+
+.omni-ai-box-container:focus-within::before,
+.omni-ai-box-container:focus-within::after {
+  animation: aiInputSpin 6s linear infinite;
 }
+
+.omni-ai-box-container:focus-within::before {
+  opacity: 0.6;
+}
+
+.omni-ai-box-container:focus-within::after {
+  opacity: 0.42;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ai-glow::before {
+  .omni-ai-box-container::before,
+  .omni-ai-box-container::after {
     animation: none;
   }
 }
@@ -1204,17 +1195,11 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   z-index: 1000;
 }
 
-.omni-ai-box-container:focus-within .search-form {
-  border-radius: 24px;
-  position: relative;
-  z-index: 1;
+/* Opaque while focused so the halo shows only past the edge, never through the pill */
+.omni-ai-box-container:focus-within > .search-form {
+  background: var(--content-background-elevated);
 }
 
-
-.omni-ai-box-container .search-form {
-  position: relative;
-  background: transparent;
-}
 
 .omni-ai-box-container .search-input-wrapper {
   background: transparent;
@@ -2629,6 +2614,9 @@ position: absolute;
   .omni-ai-box-container {
     max-width: none;
     width: 100%;
+  }
+
+  .omni-ai-box-container > .search-form {
     padding: 4px;
   }
 
