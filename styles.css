@@ -4522,21 +4522,25 @@ position: absolute;
   padding: 12px;
 }
 
-/* The box travels, its contents do not follow it through every width on the way: they are hidden
-   for the run and brought back once it lands. Fast, so the chip is not empty for long. */
-.picker-concepts-head,
-.picker-concepts-body,
-.picker-concepts-chip {
-  transition: opacity 0.16s ease;
+/* The content scales and fades in ALONGSIDE the box rather than waiting for it to land. Its width
+   is pinned to the final layout for the run (see toggleMinimize), so it never re-wraps while the
+   box travels around it. Origin at the left so it grows out of the corner the box grows from.
+   A keyframe rather than a transition: these elements are rebuilt on every render, and one with no
+   previous computed style has nothing for a transition to interpolate from. */
+.picker-concepts.is-morphing > * {
+  transform-origin: left center;
+  animation: conceptsContentIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.picker-concepts.is-morphing .picker-concepts-head,
-.picker-concepts.is-morphing .picker-concepts-body,
-.picker-concepts.is-morphing .picker-concepts-chip {
-  opacity: 0;
-  /* Out instantly, in over the base duration: a faded hide still shows a frame or two of the
-     headline wrapped at whatever width the box happens to be passing through. */
-  transition-duration: 0s;
+@keyframes conceptsContentIn {
+  from { opacity: 0; transform: scale(0.92); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* The box is the only thing that should be visible spilling past itself mid-run */
+.picker-concepts.is-morphing {
+  overflow: hidden;
 }
 
 /* Chip: the same box, shrunk to a pill. 999px is a stadium at any height because the radius is

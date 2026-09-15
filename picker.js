@@ -928,8 +928,17 @@ function toggleMinimize() {
   renderConcepts();
   const toW = card.offsetWidth;
   const toH = card.offsetHeight;
-  // Hidden for the run. The content would otherwise lay out at every width the box passes
-  // through, and the headline visibly wraps and unwraps on the way.
+
+  // The content is laid out at its FINAL size and pinned there, which is what lets it be visible
+  // through the run: the box travels around it and the headline never re-wraps. It grows in from
+  // just under full size so it arrives with the box rather than after it.
+  // Pin the content to its FINAL layout width for the run. That is the whole trick: the box can
+  // travel around it without the headline re-wrapping, which is what let it stay visible at all.
+  // The scale and fade are a keyframe (see .is-morphing > *), not a transition: these elements were
+  // built a moment ago and have no previous computed style for a transition to interpolate from.
+  const content = [...card.children];
+  const pinned = content.map(el => el.getBoundingClientRect().width);
+  content.forEach((el, i) => { el.style.width = `${pinned[i]}px`; });
   card.classList.add('is-morphing');
   // Shrink-wrapped for BOTH directions of the run so the glow tracks the pinned card; expanding
   // hands it back on release.
@@ -945,12 +954,12 @@ function toggleMinimize() {
   card.style.width = `${toW}px`;
   card.style.height = `${toH}px`;
   card.style.borderRadius = `${toRadius}px`;
-
   const release = (e) => {
     if (e.target !== card || e.propertyName !== 'height') return;
     card.style.width = '';
     card.style.height = '';
     card.style.borderRadius = '';
+    content.forEach(el => { el.style.width = ''; });
     card.classList.remove('is-morphing');
     shell.classList.toggle('is-chip', next);
     card.removeEventListener('transitionend', release);
