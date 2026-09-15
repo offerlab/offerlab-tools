@@ -4512,6 +4512,7 @@ position: absolute;
   max-width: 560px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   padding: 0;
   border-radius: var(--rounded-28);
   border: 1px solid var(--content-border-neutral);
@@ -4621,6 +4622,14 @@ position: absolute;
   padding: 16px 16px 0;
   background: var(--content-background-elevated);
   border-radius: 27px 27px 0 0;
+}
+
+/* The Includes panel and the button are one block, so the card's own gap does not fall between
+   them; the button's margin is the only space there. */
+.picker-concept-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .picker-concept-create {

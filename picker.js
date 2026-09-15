@@ -887,11 +887,13 @@ function renderConceptCard(concept, index) {
         <p class="picker-concept-hook">${escapeHtml(concept.hook)}</p>
         <div class="picker-concept-total">${money(bundle)}</div>
       </div>
-      <div class="picker-concept-includes">
-        <div class="picker-concept-includes-label">Includes</div>
-        <ul class="picker-concept-items">${items}</ul>
+      <div class="picker-concept-foot">
+        <div class="picker-concept-includes">
+          <div class="picker-concept-includes-label">Includes</div>
+          <ul class="picker-concept-items">${items}</ul>
+        </div>
+        <button type="button" class="btn btn--md btn--ai picker-concept-create" data-action="create-concept" data-index="${index}">Create bundle</button>
       </div>
-      <button type="button" class="btn btn--md btn--ai picker-concept-create" data-action="create-concept" data-index="${index}">Create bundle</button>
     </div>
   `;
 }
