@@ -4523,7 +4523,9 @@ position: absolute;
      the price and the light block rather than stretching either one. */
   justify-content: space-between;
   gap: 16px;
-  padding: 0;
+  /* The foot paints its own fill and would cover the inset hairline, which a child always draws
+     over. 1px holds it clear on the three edges it reaches. */
+  padding: 0 1px 1px;
   border-radius: var(--rounded-28);
   background: var(--content-background-elevated);
   /* Clips the foot's square bottom to the card's own rounded corners */
