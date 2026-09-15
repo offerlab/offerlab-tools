@@ -56,6 +56,28 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+const DESCRIPTION_LIMIT = 200;
+
+// body_html is the merchant's own copy about what a product is for, which is the signal a
+// recommender needs; it arrives as markup and is often padded with care instructions.
+function plainDescription(html) {
+  const text = String(html || '')
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= DESCRIPTION_LIMIT) return text;
+  const cut = text.slice(0, DESCRIPTION_LIMIT);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}...`;
+}
+
 function normalizeProduct(product, storeUrl) {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   if (variants.length === 0) return null;
@@ -75,6 +97,8 @@ function normalizeProduct(product, storeUrl) {
     available: variants.some(v => v.available),
     vendor: product.vendor || '',
     productType: product.product_type || '',
+    description: plainDescription(product.body_html),
+    tags: Array.isArray(product.tags) ? product.tags.map(String) : [],
     variantCount: variants.length
   };
 }

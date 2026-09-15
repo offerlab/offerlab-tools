@@ -4249,13 +4249,21 @@ position: absolute;
   18%, 78% { opacity: var(--glow-lit); }
 }
 
-/* The banner ranges narrower than the rail below it */
+/* The banner ranges narrower than the rail below it, and takes the rail's full width once it is
+   carrying concept cards and needs the room. The jump is not tweened: a length-to-percentage
+   max-width will not interpolate, it parks at the start value, and the card swaps its whole
+   body at the same moment anyway. */
 .picker-concepts-layout {
   width: 100%;
   max-width: 1000px;
   margin-inline: auto;
   padding-block-start: 16px;
   padding-inline: 12px;
+}
+
+.picker-concepts-layout:has(.picker-concepts--ready),
+.picker-concepts-layout:has(.picker-concepts--loading) {
+  max-width: 100%;
 }
 
 /* Glow spans are siblings of the card, never children: the card isolates and paints an opaque
@@ -4485,15 +4493,37 @@ position: absolute;
 
 .picker-concept-thumbs {
   display: flex;
-  gap: 4px;
   align-items: center;
+  /* The pile leans past the card's padding on the left, so the first tile still clears it */
+  padding-left: 4px;
 }
 
 .picker-concept-thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   flex-shrink: 0;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Each tile overlaps the one before it, later tiles on top */
+.picker-concept-thumb + .picker-concept-thumb {
+  margin-left: -16px;
+}
+
+.picker-concept-thumb:nth-child(2) { z-index: 2; }
+.picker-concept-thumb:nth-child(3) { z-index: 3; }
+.picker-concept-thumb:nth-child(4) { z-index: 4; }
+
+/* The pile squares up and spreads under the cursor, so every product is legible on hover */
+.picker-concept:hover .picker-concept-thumb {
+  transform: rotate(0deg);
+  margin-left: -8px;
+}
+
+.picker-concept:hover .picker-concept-thumb:first-child {
+  margin-left: 0;
 }
 
 .picker-concept-more {
