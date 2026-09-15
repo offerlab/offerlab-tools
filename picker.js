@@ -722,7 +722,7 @@ function showAddPopover(anchor) {
 
   dom.popover.innerHTML = `
     <button type="button" class="picker-add-row picker-add-row--url" data-action="add-url">
-      <span class="picker-add-row-icon">${icon('plus-large', { size: 16 })}</span>
+      <span class="picker-add-row-icon">${icon('link-3-chain', { size: 16 })}</span>
       <span class="picker-add-row-labels"><span class="picker-add-row-name">Add a brand by URL</span></span>
     </button>
     ${rows ? `<div class="picker-add-divider"></div><div class="picker-add-list">${rows}</div>` : '<p class="picker-add-empty">Every recommended brand with a catalog is already here.</p>'}

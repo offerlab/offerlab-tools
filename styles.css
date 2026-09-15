@@ -4716,12 +4716,17 @@ position: absolute;
   width: 100%;
   padding: 8px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--rounded-full);
   background: transparent;
   text-align: left;
   cursor: pointer;
   color: var(--content-primary);
   font-family: var(--font-family);
+}
+
+/* The URL entry is the AI-free path in; it reads in moola like the other special actions */
+.picker-add-row--url {
+  color: var(--brand-secondary-moola);
 }
 
 .picker-add-row:hover {
@@ -4749,7 +4754,7 @@ position: absolute;
 }
 
 .picker-add-row-name {
-  font-size: var(--font-size-sm);
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
