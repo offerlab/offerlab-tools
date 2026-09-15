@@ -45,6 +45,7 @@ const state = {
   conceptsError: null,
   conceptsSummary: '',
   conceptsMinimized: false,
+  stackSignature: '',   // the image set the fan last played for
   copy: null,             // { headline, subtitle } written for this brand set
   copyKey: null,          // the brand set that copy belongs to
   copyAbort: null,
@@ -878,9 +879,14 @@ function conceptsHead({ title, subtitle, action, titleClass = '' }) {
 }
 
 // The stack arrives collapsed under the front card and fans to its slots on the next frame.
+// The fan is an entrance for a NEW set of images. Every product toggle re-renders this head, and
+// replaying it there made the pile flutter on a change that has nothing to do with what it shows.
 function fanOutStack() {
   const stack = dom.concepts.querySelector('.picker-stack');
   if (!stack) return;
+  const signature = [...stack.querySelectorAll('img')].map(img => img.src).join('|');
+  if (signature === state.stackSignature) return;
+  state.stackSignature = signature;
   stack.classList.add('picker-stack--entering');
   requestAnimationFrame(() => requestAnimationFrame(() => stack.classList.remove('picker-stack--entering')));
 }
