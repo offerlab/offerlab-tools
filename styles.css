@@ -6235,18 +6235,16 @@ position: absolute;
 
   /* Auto bases, not 0. Both of these are free to compress to nothing on the desktop pill, which
      at this width means the row always "fits" and the count is clipped rather than the actions
-     taking a line of their own. Their real widths have to count for the wrap to happen. */
+     taking a line of their own. Their real widths have to count for the wrap to happen.
+     The count takes the slack instead of the button, so the button stays its own size and still
+     ends on the pill's right edge. */
   .picker-tray-summary {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
   }
 
   .picker-tray-actions {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     margin-inline-start: 0;
-  }
-
-  .picker-tray-actions .btn {
-    flex: 1;
   }
 
   /* Clear becomes an eyebrow tucked under the pill's top edge instead of a third thing in a row
