@@ -6110,9 +6110,8 @@ position: absolute;
   }
 
   /* One card at a time, scrolled rather than stacked: a column of full cards would bury the
-     catalog below. Each card centres in the banner, so its neighbours bleed by the same amount on
-     both sides. The card is the full content width and the inline padding IS that bleed, which is
-     what lets the first and last card settle centred too rather than against an end. */
+     catalog below. A card centres in the banner so its neighbours bleed by the same amount on both
+     sides; the first and last have nowhere to scroll to reach that, so they rest on the padding. */
   .picker-concepts-grid {
     grid-area: 2 / 1 / auto / -1;
     flex-wrap: nowrap;
@@ -6138,16 +6137,6 @@ position: absolute;
     min-width: 0;
     max-width: none;
     scroll-snap-align: center;
-  }
-
-  /* The ends need the room their neighbours give the middle cards, or they cannot reach a centred
-     position and rest against the track's edge with a different bleed from everything else. */
-  .picker-concept:first-child {
-    margin-inline-start: 16px;
-  }
-
-  .picker-concept:last-child {
-    margin-inline-end: 16px;
   }
 
   /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
