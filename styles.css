@@ -1727,7 +1727,7 @@ position: absolute;
 
 .history-item {
   padding: 10px 8px 10px 16px;
-  border-radius: var(--rounded-2xl);
+  border-radius: var(--rounded-full);
   cursor: pointer;
   transition: background var(--transition-fast);
   display: flex;
