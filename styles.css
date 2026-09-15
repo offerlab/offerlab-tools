@@ -4466,7 +4466,7 @@ position: absolute;
   flex-direction: column;
   gap: var(--concept-gap);
   padding: 16px;
-  border-radius: 24px;
+  border-radius: var(--rounded-28);
   border: 1px solid var(--content-border-neutral);
   background: var(--content-background-elevated);
   box-shadow: var(--shadow-sm);
@@ -5366,7 +5366,14 @@ position: absolute;
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* The placeholder is the focused state's hint. At rest the floating label occupies that line, so
+   showing both would stack two pieces of grey text on each other. */
 .floating-input-field::placeholder {
+  color: transparent;
+  transition: color 150ms ease;
+}
+
+.floating-input:focus-within .floating-input-field::placeholder {
   color: var(--content-secondary);
 }
 
@@ -5393,10 +5400,10 @@ position: absolute;
   transition: top 0.2s ease-out, transform 0.2s ease-out;
 }
 
-/* Floats when focused, filled, or (as here) the field shows a placeholder of its own */
+/* Floats on focus or once the field holds a value, and drops back to the placeholder line when a
+   blurred field is empty */
 .floating-input:focus-within .floating-label,
-.floating-input .floating-input-field:not(:placeholder-shown) + .floating-label,
-.floating-input .floating-input-field[placeholder]:not([placeholder=' ']) + .floating-label {
+.floating-input .floating-input-field:not(:placeholder-shown) + .floating-label {
   top: 8px;
   transform: translateY(0) scale(0.75);
   line-height: 16px;
