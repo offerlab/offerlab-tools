@@ -625,21 +625,18 @@ async function generateConcepts() {
 function normalizeConcepts(raw, handles) {
   if (!Array.isArray(raw)) return [];
   const seller = sellerEntry().domain;
-  const used = new Set();
   return raw.map(c => {
     const picks = [];
     const perBrand = new Map();
     for (const handle of Array.isArray(c.products) ? c.products : []) {
       const hit = handles.get(String(handle).trim().toUpperCase());
       if (!hit) continue;
-      const key = productKey(hit.domain, hit.product.id);
       const count = perBrand.get(hit.domain) || 0;
-      if (used.has(key) || picks.some(p => p.product.id === hit.product.id) || count >= MAX_PICKS_PER_BRAND) continue;
+      if (picks.some(p => p.product.id === hit.product.id) || count >= MAX_PICKS_PER_BRAND) continue;
       perBrand.set(hit.domain, count + 1);
       picks.push(hit);
     }
     if (!picks.some(p => p.domain === seller) || !picks.some(p => p.domain !== seller)) return null;
-    picks.forEach(p => used.add(productKey(p.domain, p.product.id)));
     const angle = String(c.angle || '').trim().toLowerCase();
     return {
       name: String(c.name || 'Untitled bundle').trim(),
@@ -724,7 +721,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
 
   if (conceptsStatus === 'ready') {
     head = conceptsHead({
-      title: `${state.concepts.length} ways to pair these`,
+      title: `${state.concepts.length} ${state.concepts.length === 1 ? 'way' : 'ways'} to pair these`,
       subtitle: state.conceptsSummary || 'Four directions, one shared shopper.',
       action: `<button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
     });

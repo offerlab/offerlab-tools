@@ -4715,14 +4715,16 @@ position: absolute;
   color: var(--content-secondary);
 }
 
-/* Full bleed: the panel runs to the card's edges, so its own edge would only echo the card's */
+/* Full bleed to the card's sides, so it carries no border of its own. One step warmer than the
+   card's ground, which is what lets the top corners read as a curve. */
 .picker-concept-includes {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-top: 16px;
   padding: 12px 16px;
-  background: var(--background-light);
+  border-radius: var(--rounded-4xl) var(--rounded-4xl) 0 0;
+  background: var(--content-background-base);
 }
 
 /* body-md */
