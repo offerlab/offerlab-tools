@@ -4626,6 +4626,9 @@ position: absolute;
   /* Above the tiles' add controls, which carry a z-index of their own */
   z-index: 2;
   padding: 16px 16px 32px;
+  /* The column no longer clips (a header tooltip has to escape), so this opaque layer carries
+     the card's top corners itself or it paints square ones over them. */
+  border-radius: 32px 32px 0 0;
   --scrim-start: 72%;
 }
 
