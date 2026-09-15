@@ -4219,7 +4219,7 @@ position: absolute;
 .picker-section {
   --picker-column-width: 440px;
   --picker-column-min: 300px;
-  --picker-column-max: 900px;
+  --picker-column-max: 1200px;
   height: calc(100vh - var(--header-h, 0px));
   padding-top: 24px;
   max-width: 1400px;
@@ -5095,9 +5095,11 @@ position: absolute;
   position: relative;
   /* The brand columns divide the content area between them and nothing else, which is what keeps
      them centred in the viewport however many there are. Past the floor they hold it and scroll. */
+  /* A new column arrives at the width the first pair gets, rather than squeezing everything to fit:
+     the divisor stops at 2, so the third onward overflow and the rail paginates to them. */
   flex: 0 0 calc(
-    (var(--picker-content-width) - (var(--brand-count, 1) - 1) * var(--picker-columns-gap))
-    / var(--brand-count, 1)
+    (var(--picker-content-width) - (min(var(--brand-count, 1), 2) - 1) * var(--picker-columns-gap))
+    / min(var(--brand-count, 1), 2)
   );
   /* 300px leaves 268px inside the grid's padding, which auto-fill splits into two 120px tracks */
   min-width: min(var(--picker-column-min), 85vw);

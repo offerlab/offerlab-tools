@@ -296,6 +296,7 @@ async function addBrand(brand) {
   renderConcepts({ reveal: true, swap: true });
   refreshConceptsCopy();
   renderColumns();
+  // The new column arrives past the right edge once there are more than two, so page to it.
   scrollToColumn(domain);
   await ensureFullCatalog(brand);
   renderColumn(domain);
