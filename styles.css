@@ -4528,8 +4528,6 @@ position: absolute;
   padding: 0 1px 1px;
   border-radius: var(--rounded-28);
   background: var(--content-background-elevated);
-  /* Clips the foot's square bottom to the card's own rounded corners */
-  overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
   text-align: left;
   cursor: pointer;
@@ -4639,7 +4637,11 @@ position: absolute;
   flex-direction: column;
   gap: 0;
   background: var(--background-light);
-  border-radius: var(--rounded-4xl) var(--rounded-4xl) 0 0;
+  /* The foot shapes its own bottom rather than being clipped to the card's. Inside a 1px inset on
+     a 28px box the matching radius is 27px, and cutting it here means the fill and the hairline
+     are one curve instead of two arcs rasterised against each other. */
+  border-radius: var(--rounded-4xl) var(--rounded-4xl)
+    calc(var(--rounded-28) - 1px) calc(var(--rounded-28) - 1px);
 }
 
 .picker-concept-create {
