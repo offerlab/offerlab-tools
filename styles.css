@@ -6160,11 +6160,11 @@ position: absolute;
 
   /* Below the cards, the full span of the card. Row 2 while there are none yet, so the empty
      row does not spend a second gap on nothing. */
-  .picker-concepts-actions {
+  .picker-concepts-actions > .btn {
     grid-area: 2 / 1 / auto / -1;
   }
 
-  .picker-concepts:has(.picker-concepts-grid) .picker-concepts-actions {
+  .picker-concepts:has(.picker-concepts-grid) .picker-concepts-actions > .btn {
     grid-row: 3;
   }
 
@@ -6175,36 +6175,29 @@ position: absolute;
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .picker-concepts:has(.stop-button) .picker-concepts-actions {
+  .picker-concepts-actions > .stop-button {
     grid-area: 1 / 3;
     align-self: center;
   }
 
-  /* The pill exists to hold the minimise control next to the action, and that control is gone at
-     this size. With one button in it the wrapper is just a white box drawn around a button, so it
-     stops being a surface and the button goes back to standing on its own. */
+  /* The pill is a surface for the minimise control to sit on beside the action, and that control
+     is hidden at this size. Rather than unpick it one property at a time and leave a box that can
+     still stack with what it holds, it stops being a box at all: the button is the grid item. */
   .picker-concepts-actions {
-    padding: 0;
-    gap: 0;
-    background: none;
-    border-radius: 0;
-    box-shadow: none;
+    display: contents;
   }
 
-  .picker-concepts-actions .btn {
-    width: 100%;
-  }
-
-  /* Regenerate is a ghost on desktop because the pill around it carries the elevation. Without the
-     pill it has to carry its own. */
+  /* Regenerate is a ghost on desktop because the pill around it carried the elevation. Standing
+     on its own it is just the tool's elevated button: one border, one shadow. */
   .picker-concepts-actions .btn--ghost {
     background: var(--content-background-elevated);
-    box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
+    border-color: var(--content-border-neutral);
+    box-shadow: var(--shadow-sm);
   }
 
   .picker-concepts-actions .btn--ghost:hover {
     background: var(--content-background-base);
-    box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-md);
+    box-shadow: var(--shadow-md);
   }
 
   /* Same reasoning for the stop control: it gave up its disc to sit inside the pill. */
