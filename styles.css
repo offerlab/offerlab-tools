@@ -4763,6 +4763,7 @@ position: absolute;
 
 .picker-add-row-meta {
   font-size: var(--font-size-xs);
+  line-height: 16px;
   color: var(--content-secondary);
 }
 
