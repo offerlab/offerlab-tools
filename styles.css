@@ -4278,9 +4278,12 @@ position: absolute;
   --picker-column-min: 300px;
   --picker-column-max: 900px;
   --picker-body-max: 1400px;
+  /* Page gutter. The cap carries it on top of the body max, so the content box is still
+     --picker-body-max wide on a large screen and only narrower viewports pay for it. */
+  --picker-gutter: 24px;
   height: calc(100vh - var(--header-h, 0px));
-  padding-top: 24px;
-  max-width: var(--picker-body-max);
+  padding: 24px var(--picker-gutter) 0;
+  max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -5023,12 +5026,14 @@ position: absolute;
 /* The rail bleeds so more columns fit, not so they start at the viewport's edge: the track is
    inset back to the body container, which keeps the first pair centred on screen. */
 .picker-rail.is-bleeding {
-  --picker-bleed-gutter: max(0px, (100vw - var(--picker-body-max)) / 2);
+  --picker-bleed-gutter: max(var(--picker-gutter), (100vw - var(--picker-body-max)) / 2);
 }
 
 .picker-rail.is-bleeding .picker-columns {
-  /* The bleed already opens the room past the body's right edge that the add column needs. */
-  margin-right: -24px;
+  /* The bleed already opens the room past the body's right edge that the add column needs, so this
+     side holds back only the page gutter. */
+  margin-right: 0;
+  padding-right: var(--picker-gutter);
 }
 
 .picker-rail {
@@ -5102,7 +5107,7 @@ position: absolute;
   --picker-add-width: 96px;
   /* A column's default is a share of the BODY container, not of the scroll box: the rail bleeds out
      to the viewport so more columns fit, but that must not make each one wider. */
-  --picker-body-width: min(var(--picker-body-max), 100vw);
+  --picker-body-width: min(var(--picker-body-max), 100vw - 2 * var(--picker-gutter));
   display: flex;
   gap: var(--picker-columns-gap);
   align-items: stretch;
@@ -6002,6 +6007,7 @@ position: absolute;
 @media (max-width: 900px) {
   .picker-section {
     --picker-column-width: 85vw;
+    --picker-gutter: 20px;
   }
 
   .picker-concepts-head {
@@ -6009,11 +6015,10 @@ position: absolute;
     align-items: flex-start;
   }
 
-  /* Gutters instead of the section's own, and flush to the header: at this size the banner is the
-     first thing on screen and the bar above it already supplies the space. */
+  /* Flush to the header: at this size the banner is the first thing on screen and the bar above
+     it already supplies the space. */
   .picker-concepts-layout {
     padding-block-start: 0;
-    padding-inline: 20px;
   }
 
   /* THE PAGE SCROLLS, NOT THE SECTION. On a phone there is no room to pin the banner and the rail
