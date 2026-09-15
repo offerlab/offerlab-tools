@@ -5389,6 +5389,10 @@ position: absolute;
   padding: 0 20px;
 }
 
+.picker-tray-actions .btn--overlay {
+  padding-inline: 12px;
+}
+
 .btn[disabled] {
   opacity: 0.5;
   cursor: default;
