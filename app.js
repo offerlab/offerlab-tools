@@ -860,6 +860,19 @@ function createSearchedBrandCard(searchedBrand) {
   return group;
 }
 
+// Three bullets from the recommender; a cached result may still carry the old paragraph.
+function renderCardReason(brand) {
+  const bullets = Array.isArray(brand.reasons) ? brand.reasons.filter(Boolean) : [];
+  if (bullets.length) {
+    const items = bullets.map(text => `<li class="card-reason-item">${escapeHtml(text)}</li>`).join('');
+    return `<div class="card-reason-bubble"><ul class="card-reason">${items}</ul></div>`;
+  }
+  if (brand.reason) {
+    return `<div class="card-reason-bubble"><p class="card-reason card-reason--prose">${escapeHtml(brand.reason)}</p></div>`;
+  }
+  return '';
+}
+
 function createBrandCard(brand, index) {
   const url = brand?.url || '';
   const domain = extractDomain(url);
@@ -897,7 +910,7 @@ function createBrandCard(brand, index) {
       <div class="card-catalog-slot">${renderCatalogThumbs(brand.catalog)}</div>
     </div>
     <div class="card-body">
-      ${brand.reason ? `<div class="card-reason-bubble"><p class="card-reason">${brand.reason}</p></div>` : ''}
+      ${renderCardReason(brand)}
       <div class="card-actions">
         <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Build bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
@@ -2193,7 +2206,7 @@ Return valid JSON only:
       "url": "https://actualbrandwebsite.com",
       "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
       "brandStage": "emerging|growing|established",
-      "reason": "2-3 sentences explaining the SPECIFIC synergy with ${brandName}. Reference concrete details.",
+      "reasons": ["3 short bullets on why this collab works with ${brandName}. Each is its own angle: the shared customer moment, the aesthetic or values overlap, and what the pairing unlocks commercially. Under 12 words each, playful and concrete, naming real products or details rather than generic praise. No em dashes, no restating the brand's tagline."],
       "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
       "social": {
         "tiktok": "handle or null",

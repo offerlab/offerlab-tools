@@ -2430,14 +2430,38 @@ position: absolute;
 }
 
 .card-reason {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: var(--font-size-sm);
   color: var(--content-secondary);
   line-height: var(--line-height-sm);
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-reason--prose {
+  display: block;
+}
+
+.card-reason-item {
+  position: relative;
+  padding-left: 16px;
+}
+
+.card-reason-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  /* Centered on the first line's x-height rather than its box */
+  top: calc(var(--line-height-sm) / 2 - 2px);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand-secondary-mint);
 }
 
 /* Card Menu Button - matches history-item-remove-btn (clear button on recent search) */
