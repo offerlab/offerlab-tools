@@ -623,6 +623,17 @@ img {
   background: var(--content-background-overlay);
 }
 
+.btn--ghost {
+  background: transparent;
+  color: var(--content-primary);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn--ghost:hover {
+  background: var(--content-background-overlay);
+}
+
 /* Mirrors the app's button-secondary. --background-overlay is a translucent fill, so the blur
    gives the label something opaque enough to sit on wherever the button lands. */
 .btn--overlay {
@@ -4423,6 +4434,44 @@ position: absolute;
   gap: 6px;
 }
 
+/* Reads as one elevated button; the controls inside are ghosts so nothing competes with it */
+.picker-concepts-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
+}
+
+/* Matches the buttons it separates, so the pill reads as two segments of one control */
+.picker-concepts-actions-divider {
+  flex: 0 0 1px;
+  align-self: stretch;
+  background: var(--content-border-neutral);
+}
+
+/* Minimized: the card keeps its head and folds everything below it away */
+.picker-concepts.is-minimized {
+  gap: 0;
+  padding: 12px;
+}
+
+.picker-concepts.is-minimized .picker-concepts-body {
+  display: none;
+}
+
+/* The fanned pile is the expanded card's flourish; a chip is just the line and its controls. */
+.picker-concepts.is-minimized .picker-stack {
+  display: none;
+}
+
+.picker-concepts.is-minimized .picker-concepts-head {
+  gap: 16px;
+}
+
 /* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where
    the header's dark disc would read as a hole. */
 .picker-concepts-head .stop-button {
@@ -4430,6 +4479,18 @@ position: absolute;
   --stop-surface: var(--content-background-elevated);
   --stop-ink: var(--brand-secondary-moola);
 }
+
+/* The stop control already carries a disc; inside the pill it drops it and runs as a ghost */
+.picker-concepts-actions .stop-button {
+  --stop-surface: transparent;
+  box-shadow: none;
+}
+
+.picker-concepts-actions .stop-button:hover {
+  --stop-surface: var(--content-background-overlay);
+  transform: none;
+}
+
 
 
 /* Copy crossfades when the brand set changes, so the card updates rather than redrawing */

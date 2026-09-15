@@ -44,6 +44,7 @@ const state = {
   conceptsStatus: 'idle', // idle | loading | ready | error
   conceptsError: null,
   conceptsSummary: '',
+  conceptsMinimized: false,
   copy: null,             // { headline, subtitle } written for this brand set
   copyKey: null,          // the brand set that copy belongs to
   copyAbort: null,
@@ -800,7 +801,7 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     head = conceptsHead({
       title: `${state.concepts.length} ${state.concepts.length === 1 ? 'way' : 'ways'} to pair these`,
       subtitle: state.conceptsSummary || 'Four directions, one shared shopper.',
-      action: `<button type="button" class="btn btn--md btn--secondary" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
+      action: `<button type="button" class="btn btn--md btn--ghost" data-action="suggest">${icon('arrow-rotate-clockwise', { size: 14 })} Regenerate</button>`
     });
     body = `<div class="picker-concepts-grid">${state.concepts.map(renderConceptCard).join('')}</div>`;
   } else if (conceptsStatus === 'loading') {
@@ -825,8 +826,8 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     });
   }
 
-  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}`;
-  dom.concepts.innerHTML = `${head}${body}`;
+  dom.concepts.className = `picker-concepts picker-concepts--${conceptsStatus}${state.conceptsMinimized ? ' is-minimized' : ''}`;
+  dom.concepts.innerHTML = `${head}${body ? `<div class="picker-concepts-body" id="pickerConceptsBody">${body}</div>` : ''}`;
 
   fanOutStack();
   if (reveal) {
@@ -834,6 +835,21 @@ function renderConcepts({ reveal = false, swap = false } = {}) {
     playCardReveal();
   }
   if (swap) crossfadeCopy();
+}
+
+// The head's controls read as one elevated pill: whatever the current state offers, a hairline,
+// then minimize. The buttons inside are ghosts so the pill is the only raised thing.
+function conceptsActions(action) {
+  const minimized = state.conceptsMinimized;
+  return `
+    <div class="picker-concepts-actions">
+      ${action}
+      ${action ? '<span class="picker-concepts-actions-divider" aria-hidden="true"></span>' : ''}
+      <button type="button" class="btn btn--md btn--ghost btn--icon" data-action="toggle-minimize"
+        aria-expanded="${!minimized}" aria-controls="pickerConceptsBody"
+        aria-label="${minimized ? 'Expand bundle ideas' : 'Minimize bundle ideas'}"
+        >${minimized ? icon('expand-45', { size: 16 }) : icon('minimize-45', { size: 16 })}</button>
+    </div>`;
 }
 
 function conceptsHead({ title, subtitle, action, titleClass = '' }) {
@@ -844,7 +860,7 @@ function conceptsHead({ title, subtitle, action, titleClass = '' }) {
         <h3 class="picker-concepts-title${titleClass ? ` ${titleClass}` : ''}">${escapeHtml(title)}</h3>
         ${subtitle ? `<p class="picker-concepts-subtitle">${escapeHtml(subtitle)}</p>` : ''}
       </div>
-      ${action}
+      ${conceptsActions(action)}
     </div>`;
 }
 
@@ -1197,6 +1213,10 @@ function onSectionClick(e) {
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
     // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
     case 'create-concept': applyConcept(Number(target.dataset.index)); break;
+    case 'toggle-minimize':
+      state.conceptsMinimized = !state.conceptsMinimized;
+      renderConcepts();
+      break;
     case 'rail-prev': scrollRail(-1); break;
     case 'rail-next': scrollRail(1); break;
     case 'add-brand':
