@@ -4517,6 +4517,9 @@ position: absolute;
   max-width: 560px;
   display: flex;
   flex-direction: column;
+  /* Both blocks keep their own height; a card taller than its content opens the space between
+     the price and the light block rather than stretching either one. */
+  justify-content: space-between;
   gap: 16px;
   padding: 0;
   border-radius: var(--rounded-28);
@@ -4555,7 +4558,7 @@ position: absolute;
   overflow: hidden;
   min-height: 200px;
   /* The shadow belongs to a real card; a loading placeholder should not look liftable. */
-  background: rgba(38, 67, 57, 0.12);
+  background: rgba(38, 67, 57, 0.1);
   border-color: transparent;
   box-shadow: none;
   --dot-grid: 11px;
@@ -4631,9 +4634,6 @@ position: absolute;
 /* The Includes list and the button are one light block, so the card's 16px gap falls above it
    rather than between them; the button's own margin is the only space inside. */
 .picker-concept-foot {
-  /* Cards stretch to their row's tallest and the light block takes the slack, so the gap above it
-     stays exactly the card's own and the block still reaches the card's bottom edge. */
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -4735,9 +4735,7 @@ position: absolute;
   color: var(--content-secondary);
 }
 
-/* Absorbs the block's slack, which keeps the list at its top and the button at its bottom */
 .picker-concept-includes {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
