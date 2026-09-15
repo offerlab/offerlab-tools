@@ -4552,8 +4552,10 @@ position: absolute;
   position: relative;
   overflow: hidden;
   min-height: 200px;
-  background: var(--agent-surface-start);
+  /* The shadow belongs to a real card; a loading placeholder should not look liftable. */
+  background: rgba(38, 67, 57, 0.12);
   border-color: transparent;
+  box-shadow: none;
   --dot-grid: 11px;
   --dot-ink: var(--brand-secondary-moola);
   /* Blob diameter tracks the card, so a wide card gets wider light rather than more blobs */
