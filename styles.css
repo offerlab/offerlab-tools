@@ -4446,11 +4446,22 @@ position: absolute;
   box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
 }
 
-/* Matches the buttons it separates, so the pill reads as two segments of one control */
+/* Sits short of the buttons it separates, and gets out of the way once either is under the
+   cursor, so the hover fill is one clean shape rather than a fill with a line through it. */
 .picker-concepts-actions-divider {
   flex: 0 0 1px;
-  align-self: stretch;
+  height: 16px;
   background: var(--content-border-neutral);
+  transition: opacity 0.15s ease;
+}
+
+.picker-concepts-actions:has(button:hover) .picker-concepts-actions-divider {
+  opacity: 0;
+}
+
+/* A filled button already reads as its own edge, so the hairline is only for a pair of ghosts */
+.picker-concepts-actions:has(.btn--ai) .picker-concepts-actions-divider {
+  display: none;
 }
 
 /* Minimized: the card keeps its head and folds everything below it away */
