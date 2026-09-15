@@ -2940,7 +2940,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   isSearchCancelled = false;
   searchAbortController = new AbortController();
   
-  whipOutTiles();
+  // Only when there are tiles on screen to clear. A URL restore starts on the results view, and
+  // playing the exit there held them over it for the length of the animation.
+  if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) whipOutTiles();
   showSection('loading');
   
   // Set the results header search input to show current search (after header is visible)

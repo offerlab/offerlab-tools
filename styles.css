@@ -1034,6 +1034,9 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    App Container
    -------------------------------------------------------------------------- */
 .app-container {
+  /* No hold unless an exit animation asks for one: the tiles are gone the moment a section that
+     is not the landing page comes up. whipOutTiles() publishes the real duration while it plays. */
+  --tiles-exit: 0s;
   position: relative;
   min-height: calc(100vh - var(--header-h, 0px));
   width: 100%;
