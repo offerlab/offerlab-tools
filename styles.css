@@ -547,7 +547,8 @@ img {
 .picker-product-add svg,
 .picker-add-btn svg,
 .picker-column-action svg,
-.dialog-close svg {
+.dialog-close svg,
+.stop-button .stop-icon {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -560,7 +561,9 @@ img {
 .picker-column-action:hover svg,
 .picker-column-action:active svg,
 .dialog-close:hover svg,
-.dialog-close:active svg {
+.dialog-close:active svg,
+.stop-button:hover .stop-icon,
+.stop-button:active .stop-icon {
   transform: scale(1.1);
 }
 
@@ -1710,10 +1713,6 @@ body.showing-results .main-content {
   box-shadow: 0 4px 24px rgba(52, 46, 38, 0.15);
   cursor: pointer;
   transition: transform var(--transition-fast);
-}
-
-.stop-button:hover {
-  transform: scale(1.05);
 }
 
 /* The icon font's own spinner is replaced by the conic ring below */
@@ -4739,13 +4738,6 @@ position: absolute;
   --stop-surface: transparent;
   box-shadow: none;
 }
-
-.picker-concepts-actions .stop-button:hover {
-  --stop-surface: var(--content-background-overlay);
-  transform: none;
-}
-
-
 
 /* Copy crossfades when the brand set changes, so the card updates rather than redrawing */
 .picker-concepts-copy {
