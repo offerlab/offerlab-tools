@@ -69,6 +69,7 @@ export function initPicker() {
   dom.account = document.getElementById('offerlabAccount');
   dom.accountTeam = document.getElementById('offerlabAccountTeam');
   dom.account?.addEventListener('click', () => {
+    if (!offerlab.isConnected()) { connectOfferLab(); return; }
     offerlab.disconnect();
     refreshAccount();
   });
@@ -554,13 +555,27 @@ async function refreshAccount() {
   const chip = dom.account;
   if (!chip) return;
 
-  if (!offerlab.isEnabled() || !offerlab.isConnected()) {
+  if (!offerlab.isEnabled()) {
     chip.classList.add('hidden');
     renderTray();
     return;
   }
 
-  chip.classList.remove('hidden');
+  // Signed out, the same slot is the way in. Connecting used to be reachable only from the tray,
+  // which means only after searching, opening a picker and selecting something — by which point
+  // the operator has done the work and is told to go and sign in.
+  if (!offerlab.isConnected()) {
+    chip.classList.remove('hidden', 'is-limited');
+    chip.classList.add('is-disconnected');
+    dom.accountTeam.textContent = 'Connect OfferLab';
+    chip.title = 'Sign in to OfferLab to create bundles from here';
+    chip.setAttribute('aria-label', 'Connect to OfferLab');
+    renderTray();
+    return;
+  }
+
+  chip.classList.remove('hidden', 'is-disconnected');
+  chip.setAttribute('aria-label', 'Disconnect from OfferLab');
   dom.accountTeam.textContent = 'OfferLab';
   try {
     const { account } = await offerlab.loadAccount();
@@ -587,6 +602,15 @@ function draftName() {
 function setDraft(status, message, url = null) {
   state.draft = { status, message, url };
   renderTray();
+}
+
+async function connectOfferLab() {
+  try {
+    await offerlab.connect();
+  } catch (err) {
+    console.warn('[OfferLab] could not start sign-in:', err);
+    setDraft('error', err.message || 'Could not reach OfferLab');
+  }
 }
 
 /**

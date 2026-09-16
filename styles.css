@@ -6062,6 +6062,16 @@ position: absolute;
   background: var(--content-sentiment-negative);
 }
 
+/* Signed out: the same slot invites the sign-in, so it is reachable before the work, not after. */
+.offerlab-account.is-disconnected {
+  color: var(--content-secondary);
+}
+
+.offerlab-account.is-disconnected .offerlab-account-dot {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--content-tertiary, var(--content-secondary));
+}
+
 /* The header is already tight on a phone, and the tray says whether it is connected anyway. */
 @media (max-width: 900px) {
   .offerlab-account {
