@@ -6112,12 +6112,12 @@ position: absolute;
   background: var(--content-sentiment-negative);
 }
 
-/* chevron-bottom's path is inset 4 of its 24 viewBox on each side, so at 16px the glyph starts
-   ~3px into its own box and the 8px flex gap reads wider here than it does beside the avatar,
+/* chevron-bottom's path is inset 4 of its 24 viewBox on each side, so at 12px the glyph starts
+   2px into its own box and the 8px flex gap reads wider here than it does beside the avatar,
    whose circle goes edge to edge. Pulled back by that inset so both gaps look the same. */
 .offerlab-account-caret {
   display: inline-flex;
-  margin-left: -3px;
+  margin-left: -2px;
   opacity: 0.6;
 }
 
@@ -6125,10 +6125,12 @@ position: absolute;
   display: none;
 }
 
+/* The wrap is pulled 10px right so the ghost button's padding reads as gutter. The menu is a
+   solid surface, so it aligns to the real 20px edge instead and gives that pull back. */
 .offerlab-account-menu {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  right: 10px;
   min-width: 200px;
   padding: 6px;
   border-radius: var(--rounded-2xl);
