@@ -565,7 +565,8 @@ img {
 }
 
 .icon-button--medium {
-  padding: 12px;
+  /* 44px: 20px of icon, 11px either side, plus the 1px border. */
+  padding: 11px;
 }
 
 .icon-button--medium svg {
@@ -6022,7 +6023,7 @@ position: absolute;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 46px;
+  height: 44px;
   padding: 0 10px 0 8px;
   border: 1px solid var(--content-border-neutral);
   border-radius: var(--rounded-full);
