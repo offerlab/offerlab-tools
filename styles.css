@@ -411,9 +411,6 @@ button {
   font-variant-numeric: inherit;
 }
 
-body.showing-results {
-  background-color: var(--content-background-elevated);
-}
 .gap-2 {
   gap: 4px;
 }
