@@ -167,6 +167,9 @@
 
   /* Brand colors */
   --brand-primary-brew: #342E26FF;
+  --brand-primary-chocolate: #4D2F06FF;
+  --background-dark: #24201BFF;
+  --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
   --brand-secondary-spice: #713636FF;
@@ -207,6 +210,10 @@
   --mint-800: var(--brand-secondary-moola);
   --mint-900: #253C35FF;
   --mint-950: #11221DFF;
+  /* The lit end of the AI button's gradient: moola's hue and lightness with the saturation
+     pushed up, which is what chocolate is to brew. No mint step does this - they vary
+     lightness, not saturation. */
+  --moola-vivid: #11503A;
 
   /* Green palette */
   --green-50: #F3FCF1FF;
@@ -324,6 +331,7 @@
   --font-family: 'Aktiv Grotesk', sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
+  --line-height-sm: 1.125rem; /* 18px, the line for 14px type */
   --font-size-base: 1rem;
   --font-size-lg: 1.125rem;
   --font-size-xl: 1.25rem;
@@ -336,6 +344,9 @@
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
+  /* Side gutter for the page's own sections, so their content never sits on the viewport's edge
+     once the viewport is narrower than the section's cap. */
+  --page-gutter: 24px;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
   --spacing-3xl: 4rem;
@@ -371,12 +382,22 @@ html {
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
+  /* Aktiv Grotesk's proportional lining figures (pnum + lnum), as in the main app */
+  font-variant-numeric: proportional-nums lining-nums;
   color: var(--content-primary);
   background-color: var(--content-background-base);
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.25s ease;
+}
+
+/* Form controls reset font-variant-numeric in the UA stylesheet; keep their digits matching */
+input,
+select,
+textarea,
+button {
+  font-variant-numeric: inherit;
 }
 
 body.showing-results {
@@ -477,6 +498,7 @@ img {
   justify-content: center;
 }
 
+
 .header-nav-logo {
   display: inline-block;
 }
@@ -502,13 +524,39 @@ img {
   border-radius: 50%;
   color: var(--content-primary);
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--content-border-neutral);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+/* The GLYPH lifts, not the button: the box is a fixed size, so scaling it would shove its
+   neighbours. Ported from the app's .button-icon; :active covers touch, where there is no hover. */
+.icon-button svg,
+.picker-rail-btn svg,
+.picker-product-add svg,
+.picker-add-btn svg,
+.picker-column-action svg,
+.dialog-close svg {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-button:hover svg,
+.icon-button:active svg,
+.picker-rail-btn:hover svg,
+.picker-rail-btn:active svg,
+.picker-product:hover .picker-product-add svg,
+.picker-add-column:hover .picker-add-btn svg,
+.picker-column-action:hover svg,
+.picker-column-action:active svg,
+.dialog-close:hover svg,
+.dialog-close:active svg {
+  transform: scale(1.1);
+}
+
+/* Elevated buttons lift on hover: a step darker and a step further off the surface. */
 .icon-button:hover {
-  background: var(--content-background-overlay);
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
 }
 
 .icon-button:active {
@@ -522,6 +570,7 @@ img {
 
 .icon-button--medium svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -569,23 +618,28 @@ img {
   height: 32px;
   padding: 0 14px;
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
 }
 
 .btn--md svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
 }
 
-/* Primary button variant - solid dark background */
+/* Primary button variant: chocolate-to-brew gradient with an inset highlight, solid brew on hover */
 .btn--primary {
-  background: var(--content-primary);
+  background: linear-gradient(135deg, var(--brand-primary-chocolate), var(--brand-primary-brew));
   color: var(--content-background-elevated);
-  border-color: var(--content-primary);
+  border-color: var(--brand-primary-brew);
+  box-shadow: -0.5px -0.5px 1px #ffffff52 inset, 1px 1px 0.5px #ffffff52 inset, 0 4px 24px #0000003d;
 }
 
+/* Still a gradient on hover (both stops brew): swapping a gradient for a flat color
+   drops the background-image for a frame and blinks */
 .btn--primary:hover {
-  background: var(--content-secondary);
-  border-color: var(--content-secondary);
+  background: linear-gradient(135deg, var(--brand-primary-brew), var(--brand-primary-brew));
+  border-color: var(--brand-primary-brew);
 }
 
 /* Secondary button variant - light background with border (default .btn style) */
@@ -599,6 +653,32 @@ img {
   background: var(--content-background-overlay);
 }
 
+.btn--ghost {
+  background: transparent;
+  color: var(--content-primary);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn--ghost:hover {
+  background: var(--content-background-overlay);
+}
+
+/* Mirrors the app's button-secondary. --background-overlay is a translucent fill, so the blur
+   gives the label something opaque enough to sit on wherever the button lands. */
+.btn--overlay {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+  border-color: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.btn--overlay:hover {
+  background: var(--content-background-overlay-hover);
+}
+
 /* Card body - contains reason bubble and actions with tighter gap */
 .card-body {
   display: flex;
@@ -607,13 +687,223 @@ img {
 }
 
 /* Card action buttons container */
+/* --------------------------------------------------------------------------
+   Icons: constant stroke weight at any rendered size (mirrors the main app's
+   atelier/tailwind/base.css and icon_stroke.css, see OL-3740)
+   -------------------------------------------------------------------------- */
+/* user units = design stroke x viewBox / rendered px. The size utilities below and any
+   CSS rule that sizes an icon publish --icon-rendered; icons rendered with an explicit
+   size get it inline from icon(). */
+/* :where() keeps these defaults at zero specificity, so any rule that sizes an icon
+   can publish --icon-rendered without fighting for precedence. */
+:where(svg.icon) {
+  --icon-stroke: 1.5;
+  --icon-viewbox: 24;
+  --icon-rendered: 24;
+  flex-shrink: 0;
+}
+
+svg.icon path[stroke],
+svg.icon line[stroke],
+svg.icon circle[stroke],
+svg.icon rect[stroke],
+svg.icon polyline[stroke],
+svg.icon polygon[stroke] {
+  stroke-width: calc(var(--icon-stroke) * var(--icon-viewbox) / var(--icon-rendered));
+}
+
+svg.icon.stroke-width-2 { --icon-stroke: 2; }
+svg.icon.stroke-width-2\.5 { --icon-stroke: 2.5; }
+svg.icon.stroke-width-3 { --icon-stroke: 3; }
+
+svg.icon.icon-size-12 { width: 12px; height: 12px; --icon-rendered: 12; }
+svg.icon.icon-size-14 { width: 14px; height: 14px; --icon-rendered: 14; }
+svg.icon.icon-size-16 { width: 16px; height: 16px; --icon-rendered: 16; }
+svg.icon.icon-size-18 { width: 18px; height: 18px; --icon-rendered: 18; }
+svg.icon.icon-size-20 { width: 20px; height: 20px; --icon-rendered: 20; }
+svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
+
+/* --------------------------------------------------------------------------
+   Media treatments (from the main app's atelier utilities): a hairline frame drawn on a
+   pseudo-element so it survives the zoom, an opaque tile with a 4% richBlack veil over the
+   artwork, and a hover zoom. Hosts are positioned, rounded, and clip.
+
+   Both pseudo-elements are given a layer because the artwork takes one on hover: a transform
+   promotes the img into the positioned-descendant paint phase, where tree order puts it after
+   these two, and the veil and the frame dropped out from over it for as long as the cursor was
+   there. z-index 1 rather than more, so .picker-product-add still sits above both.
+   -------------------------------------------------------------------------- */
+.media-hairline,
+.media-tile {
+  position: relative;
+  overflow: hidden;
+}
+
+.media-hairline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  border: var(--media-hairline-width, 1px) solid var(--content-border-neutral);
+  pointer-events: none;
+}
+
+.media-tile {
+  background-color: var(--content-background-elevated);
+}
+
+.media-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background-color: rgba(11, 5, 29, 0.04);
+  pointer-events: none;
+}
+
+.media-tile > img,
+.media-hairline > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-zoom {
+  transition: transform 0.3s ease-out;
+}
+
+.card-catalog-thumb:hover .media-zoom,
+.picker-product:hover .media-zoom,
+.picker-product:active .media-zoom,
+.picker-concept:hover .media-zoom {
+  transform: scale(1.05);
+}
+
+/* --------------------------------------------------------------------------
+   Scrim (from the app's atelier/tailwind/scrim.css): a white veil that is solid up to
+   --scrim-start and eases to clear at --scrim-end. Set the knobs on the element that
+   wears it; the stop multipliers are the easing curve and stay as they are.
+   -------------------------------------------------------------------------- */
+.scrim {
+  --scrim-rgb: 255 255 255;
+  --scrim-angle: to bottom;
+  --scrim-start: 40%;
+  --scrim-end: 100%;
+  --scrim-span: calc(var(--scrim-end) - var(--scrim-start));
+  background-image: linear-gradient(
+    var(--scrim-angle),
+    rgb(var(--scrim-rgb) / 1) 0%,
+    rgb(var(--scrim-rgb) / 1) var(--scrim-start),
+    rgb(var(--scrim-rgb) / 0.987) calc(var(--scrim-start) + var(--scrim-span) * 0.08),
+    rgb(var(--scrim-rgb) / 0.951) calc(var(--scrim-start) + var(--scrim-span) * 0.157),
+    rgb(var(--scrim-rgb) / 0.896) calc(var(--scrim-start) + var(--scrim-span) * 0.227),
+    rgb(var(--scrim-rgb) / 0.825) calc(var(--scrim-start) + var(--scrim-span) * 0.29),
+    rgb(var(--scrim-rgb) / 0.741) calc(var(--scrim-start) + var(--scrim-span) * 0.353),
+    rgb(var(--scrim-rgb) / 0.648) calc(var(--scrim-start) + var(--scrim-span) * 0.412),
+    rgb(var(--scrim-rgb) / 0.55) calc(var(--scrim-start) + var(--scrim-span) * 0.472),
+    rgb(var(--scrim-rgb) / 0.45) calc(var(--scrim-start) + var(--scrim-span) * 0.53),
+    rgb(var(--scrim-rgb) / 0.352) calc(var(--scrim-start) + var(--scrim-span) * 0.588),
+    rgb(var(--scrim-rgb) / 0.259) calc(var(--scrim-start) + var(--scrim-span) * 0.648),
+    rgb(var(--scrim-rgb) / 0.175) calc(var(--scrim-start) + var(--scrim-span) * 0.71),
+    rgb(var(--scrim-rgb) / 0.104) calc(var(--scrim-start) + var(--scrim-span) * 0.777),
+    rgb(var(--scrim-rgb) / 0.049) calc(var(--scrim-start) + var(--scrim-span) * 0.847),
+    rgb(var(--scrim-rgb) / 0.013) calc(var(--scrim-start) + var(--scrim-span) * 0.92),
+    rgb(var(--scrim-rgb) / 0) var(--scrim-end)
+  );
+}
+
+/* The scrim's easing as a MASK, for a scroll box whose content should fade at both ends rather
+   than stop at a hard edge. Two ramps intersected: one written, used twice, the second flipped. */
+.scrim-mask-y {
+  --scrim-mask-fade: 24px;
+  --scrim-mask-ramp:
+    rgb(0 0 0 / 0) 0,
+    rgb(0 0 0 / 0.013) calc(var(--scrim-mask-fade) * 0.08),
+    rgb(0 0 0 / 0.049) calc(var(--scrim-mask-fade) * 0.153),
+    rgb(0 0 0 / 0.104) calc(var(--scrim-mask-fade) * 0.223),
+    rgb(0 0 0 / 0.175) calc(var(--scrim-mask-fade) * 0.29),
+    rgb(0 0 0 / 0.259) calc(var(--scrim-mask-fade) * 0.352),
+    rgb(0 0 0 / 0.352) calc(var(--scrim-mask-fade) * 0.412),
+    rgb(0 0 0 / 0.45) calc(var(--scrim-mask-fade) * 0.47),
+    rgb(0 0 0 / 0.55) calc(var(--scrim-mask-fade) * 0.528),
+    rgb(0 0 0 / 0.648) calc(var(--scrim-mask-fade) * 0.588),
+    rgb(0 0 0 / 0.741) calc(var(--scrim-mask-fade) * 0.647),
+    rgb(0 0 0 / 0.825) calc(var(--scrim-mask-fade) * 0.71),
+    rgb(0 0 0 / 0.896) calc(var(--scrim-mask-fade) * 0.773),
+    rgb(0 0 0 / 0.951) calc(var(--scrim-mask-fade) * 0.843),
+    rgb(0 0 0 / 0.987) calc(var(--scrim-mask-fade) * 0.92),
+    rgb(0 0 0 / 1) var(--scrim-mask-fade),
+    rgb(0 0 0 / 1) 100%;
+  -webkit-mask-image: linear-gradient(to bottom, var(--scrim-mask-ramp)), linear-gradient(to top, var(--scrim-mask-ramp));
+  mask-image: linear-gradient(to bottom, var(--scrim-mask-ramp)), linear-gradient(to top, var(--scrim-mask-ramp));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
 .card-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
 }
 
 .card-actions .btn {
   flex: 1;
+}
+
+/* Hover tooltip: a caption pill above the control, after the Shop app nav */
+.has-tooltip {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: var(--rounded-full);
+  border: 0.5px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  color: var(--content-primary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms, visibility 150ms;
+}
+
+.has-tooltip:hover .tooltip,
+.has-tooltip:focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+  /* Held back so passing the cursor over a control does not flash a label */
+  transition-delay: 200ms;
+}
+
+/* The card clips overflow by default; while a tooltip shows, let it overhang (the group lifts it above neighbors) */
+.result-card:has(.has-tooltip:hover),
+.result-card:has(.has-tooltip:focus-visible) {
+  overflow: visible;
+}
+
+@media (hover: none) {
+  .tooltip {
+    display: none;
+  }
+}
+
+/* Square icon-only variant of the medium button, e.g. the card's visit link */
+.btn--icon.btn--md {
+  flex: 0 0 auto;
+  width: 32px;
+  padding: 0;
 }
 
 /* Register custom property for animatable gradient angle */
@@ -753,8 +1043,11 @@ img {
    App Container
    -------------------------------------------------------------------------- */
 .app-container {
+  /* No hold unless an exit animation asks for one: the tiles are gone the moment a section that
+     is not the landing page comes up. whipOutTiles() publishes the real duration while it plays. */
+  --tiles-exit: 0s;
   position: relative;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-h, 0px));
   width: 100%;
   perspective: 1200px;
   perspective-origin: center center;
@@ -891,26 +1184,36 @@ img {
   }
 }
 
-/* Hide tiles when loading, results, empty, or error - only show on landing */
+/* Hide tiles when loading, results, empty, or error - only show on landing. The delay holds
+   them visible while they whip out; --tiles-exit is how long that takes, and the fast variant
+   below shortens both together so the tiles are never left sitting on the new view. */
 .app-container.showing-results .floating-tiles {
   pointer-events: none;
   visibility: hidden;
-  transition: visibility 0s linear 0.7s;
+  transition: visibility 0s linear var(--tiles-exit, 0.7s);
 }
 
 /* Whip-out animation: fade tiles right-to-left when search is submitted */
 .floating-tiles.whip-out .tile {
-  animation: tileWhipOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: tileWhipOut var(--tile-exit-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: calc(var(--tile-exit-stagger, 0.04s) * var(--tile-order, 0));
 }
 
-.floating-tiles.whip-out .tile-4 { animation-delay: 0s; }
-.floating-tiles.whip-out .tile-3 { animation-delay: 0.04s; }
-.floating-tiles.whip-out .tile-7 { animation-delay: 0.08s; }
-.floating-tiles.whip-out .tile-8 { animation-delay: 0.12s; }
-.floating-tiles.whip-out .tile-6 { animation-delay: 0.16s; }
-.floating-tiles.whip-out .tile-2 { animation-delay: 0.2s; }
-.floating-tiles.whip-out .tile-1 { animation-delay: 0.24s; }
-.floating-tiles.whip-out .tile-5 { animation-delay: 0.28s; }
+.floating-tiles .tile-4 { --tile-order: 0; }
+.floating-tiles .tile-3 { --tile-order: 1; }
+.floating-tiles .tile-7 { --tile-order: 2; }
+.floating-tiles .tile-8 { --tile-order: 3; }
+.floating-tiles .tile-6 { --tile-order: 4; }
+.floating-tiles .tile-2 { --tile-order: 5; }
+.floating-tiles .tile-1 { --tile-order: 6; }
+.floating-tiles .tile-5 { --tile-order: 7; }
+
+/* Jumping to a cached search has nothing to wait for, so the tiles clear out quickly
+   rather than holding the old view over the new one. */
+.floating-tiles.whip-out--fast .tile {
+  --tile-exit-duration: 0.2s;
+  --tile-exit-stagger: 0.015s;
+}
 
 @keyframes tileWhipOut {
   0% {
@@ -929,7 +1232,9 @@ img {
 .main-content {
   position: relative;
   z-index: var(--z-content);
-  min-height: 100vh;
+  /* The sticky header sits above this in flow, so a full 100vh here would always leave the
+     page 84px scrollable with nothing in it. */
+  min-height: calc(100vh - var(--header-h, 0px));
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -998,67 +1303,110 @@ img {
   transform: translateX(-50%);
   width: 100%;
   max-width: 600px;
-  padding: 8px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   isolation: isolate;
-  outline-width: 4px;
-  outline-style: solid;
-  outline-color: rgba(255, 255, 255, .2);
-  box-shadow: 0 4px 24px #0000001f, 0 0 0 4.5px #0000000a;
-  background: rgba(255, 255, 255, .95);
   border-radius: 32px;
   transition: min-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   z-index: 20;
   overflow: visible;
 }
 
-/* Focus state: animated gradient border glow */
-/*
-.omni-ai-box-container:focus-within {
-  transition: opacity 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+/* The form is the pill itself. Keeping the surface on a child (not the container) lets the
+   glow layers below paint behind it, so only their blurred edge shows past the pill. */
+.omni-ai-box-container > .search-form {
+  position: relative;
+  z-index: 1;
+  padding: 8px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  outline: 4px solid rgba(255, 255, 255, .2);
+  box-shadow: 0 4px 24px #0000001f, 0 0 0 4.5px #0000000a;
+  background: rgba(255, 255, 255, .95);
+  border-radius: 32px;
+}
+
+/* Focus glow, from the main app's AI input (atelier/ai_input.css): two conic layers behind the
+   pill, blurred outward so only a thin halo shows past its edge. Hidden at rest here; focus fades
+   them in and spins the colours around. The palette is the app's --ai-input-conic. */
+@property --ai-input-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes aiInputSpin {
+  to { --ai-input-angle: 360deg; }
+}
+
+:root {
+  --ai-input-conic: conic-gradient(
+    from var(--ai-input-angle),
+    #c6adff 0deg,
+    #b3bcff 22deg,
+    #a0cbff 45deg,
+    #b3bcff 90deg,
+    #c6adff 135deg,
+    #ddb8ff 157deg,
+    #f4c2ff 180deg,
+    #facddb 202deg,
+    #ffd8b7 225deg,
+    #facddb 270deg,
+    #f4c2ff 315deg,
+    #ddb8ff 337deg
+  );
+}
+
+.omni-ai-box-container::before,
+.omni-ai-box-container::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: var(--ai-input-conic);
+}
+
+.omni-ai-box-container::before {
+  inset: 0;
+  border-radius: 32px;
+  filter: blur(9px);
+}
+
+.omni-ai-box-container::after {
+  inset: -4px;
+  border-radius: 36px;
+  filter: blur(28px);
+}
+
+.omni-ai-box-container:focus-within::before,
+.omni-ai-box-container:focus-within::after {
+  animation: aiInputSpin 6s linear infinite;
+}
+
+.omni-ai-box-container:focus-within::before {
+  opacity: 0.6;
 }
 
 .omni-ai-box-container:focus-within::after {
-  content: "";
-  position: absolute;
-  top: -16px;
-  right: -16px;
-  bottom: -16px;
-  left: -16px;
-  pointer-events: none;
-  opacity: 0.08;
-  filter: blur(32px);
-  background: conic-gradient(from 0deg at 50% 50%, rgb(78, 0, 255) 0deg, rgb(0, 115, 255) 45deg, rgb(78, 0, 255) 135deg, rgb(208, 0, 255) 180deg, rgb(255, 116, 1) 225deg, rgb(208, 0, 255) 315deg);
-  animation: offerlab-collabFinder--glow 5s linear infinite;
-  animation-play-state: running;
-  z-index: 0;
+  opacity: 0.42;
 }
-*/
+
+@media (prefers-reduced-motion: reduce) {
+  .omni-ai-box-container::before,
+  .omni-ai-box-container::after {
+    animation: none;
+  }
+}
 
 .omni-ai-box-container:focus-within {
   z-index: 1000;
 }
 
-.omni-ai-box-container:focus-within .search-form {
-  border-radius: 24px;
-  position: relative;
-  z-index: 1;
+/* Opaque while focused so the halo shows only past the edge, never through the pill */
+.omni-ai-box-container:focus-within > .search-form {
+  background: var(--content-background-elevated);
 }
 
-@keyframes offerlab-collabFinder--glow {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-
-.omni-ai-box-container .search-form {
-  position: relative;
-  background: transparent;
-}
 
 .omni-ai-box-container .search-input-wrapper {
   background: transparent;
@@ -1110,14 +1458,82 @@ img {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--font-size-lg);
   color: var(--content-secondary);
   pointer-events: none;
   white-space: nowrap;
   overflow: hidden;
   max-width: calc(100% - 80px);
-  text-align: center;
   transition: opacity 0.3s ease-out;
+}
+
+/* Header composer at rest: the searched brand as favicon + domain, centered like the placeholder */
+.search-display {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-lg);
+  color: var(--content-primary);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: calc(100% - 80px);
+}
+
+.search-display.hidden {
+  display: none;
+}
+
+.search-display-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--rounded-full);
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  flex-shrink: 0;
+  /* Optical: lowercase glyphs sit below the line box's center, so the ring drops 1px to meet them */
+  transform: translateY(1px);
+}
+
+.search-display-avatar img {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--rounded-full);
+  object-fit: cover;
+}
+
+.search-input-wrapper.showing-display .search-input {
+  color: transparent;
+  caret-color: transparent;
+}
+
+.typing-placeholder-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  animation: typing-avatar-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes typing-avatar-in {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-placeholder-avatar {
+    animation: none;
+  }
 }
 
 .typing-placeholder.fade-out {
@@ -1145,7 +1561,7 @@ img {
   color: var(--content-primary);
   background: transparent;
   padding: 4px 48px 4px 20px;
-  text-align: center;
+  text-align: left;
 }
 
 /* Results/header search: always left-align (shows submitted search) */
@@ -1173,53 +1589,70 @@ img {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: var(--brand-primary-shine);
+  /* The moola treatment from .btn--ai: the same gradient and inset highlights, over an outer
+     glow cast in moola rather than that variant's neutral black. */
+  background: linear-gradient(135deg, var(--moola-vivid), var(--brand-secondary-moola));
   border-radius: 50%;
-  color: var(--content-background-elevated);
+  color: var(--white);
   transition: background var(--transition-fast), transform var(--transition-fast);
-  box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(255, 237, 132, 0.8) 0px 4px 24px 0px;
+  box-shadow:
+    -0.5px -0.5px 1px #ffffff52 inset,
+    1px 1px 0.5px #ffffff52 inset,
+    0 4px 24px rgba(38, 67, 57, 0.4);
 }
 
-/* Stop button variant (during search) */
-.search-button--stop {
+/* Circular stop control with a sweeping ring. Set --stop-size to fit the row it sits in. */
+.stop-button {
+  --stop-size: 40px;
+  --stop-surface: var(--content-primary);
+  --stop-ink: var(--white);
   position: relative;
-  background-color: var(--content-primary);
-  box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(52,46,38, 0.15) 0px 4px 24px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--stop-size);
+  height: var(--stop-size);
+  border: none;
+  border-radius: 50%;
+  background-color: var(--stop-surface);
+  box-shadow: 0 4px 24px rgba(52, 46, 38, 0.15);
   cursor: pointer;
+  transition: transform var(--transition-fast);
 }
 
-.search-button--stop:hover {
+.stop-button:hover {
   transform: scale(1.05);
 }
 
-/* Hide the SVG spinner ring, use pseudo-element instead for gradient */
-.search-button--stop .spinner-ring {
+/* The icon font's own spinner is replaced by the conic ring below */
+.stop-button .spinner-ring {
   display: none;
 }
 
-/* Gradient spinner using conic-gradient */
-.search-button--stop::before {
+.stop-button::before {
   content: '';
   position: absolute;
-  width: 32px;
-  height: 32px;
+  inset: calc(var(--stop-size) * 0.1);
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(255, 255, 255, 1) 270deg,
-    transparent 360deg
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), var(--content-primary) calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), var(--content-primary) calc(100% - 2.5px));
+  background: conic-gradient(from 0deg, transparent 0deg, var(--stop-ink) 270deg, transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
   animation: spin-ring 1s linear infinite;
 }
 
-.search-button--stop .stop-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--white);
+.stop-button .stop-icon {
+  width: calc(var(--stop-size) * 0.4);
+  height: calc(var(--stop-size) * 0.4);
+  --icon-rendered: calc(var(--stop-size) * 0.4);
+  color: var(--stop-ink);
   z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stop-button::before {
+    animation: none;
+  }
 }
 
 @keyframes spin-ring {
@@ -1326,9 +1759,10 @@ position: absolute;
 }
 
 .search-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--content-primary);
+  width: 18px;
+  --icon-rendered: 18;
+  height: 18px;
+  color: var(--white);
 }
 
 /* --------------------------------------------------------------------------
@@ -1377,7 +1811,7 @@ position: absolute;
   padding-right: 16px;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: var(--line-height-sm);
   letter-spacing: -.2px;
   color: var(--content-secondary);
 }
@@ -1420,7 +1854,7 @@ position: absolute;
 
 .history-item {
   padding: 10px 8px 10px 16px;
-  border-radius: var(--rounded-2xl);
+  border-radius: var(--rounded-full);
   cursor: pointer;
   transition: background var(--transition-fast);
   display: flex;
@@ -1460,6 +1894,7 @@ position: absolute;
 
 .history-item-remove-icon {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
 }
 
@@ -1480,6 +1915,7 @@ position: absolute;
   text-align: center;
   color: var(--content-tertiary);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -1606,9 +2042,10 @@ position: absolute;
    Results Section
    -------------------------------------------------------------------------- */
 .results-section {
-  padding-top: 72px;
-  padding-bottom: 72px;
-  max-width: 1154px;
+  padding: 72px var(--page-gutter);
+  /* Same as the picker's: the cap carries the gutter, so the content box is still 1154px wide on
+     a large screen and the narrower ones get their sides back. */
+  max-width: calc(1154px + 2 * var(--page-gutter));
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -1668,13 +2105,34 @@ position: absolute;
   text-decoration: none;
   color: inherit;
   overflow: hidden;
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.searched-brand-card:hover {
-  box-shadow: var(--shadow-md);
+.searched-brand-card-group,
+.result-card-group {
+  display: flex;
+  flex-direction: column;
+  animation: cardFadeIn 0.4s ease forwards;
+  opacity: 0;
+  transition: transform var(--transition-base);
+}
+
+.searched-brand-card-group:hover,
+.result-card-group:hover {
   transform: translateY(-2px);
+}
+
+.searched-brand-card-group:hover .searched-brand-card,
+.result-card-group:hover .result-card {
+  box-shadow: var(--shadow-md);
+}
+
+/* A popover or tooltip inside the card has to clear the neighboring groups */
+.result-card-group:has(.popover-open),
+.result-card-group:has(.has-tooltip:hover),
+.result-card-group:has(.has-tooltip:focus-visible) {
+  z-index: var(--z-popover-overlay);
 }
 
 .searched-brand-card-image {
@@ -1742,19 +2200,51 @@ position: absolute;
 
 .searched-brand-card-url {
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   color: var(--content-tertiary);
   margin-top: 2px;
 }
 
-.searched-brand-card-external-wrapper {
+/* Visit control in the name row: platform mark + external-link icon, as one elevated button.
+   Decorative only; the card itself is the link. */
+.searched-brand-card-link-slot {
   flex-shrink: 0;
+  margin-left: auto;
 }
 
-.searched-brand-card-external {
-  pointer-events: none;
-  background: var(--content-background-base);
-  box-shadow: none;
-  border: none;
+/* An elevated pill holding two ghost circles: the platform mark and the external arrow.
+   Hovering the pill itself reveals the arrow's ghost background, like an icon button;
+   the pill sits inside the card link, so clicking it still opens the site. */
+.searched-brand-card-link {
+  gap: 0;
+  padding: 2px;
+  width: auto;
+}
+
+.searched-brand-card-link-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+/* The generic .btn hover fill stays off the pill; only the arrow circle responds */
+.searched-brand-card-link:hover {
+  background: var(--content-background-elevated);
+}
+
+.searched-brand-card-link:hover .searched-brand-card-link-ghost--external {
+  background: var(--content-background-overlay);
+}
+
+.searched-brand-card-link .searched-brand-card-link-platform {
+  width: 18px;
+  height: 18px;
+  --icon-rendered: 18;
 }
 
 .searched-brand-card-description {
@@ -1786,15 +2276,14 @@ position: absolute;
    -------------------------------------------------------------------------- */
 .result-card {
   background: var(--content-background-elevated);
-  border-radius: var(--rounded-2xl);
-  border-radius: 36px;
+  border-radius: 32px;
   border: 0.5px solid var(--content-border-neutral);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition: box-shadow var(--transition-base);
   position: relative;
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
+  z-index: 1;
+  flex: 1;
   overflow: hidden;
   padding: 16px;
   display: flex;
@@ -1802,23 +2291,165 @@ position: absolute;
   gap: 24px;
 }
 
-.result-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
 .result-card.popover-open {
   overflow: visible;
-  z-index: var(--z-popover-overlay);
-}
-
-.product-card.popover-open {
-  overflow: visible;
-  z-index: var(--z-popover-overlay);
 }
 
 .card-header-wrapper {
   flex: 1;
+}
+
+/* Catalog strip: thumbnails inside the card; the source and count ride the chinstrap below it */
+.card-catalog-slot:not(:empty) {
+  margin-top: 16px;
+}
+
+.card-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-catalog-thumbs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+
+.card-catalog-thumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.card-catalog-thumb {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  border-radius: 20px;
+}
+
+/* Overflow tile: the last image under a blurred 20% black scrim with the remaining count */
+.card-catalog-thumb--more {
+  isolation: isolate;
+}
+
+/* A backdrop-filter layer ignores the parent's rounded clip, so the scrim rounds itself */
+.card-catalog-thumb-count {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--white);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+}
+
+.card-catalog--loading .card-catalog-thumb {
+  background: var(--content-background-base);
+  animation: catalog-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes catalog-shimmer {
+  50% { opacity: 0.4; }
+}
+
+.searched-brand-card .card-catalog-slot:not(:empty) {
+  margin-top: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   Tuck banner (ported from the main app's atelier/tailwind/tuck_banner.css)
+   A bar that tucks BEHIND a rounded card. Two concave notches, painted in the
+   bar's color, fill the gap the card's rounded corners leave, so the card nests
+   into the bar. Set --tuck-color once and --tuck-radius to the card's radius.
+   -------------------------------------------------------------------------- */
+.tuck-banner {
+  --tuck-color: var(--content-primary);
+  --tuck-radius: 28px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-weight: 500;
+  color: var(--content-background-elevated);
+  background-color: var(--tuck-color);
+}
+
+.tuck-banner--chinstrap {
+  padding: 8px 16px;
+  font-size: var(--font-size-xs);
+  border-radius: 0 0 var(--tuck-radius) var(--tuck-radius);
+}
+
+.tuck-banner__notch {
+  position: absolute;
+  pointer-events: none;
+  width: var(--tuck-radius);
+  height: var(--tuck-radius);
+}
+
+.tuck-banner__notch--left {
+  left: 0;
+}
+
+.tuck-banner__notch--right {
+  right: 0;
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch {
+  bottom: 100%;
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch--left {
+  background: radial-gradient(circle at top right, transparent var(--tuck-radius), var(--tuck-color) var(--tuck-radius));
+}
+
+.tuck-banner--chinstrap .tuck-banner__notch--right {
+  background: radial-gradient(circle at top left, transparent var(--tuck-radius), var(--tuck-color) var(--tuck-radius));
+}
+
+/* Catalog chinstrap: source on the left, count on the right, dark bar with white text */
+.card-chinstrap {
+  --tuck-color: var(--content-background-base);
+  color: var(--content-primary);
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 24px;
+}
+
+.card-chinstrap-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.card-chinstrap-count {
+  white-space: nowrap;
+  color: var(--content-secondary);
+}
+
+.icon-spin {
+  animation: icon-spin 0.9s linear infinite;
+}
+
+@keyframes icon-spin {
+  to { transform: rotate(360deg); }
+}
+
+.searched-brand-card .card-catalog-thumbs {
+  margin: 0;
+  padding: 0;
 }
 
 @keyframes cardFadeIn {
@@ -1876,6 +2507,7 @@ position: absolute;
 
 .card-url {
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   color: var(--content-tertiary);
   white-space: nowrap;
   overflow: hidden;
@@ -1916,14 +2548,38 @@ position: absolute;
 }
 
 .card-reason {
-  font-size: var(--font-size-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
   color: var(--content-secondary);
-  line-height: 1.5;
+  line-height: var(--line-height-sm);
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-reason--prose {
+  display: block;
+}
+
+.card-reason-item {
+  position: relative;
+  padding-left: 16px;
+}
+
+.card-reason-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  /* Centered on the first line's x-height rather than its box */
+  top: calc(var(--line-height-sm) / 2 - 2px);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand-secondary-mint);
 }
 
 /* Card Menu Button - matches history-item-remove-btn (clear button on recent search) */
@@ -1944,9 +2600,7 @@ position: absolute;
 }
 
 .result-card:hover .card-menu-btn,
-.product-card:hover .card-menu-btn,
-.result-card.popover-open .card-menu-btn,
-.product-card.popover-open .card-menu-btn {
+.result-card.popover-open .card-menu-btn {
   opacity: 1;
 }
 
@@ -1956,6 +2610,7 @@ position: absolute;
 
 .card-menu-icon {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
 }
 
@@ -2006,6 +2661,7 @@ position: absolute;
 
 .social-link-external {
   width: 16px;
+  --icon-rendered: 16;
   height: 16px;
   flex-shrink: 0;
   margin-left: auto;
@@ -2020,6 +2676,7 @@ position: absolute;
 
 .social-icon {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   flex-shrink: 0;
 }
@@ -2095,6 +2752,7 @@ position: absolute;
 
 .feedback-icon {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -2196,6 +2854,9 @@ position: absolute;
   .omni-ai-box-container {
     max-width: none;
     width: 100%;
+  }
+
+  .omni-ai-box-container > .search-form {
     padding: 4px;
   }
 
@@ -2223,8 +2884,10 @@ position: absolute;
     width: auto;
   }
 
+  /* Wider gutters than the bar is tall: the controls sit closer to the screen's sides than to
+     its top. Beats .header-nav--results' own longhand padding on source order. */
   .header-nav {
-    padding: 24px;
+    padding: 16px 20px;
   }
 
   .typing-placeholder {
@@ -2237,6 +2900,7 @@ position: absolute;
 
   .tagline {
     font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   }
 
   .search-input {
@@ -2281,8 +2945,6 @@ position: absolute;
 
   .results-section {
     padding-top: 0;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
     padding-bottom: var(--spacing-lg);
   }
 
@@ -2351,404 +3013,18 @@ position: absolute;
 }
 
 /* --------------------------------------------------------------------------
-   Product Card (Tile Layout with Image)
-   -------------------------------------------------------------------------- */
-.product-card {
-  position: relative;
-  cursor: pointer;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-  animation: cardFadeIn 0.4s ease forwards;
-  opacity: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.product-card:hover {
-}
-
-
-.product-image-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background-color: var(--content-background-elevated);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  border-radius: 24px;
-}
-
-.product-image-container:after {
-  content: "";
-  border: 1px solid var(--content-border-neutral);
-  background-color: rgba(0, 0, 0, 0.04);
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  position: absolute;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.product-image-container.no-image {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--content-background-base) 0%, var(--content-background-elevated) 100%);
-}
-
-.product-image-container.no-image::after {
-  content: '';
-  width: 48px;
-  height: 48px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0.4;
-}
-
-.product-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.product-card:hover .product-image {
-  transform: scale(1.03);
-}
-
-/* Product card menu: same as brand card-menu-btn but with solid bg for contrast on images */
-.product-menu-btn {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  background: var(--content-background-elevated);
-  border: 1px solid var(--content-border-neutral);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.card-menu-btn:hover:active .product-menu-btn:hover:active {
-  background: var(--content-background-elevated) !important;
-  opacity: 1;
-}
-
-.product-brand-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
-}
-
-.product-favicon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--rounded-full);
-  object-fit: contain;
-  background: var(--content-background-base);
-  padding: 4px;
-}
-
-.product-brand-name {
-  font-size: var(--font-size-sm);
-  color: var(--content-secondary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.product-name {
-  font-size: var(--font-size-sm);
-  color: var(--content-primary);
-  font-weight: 500;
-  margin-bottom: var(--spacing-xs);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.3;
-}
-
-.product-reason {
-  font-size: var(--font-size-sm);
-  color: var(--content-tertiary);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0;
-}
-
-/* Products Grid - Wrapping grid layout */
-#productsGrid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-}
-
-@media (max-width: 1023px) {
-  #productsGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  #productsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-#productsGrid .product-card {
-  min-width: 0;
-}
-
-/* --------------------------------------------------------------------------
    Animation Delays for Staggered Card Appearance
    -------------------------------------------------------------------------- */
-.result-card:nth-child(1),
-.product-card:nth-child(1) { animation-delay: 0.05s; }
-.result-card:nth-child(2),
-.product-card:nth-child(2) { animation-delay: 0.1s; }
-.result-card:nth-child(3),
-.product-card:nth-child(3) { animation-delay: 0.15s; }
-.result-card:nth-child(4),
-.product-card:nth-child(4) { animation-delay: 0.2s; }
-.result-card:nth-child(5),
-.product-card:nth-child(5) { animation-delay: 0.25s; }
-.result-card:nth-child(6),
-.product-card:nth-child(6) { animation-delay: 0.3s; }
-.result-card:nth-child(7),
-.product-card:nth-child(7) { animation-delay: 0.35s; }
-.result-card:nth-child(8) { animation-delay: 0.4s; }
-.result-card:nth-child(9) { animation-delay: 0.45s; }
-.result-card:nth-child(10) { animation-delay: 0.5s; }
-
-/* --------------------------------------------------------------------------
-   Products Loading States
-   -------------------------------------------------------------------------- */
-
-/* Spinner + Shimmer Text Loading State */
-.products-loading {
-  display: flex;
-  padding: var(--spacing-2xl) var(--spacing-lg);
-}
-
-.products-loading.hidden {
-  display: none;
-}
-
-.products-loading-spinner {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-/* Four-dot rotating loader */
-.products-loading-spinner .loader {
-  width: 16px;
-  aspect-ratio: 1;
-  --_g: no-repeat radial-gradient(farthest-side, var(--content-primary) 94%, #0000);
-  background:
-    var(--_g) 0 0,
-    var(--_g) 100% 0,
-    var(--_g) 100% 100%,
-    var(--_g) 0 100%;
-  background-size: 40% 40%;
-  animation: loader-spin .5s infinite;
-}
-
-@keyframes loader-spin {
-  100% { background-position: 100% 0, 100% 100%, 0 100%, 0 0; }
-}
-
-.products-loading-text {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  background: var(--agent-task-grady, linear-gradient(90deg, var(--content-text-placeholder, rgba(52, 46, 38, 0.32)) 0%, var(--content-primary, #342E26) 50%, var(--content-text-placeholder, rgba(52, 46, 38, 0.32)) 100%));
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: loadingTextShimmer 5s linear infinite;
-}
-
-/* Skeleton UI Preloader */
-.products-skeleton {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-}
-
-.products-skeleton.hidden {
-  display: none;
-}
-
-.skeleton-card {
-  aspect-ratio: 1;
-  background: var(--surface-secondary);
-  border-radius: var(--radius-lg);
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes skeleton-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* Products Grid Fade In */
-#productsGrid {
-  opacity: 1;
-  transition: opacity 0.4s ease-out;
-}
-
-#productsGrid.fade-in {
-  animation: products-fade-in 0.5s ease-out forwards;
-}
-
-@keyframes products-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Out of Credits State */
-.products-out-of-credits {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  text-align: center;
-}
-
-.products-out-of-credits.hidden {
-  display: none;
-}
-
-/* 3D Coins Animation */
-.coins-animation {
-  position: relative;
-  width: 120px;
-  height: 80px;
-  margin-bottom: var(--spacing-lg);
-  perspective: 500px;
-}
-
-.coin {
-  position: absolute;
-  font-size: 48px;
-  animation: coin-bounce 2s ease-in-out infinite;
-  transform-style: preserve-3d;
-}
-
-.coin-1 {
-  left: 10px;
-  top: 10px;
-  animation-delay: 0s;
-}
-
-.coin-2 {
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
-  animation-delay: 0.3s;
-}
-
-.coin-3 {
-  right: 10px;
-  top: 10px;
-  animation-delay: 0.6s;
-}
-
-@keyframes coin-bounce {
-  0%, 100% {
-    transform: translateY(0) rotateY(0deg) rotateX(10deg);
-  }
-  25% {
-    transform: translateY(-20px) rotateY(180deg) rotateX(-10deg);
-  }
-  50% {
-    transform: translateY(0) rotateY(360deg) rotateX(10deg);
-  }
-  75% {
-    transform: translateY(-10px) rotateY(540deg) rotateX(-5deg);
-  }
-}
-
-.out-of-credits-title {
-  font-size: var(--font-size-xl);
-  font-weight: 600;
-  color: var(--content-primary);
-  margin: 0 0 var(--spacing-sm) 0;
-}
-
-.out-of-credits-message {
-  font-size: var(--font-size-base);
-  color: var(--content-secondary);
-  margin: 0 0 var(--spacing-lg) 0;
-  max-width: 300px;
-}
-
-.refill-credits-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--content-primary);
-  color: var(--white);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  border-radius: var(--radius-full);
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.refill-credits-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Responsive Skeleton Grid */
-@media (max-width: 1023px) {
-  .products-skeleton {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .products-skeleton {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .products-loading {
-    padding: var(--spacing-xl) var(--spacing-md);
-  }
-}
+.result-card-group:nth-child(1) { animation-delay: 0.05s; }
+.result-card-group:nth-child(2) { animation-delay: 0.1s; }
+.result-card-group:nth-child(3) { animation-delay: 0.15s; }
+.result-card-group:nth-child(4) { animation-delay: 0.2s; }
+.result-card-group:nth-child(5) { animation-delay: 0.25s; }
+.result-card-group:nth-child(6) { animation-delay: 0.3s; }
+.result-card-group:nth-child(7) { animation-delay: 0.35s; }
+.result-card-group:nth-child(8) { animation-delay: 0.4s; }
+.result-card-group:nth-child(9) { animation-delay: 0.45s; }
+.result-card-group:nth-child(10) { animation-delay: 0.5s; }
 
 /* --------------------------------------------------------------------------
    Modal
@@ -2841,6 +3117,7 @@ position: absolute;
 
 .modal-close-btn svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
 }
 
@@ -3008,7 +3285,7 @@ position: absolute;
   font-size: var(--font-size-sm);
   color: var(--content-primary);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--line-height-sm);
 }
 
 /* --- Quick Links Card --- */
@@ -3125,7 +3402,7 @@ position: absolute;
   font-size: var(--font-size-sm);
   color: var(--content-secondary);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--line-height-sm);
 }
 
 .modal-subtitle strong {
@@ -3247,6 +3524,7 @@ position: absolute;
 /* Stop icon */
 .pitch-toolbar-stop-svg {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   color: var(--content-primary);
   z-index: 1;
@@ -3288,6 +3566,7 @@ position: absolute;
   border: 1px solid var(--ol-border);
   border-radius: var(--ol-radius-sm);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   font-family: var(--font-family);
   color: var(--content-primary);
   background: var(--content-background-elevated);
@@ -3305,7 +3584,7 @@ position: absolute;
 .pitch-description {
   font-size: var(--font-size-sm);
   color: var(--ol-gray);
-  line-height: 1.55;
+  line-height: var(--line-height-sm);
   max-width: 480px;
   margin: 0;
 }
@@ -3513,6 +3792,7 @@ position: absolute;
 
 .pitch-error-icon {
   width: 48px;
+  --icon-rendered: 48;
   height: 48px;
   color: var(--content-sentiment-warning);
 }
@@ -3522,7 +3802,7 @@ position: absolute;
   color: var(--ol-gray);
   margin: 0;
   max-width: 400px;
-  line-height: 1.5;
+  line-height: var(--line-height-sm);
 }
 
 .pitch-try-again-btn {
@@ -3535,6 +3815,7 @@ position: absolute;
   border: none;
   border-radius: var(--rounded-full);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
@@ -3592,6 +3873,7 @@ position: absolute;
 
 .pitch-section-chevron {
   width: 20px;
+  --icon-rendered: 20;
   height: 20px;
   color: var(--content-primary);
   flex-shrink: 0;
@@ -3643,7 +3925,7 @@ position: absolute;
 .pitch-channel-reasoning {
   font-size: var(--font-size-sm);
   color: var(--ol-gray);
-  line-height: 1.6;
+  line-height: var(--line-height-sm);
   margin: 0;
 }
 
@@ -3701,7 +3983,7 @@ position: absolute;
   font-size: 14px;
   font-weight: 600;
   color: var(--content-primary);
-  line-height: 1.3;
+  line-height: var(--line-height-sm);
 }
 
 .pitch-contact-title {
@@ -3806,6 +4088,7 @@ position: absolute;
 
 .pitch-message-channel {
   font-size: 14px;
+  line-height: var(--line-height-sm);
   font-weight: 600;
   letter-spacing: -.05px;
 }
@@ -3819,6 +4102,7 @@ position: absolute;
   color: var(--content-primary);
   border-radius: var(--rounded-full);
   font-size: 14px;
+  line-height: var(--line-height-sm);
   font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
@@ -3837,6 +4121,7 @@ position: absolute;
 
 .pitch-copy-btn svg {
   width: 14px;
+  --icon-rendered: 14;
   height: 14px;
   flex-shrink: 0;
 }
@@ -3845,7 +4130,7 @@ position: absolute;
   padding: 20px;
   border-bottom: 1px solid var(--content-border-neutral);
   font-size: 14px;
-  line-height: 18px;
+  line-height: var(--line-height-sm);
   letter-spacing: -.2px;
   color: var(--content-primary);
   margin: 0;
@@ -3858,7 +4143,7 @@ position: absolute;
 .pitch-message-body {
   padding: 20px;
   font-size: 14px;
-  line-height: 18px;
+  line-height: var(--line-height-sm);
   letter-spacing: -.2px;
   color: var(--content-primary);
   white-space: pre-wrap;
@@ -3990,5 +4275,2080 @@ position: absolute;
 @media (max-width: 639px) {
   .pitch-brand-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Bundle picker: brand catalogs on a snap rail, concepts above, selection tray below.
+   Tiles and tray follow the main app's collab-builder catalog picker (OL-3571).
+   -------------------------------------------------------------------------- */
+/* The picker fills the viewport: the header and concepts take their height, the rail takes
+   what is left, and the columns run to the bottom edge rather than ending in mid-air. */
+.picker-section {
+  --picker-column-width: 440px;
+  --picker-column-min: 300px;
+  --picker-column-max: 900px;
+  --picker-body-max: 1400px;
+  /* The cap carries the gutter on top of the body max, so the content box is still
+     --picker-body-max wide on a large screen and only narrower viewports pay for it. */
+  --picker-gutter: var(--page-gutter);
+  height: calc(100vh - var(--header-h, 0px));
+  padding: 24px var(--picker-gutter) 0;
+  max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+/* The tray floats over the columns' last rows; the grid pads its own bottom so the final
+   row can still be scrolled clear of it. */
+.picker-section.has-tray .picker-grid {
+  padding-bottom: 104px;
+}
+
+
+
+
+/* Concepts: the onboarding commissions insight card (atelier/onboarding.css) — the agent's
+   settled green surface, with two conic wedges sweeping its edge as it arrives. Green and still
+   means the agent has something to tell you; the moving light belongs to the arrival. */
+:root {
+  --agent-surface-start: #F7FDF5;
+  --agent-surface-end: #E2F8DD;
+  --agent-ink: #254F1A;
+}
+
+@property --concepts-glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes conceptsGlowSpin {
+  to { --concepts-glow-angle: 360deg; }
+}
+
+@keyframes conceptsGlowFade {
+  0%, 100% { opacity: 0; }
+  18%, 78% { opacity: var(--glow-lit); }
+}
+
+/* The banner ranges narrower than the rail below it, and takes the rail's full width once it is
+   carrying concept cards and needs the room. No side padding: it would inset the expanded card
+   from the columns, which start at this element's own edges. The collapsed cap states the
+   content width it wants. The jump is not tweened: a length-to-percentage max-width will not
+   interpolate, it parks at the start value, and the card swaps its whole body anyway. */
+.picker-concepts-layout {
+  width: 100%;
+  max-width: 976px;
+  margin-inline: auto;
+  padding-block-start: 16px;
+}
+
+.picker-concepts-layout:has(.picker-concepts--ready),
+.picker-concepts-layout:has(.picker-concepts--loading) {
+  max-width: 100%;
+}
+
+/* Glow spans are siblings of the card, never children: the card isolates and paints an opaque
+   surface, so a child ring would land on top of it instead of behind. Six spans required. */
+.picker-concepts-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Shrink-wrapped so the glow rings follow the card's pinned width through the morph. max-content
+   rather than fit-content: two fit-content boxes resolve against each other and the card overhangs. */
+.picker-concepts-shell.is-chip {
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/* The chip is the working state, so it wears the aura rather than borrowing it for a beat */
+.picker-concepts-shell.is-chip .picker-concepts-glow {
+  opacity: var(--glow-lit);
+}
+
+.picker-concepts-shell.is-chip .picker-concepts-glow::before {
+  animation: conceptsGlowSpin 6s linear infinite;
+}
+
+.picker-concepts {
+  position: relative;
+  border-radius: 28px;
+  background-image: linear-gradient(98deg, var(--agent-surface-start) 33%, var(--agent-surface-end) 100%);
+  color: var(--agent-ink);
+  /* Hairline as an inset rather than a border: over the fill it holds its contrast wherever the
+     gradient has got to. A border sits between the fill and the page, and at the tinted end it
+     lands between the two and reads as a ramp instead of an edge. */
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral), 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              border-radius 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  /* The corners open with the box: the controller pins both ends as real lengths so the run has
+     something to interpolate. */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Each span is a masked stroke, not a filled plate, so only the outset rim reads */
+.picker-concepts-glow {
+  position: absolute;
+  z-index: -1;
+  border-radius: 28px;
+  opacity: 0;
+  pointer-events: none;
+  background: none;
+}
+
+.picker-concepts-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--concepts-glow-angle, 0deg),
+    #c6adff 0deg,   #b3bcff 22deg,  #a0cbff 45deg,  #b3bcff 90deg,
+    #c6adff 135deg, #ddb8ff 157deg, #f4c2ff 180deg, #facddb 202deg,
+    #ffd8b7 225deg, #facddb 270deg, #f4c2ff 315deg, #ddb8ff 337deg
+  );
+  padding: var(--glow-stroke, 1px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+.picker-concepts-glow:nth-of-type(1) { inset: -0.5px; filter: blur(2px);  --glow-stroke: 1px;  --glow-lit: 0.48; }
+.picker-concepts-glow:nth-of-type(2) { inset: -1px;   filter: blur(4px);  --glow-stroke: 2px;  --glow-lit: 0.20; }
+.picker-concepts-glow:nth-of-type(3) { inset: -2px;   filter: blur(8px);  --glow-stroke: 4px;  --glow-lit: 0.18; }
+.picker-concepts-glow:nth-of-type(4) { inset: -3px;   filter: blur(12px); --glow-stroke: 6px;  --glow-lit: 0.09; }
+.picker-concepts-glow:nth-of-type(5) { inset: -5px;   filter: blur(20px); --glow-stroke: 10px; --glow-lit: 0.09; }
+.picker-concepts-glow:nth-of-type(6) { inset: -8px;   filter: blur(28px); --glow-stroke: 14px; --glow-lit: 0.09; }
+
+/* One clockwise pass on arrival, then the rim goes dark again */
+.picker-concepts-shell.is-revealing .picker-concepts-glow {
+  animation: conceptsGlowFade 1.5s ease forwards;
+}
+
+.picker-concepts-shell.is-revealing .picker-concepts-glow::before {
+  animation: conceptsGlowSpin 1.5s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concepts-shell.is-revealing .picker-concepts-glow,
+  .picker-concepts-shell.is-revealing .picker-concepts-glow::before {
+    animation: none;
+  }
+}
+
+.picker-concepts-head {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.picker-concepts-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.picker-concepts-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.6px;
+  font-weight: 600;
+  color: var(--agent-ink);
+}
+
+.picker-concepts-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: color-mix(in srgb, var(--agent-ink) 72%, transparent);
+  max-width: 48ch;
+}
+
+/* Ported from the app's .text-shimmer / .text-shimmer-ink (atelier/animations.css). The sweep
+   DARKENS rather than lightens: on a light surface a light sheen makes the emphasised word the
+   one closest to the background, so it reads as erasing rather than as attention. */
+.text-shimmer-ink {
+  --spread: 16%;
+  --animation-duration: 2s;
+  --shimmer-peak: var(--agent-ink);
+  --shimmer-edge: rgba(37, 79, 26, 0);
+  /* Resting text is faded and the sweep peaks at full ink, so the band is the darkest thing on
+     the line. Equal colours would animate nothing. */
+  color: rgba(37, 79, 26, 0.38);
+  display: inline-block;
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image:
+    linear-gradient(100deg,
+      var(--shimmer-edge) calc(50% - var(--spread)),
+      var(--shimmer-peak),
+      var(--shimmer-edge) calc(50% + var(--spread))),
+    linear-gradient(currentColor, currentColor);
+  animation: shimmerSlide var(--animation-duration) linear infinite;
+}
+
+/* One continuous pass, no hold. The band is off-screen for part of every cycle anyway: it travels
+   1.5 box-widths across a 250% background and is only over the text for 1.0 of them, so the rhythm
+   is geometry rather than a keyframe that stops. */
+@keyframes shimmerSlide {
+  from { background-position: 100% center, 0% center; }
+  to { background-position: 0% center, 0% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer-ink {
+    animation: none;
+    -webkit-text-fill-color: currentColor;
+    color: var(--agent-ink);
+  }
+}
+
+/* The head's action button, whichever state is showing: Suggest bundles, Regenerate, Try again */
+.picker-concepts-head .btn {
+  padding-inline: 10px;
+  gap: 6px;
+}
+
+/* Reads as one elevated button; the controls inside are ghosts so nothing competes with it */
+.picker-concepts-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  /* 3px, for 2px of visible gap: the hairline is an INSET shadow, so it paints over the first
+     pixel of the padding rather than outside it the way a border would. */
+  padding: 3px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
+}
+
+/* Sits short of the buttons it separates, and gets out of the way once either is under the
+   cursor, so the hover fill is one clean shape rather than a fill with a line through it. */
+.picker-concepts-actions-divider {
+  flex: 0 0 1px;
+  height: 16px;
+  background: var(--content-border-neutral);
+  transition: opacity 0.15s ease;
+}
+
+.picker-concepts-actions:has(button:hover) .picker-concepts-actions-divider {
+  opacity: 0;
+}
+
+/* A filled button already reads as its own edge, so the hairline is only for a pair of ghosts */
+.picker-concepts-actions:has(.btn--ai) .picker-concepts-actions-divider {
+  display: none;
+}
+
+/* Minimized: the card keeps its head and folds everything below it away */
+.picker-concepts.is-minimized {
+  gap: 0;
+  padding: 12px;
+}
+
+/* The content scales and fades in ALONGSIDE the box rather than waiting for it to land. Its width
+   is pinned to the final layout for the run (see toggleMinimize), so it never re-wraps while the
+   box travels around it. Origin at the left so it grows out of the corner the box grows from.
+   A keyframe rather than a transition: these elements are rebuilt on every render, and one with no
+   previous computed style has nothing for a transition to interpolate from. */
+.picker-concepts.is-morphing > * {
+  transform-origin: left center;
+  animation: conceptsContentIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes conceptsContentIn {
+  from { opacity: 0; transform: scale(0.92); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* The box is the only thing that should be visible spilling past itself mid-run */
+.picker-concepts.is-morphing {
+  overflow: hidden;
+}
+
+/* Chip: the same box, shrunk to a pill. 999px is a stadium at any height because the radius is
+   clamped to half the box at paint time, which a fixed length cannot promise. The insets are not
+   even: 7px on three sides is set by the trailing button, which is the tallest thing in the row,
+   and 12px on the left because a text label fills its box where a round button does not. */
+.picker-concepts.is-minimized {
+  padding: 7px 7px 7px 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  /* Still a gradient, both stops white: swapping a gradient for a flat colour drops the
+     background-image for a frame and blinks mid-morph. */
+  background-image: linear-gradient(98deg, var(--content-background-elevated), var(--content-background-elevated));
+  color: var(--content-primary);
+}
+
+.picker-concepts.is-minimized .picker-concepts-chip {
+  color: var(--content-primary);
+}
+
+.picker-concepts-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--agent-ink);
+}
+
+/* The chip itself is the control, so this is a span: a real button here would nest one inside
+   another. It carries the affordance, and the whole pill is the hit area. */
+.picker-concepts-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--content-primary);
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.picker-concepts-chip:hover .picker-concepts-chip-icon {
+  background: var(--content-background-overlay);
+}
+
+/* Matches the height of the .btn--md actions it replaces. Runs light on the green card, where
+   the header's dark disc would read as a hole. */
+.picker-concepts-head .stop-button {
+  --stop-size: 32px;
+  --stop-surface: var(--content-background-elevated);
+  --stop-ink: var(--brand-secondary-moola);
+}
+
+/* The stop control already carries a disc; inside the pill it drops it and runs as a ghost */
+.picker-concepts-actions .stop-button {
+  --stop-surface: transparent;
+  box-shadow: none;
+}
+
+.picker-concepts-actions .stop-button:hover {
+  --stop-surface: var(--content-background-overlay);
+  transform: none;
+}
+
+
+
+/* Copy crossfades when the brand set changes, so the card updates rather than redrawing */
+.picker-concepts-copy {
+  transition: opacity 0.2s ease;
+}
+
+.picker-concepts.is-swapping .picker-concepts-copy {
+  opacity: 0;
+}
+
+/* The fanned stack: the seller's product in front, the partners' fanned out behind */
+.picker-stack {
+  position: relative;
+  flex-shrink: 0;
+  width: 196px;
+  height: 92px;
+}
+
+/* Five slots fanning out from the front card: a mid pair just behind it tilted outward, and a
+   smaller far pair behind those, sitting low enough that their bottom edges land just above the
+   mid pair's. Painted back to front, so DOM order is far, mid, front. */
+.picker-stack-card--s0 { --tilt: -22deg; --shift: -58px; --size: 60px; --drop: 5px; }
+.picker-stack-card--s1 { --tilt: 22deg; --shift: 58px; --size: 60px; --drop: 5px; }
+.picker-stack-card--s2 { --tilt: -11deg; --shift: -31px; --size: 72px; --drop: 0px; }
+.picker-stack-card--s3 { --tilt: 11deg; --shift: 31px; --size: 72px; --drop: 0px; }
+
+.picker-stack-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size, 72px);
+  height: var(--size, 72px);
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-sm);
+  transform: translate(calc(-50% + var(--shift, 0px)), calc(-50% + var(--drop, 0px))) rotate(var(--tilt, 0deg));
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+
+/* Fan-out: every card behind the front one starts stacked under it and travels to its slot */
+.picker-stack--entering .picker-stack-card {
+  transform: translate(-50%, -50%) scale(0.72);
+  opacity: 0;
+}
+
+.picker-stack--entering .picker-stack-card--front {
+  opacity: 1;
+}
+
+.picker-stack-card--front {
+  width: 86px;
+  height: 86px;
+  border-radius: 16px;
+  /* The 3px white ring every card in the stack wears, over the front card's heavier lift */
+  box-shadow: 0 0 0 3px var(--content-background-elevated), var(--shadow-md);
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-stack-card {
+    transition: none;
+  }
+}
+
+/* AI actions wear moola, apart from the brew of the merchant cards' Build bundle */
+.btn--ai {
+  background: linear-gradient(135deg, var(--moola-vivid), var(--brand-secondary-moola));
+  color: var(--white);
+  border-color: var(--brand-secondary-moola);
+  box-shadow: -0.5px -0.5px 1px #ffffff52 inset, 1px 1px 0.5px #ffffff52 inset, 0 4px 24px #0000003d;
+}
+
+/* Both stops moola rather than a flat color, for the reason .btn--primary:hover gives */
+.btn--ai:hover {
+  background: linear-gradient(135deg, var(--brand-secondary-moola), var(--brand-secondary-moola));
+  border-color: var(--brand-secondary-moola);
+}
+
+.picker-concepts-grid {
+  --concepts-grid-gap: 16px;
+  --concepts-per-row: 5;
+  /* Flex rather than grid: a short row has to centre as a group, and grid would hold the empty
+     tracks and strand the cards across them. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--concepts-grid-gap);
+}
+
+.picker-concept {
+  /* Starts at a fifth of the row, which is what caps a row at five, then grows into whatever is
+     left. The cap keeps a lone card from stretching the full banner. */
+  flex: 1 1 calc((100% - (var(--concepts-per-row) - 1) * var(--concepts-grid-gap)) / var(--concepts-per-row));
+  min-width: 240px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  /* Both blocks keep their own height; a card taller than its content opens the space between
+     the price and the light block rather than stretching either one. */
+  justify-content: space-between;
+  gap: 16px;
+  /* The foot paints its own fill and would cover the inset hairline, which a child always draws
+     over. 1px holds it clear on the three edges it reaches. */
+  padding: 0 1px 1px;
+  border-radius: var(--rounded-28);
+  background: var(--content-background-elevated);
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral), var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  transition: box-shadow var(--transition-base), transform var(--transition-base), border-color var(--transition-base);
+}
+
+.picker-concept:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.picker-concept.is-active {
+  border-color: var(--brand-secondary-moola);
+  box-shadow: 0 0 0 2px var(--brand-secondary-moola);
+}
+
+.picker-concept:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--content-primary);
+}
+
+/* Loading card: a flat dot grid with two soft blobs roaming over it, where the dots swell and
+   brighten. The blobs are the same grid drawn heavier, revealed through a pair of moving radial
+   masks, so the light reads as passing through the surface rather than sitting on it. */
+.picker-concept--skeleton {
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  /* The shadow belongs to a real card; a loading placeholder should not look liftable. */
+  background: rgba(38, 67, 57, 0.1);
+  box-shadow: none;
+  --dot-grid: 11px;
+  --dot-ink: var(--brand-secondary-moola);
+  /* Blob diameter tracks the card, so a wide card gets wider light rather than more blobs */
+  --dot-blob: 60%;
+}
+
+.picker-concept--skeleton::before,
+.picker-concept--skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: var(--dot-grid) var(--dot-grid);
+  pointer-events: none;
+}
+
+.picker-concept--skeleton::before {
+  background-image: radial-gradient(circle, var(--dot-ink) 0.7px, transparent 1.3px);
+  opacity: 0.22;
+}
+
+.picker-concept--skeleton::after {
+  background-image: radial-gradient(circle, var(--dot-ink) 1.3px, transparent 1.8px);
+  opacity: 0.75;
+  -webkit-mask-image: radial-gradient(#000 0%, transparent 60%), radial-gradient(#000 0%, transparent 62%);
+  mask-image: radial-gradient(#000 0%, transparent 60%), radial-gradient(#000 0%, transparent 62%);
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  animation: conceptDotDrift 4.2s cubic-bezier(0.35, 1.55, 0.65, 1) infinite,
+             conceptDotBreathe 1.9s cubic-bezier(0.66, 0, 0.34, 1) infinite;
+}
+
+@keyframes conceptDotDrift {
+  0%, 100% {
+    mask-size: calc(var(--dot-blob) * 1.1) calc(var(--dot-blob) * 0.95), calc(var(--dot-blob) * 0.8) calc(var(--dot-blob) * 0.8);
+    mask-position: 16% 20%, 30% 32%;
+  }
+  25% {
+    mask-size: calc(var(--dot-blob) * 0.96) calc(var(--dot-blob) * 1.22), calc(var(--dot-blob) * 0.88) calc(var(--dot-blob) * 0.76);
+    mask-position: 84% 16%, 66% 30%;
+  }
+  50% {
+    mask-size: calc(var(--dot-blob) * 1.24) calc(var(--dot-blob) * 0.92), calc(var(--dot-blob) * 0.76) calc(var(--dot-blob) * 0.92);
+    mask-position: 82% 84%, 62% 68%;
+  }
+  75% {
+    mask-size: calc(var(--dot-blob) * 1) calc(var(--dot-blob) * 1.12), calc(var(--dot-blob) * 0.92) calc(var(--dot-blob) * 0.8);
+    mask-position: 14% 82%, 34% 66%;
+  }
+}
+
+@keyframes conceptDotBreathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concept--skeleton::after {
+    animation: none;
+  }
+}
+
+/* Everything above the Includes panel. Carries the card's inset so the panel below can run to
+   the card's own edges. */
+.picker-concept-main {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 0;
+}
+
+/* The Includes list and the button are one light block, so the card's 16px gap falls above it
+   rather than between them; the button's own margin is the only space inside. */
+.picker-concept-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--background-light);
+  /* The foot shapes its own bottom rather than being clipped to the card's. Inside a 1px inset on
+     a 28px box the matching radius is 27px, and cutting it here means the fill and the hairline
+     are one curve instead of two arcs rasterised against each other. */
+  border-radius: var(--rounded-4xl) var(--rounded-4xl)
+    calc(var(--rounded-28) - 1px) calc(var(--rounded-28) - 1px);
+}
+
+.picker-concept-create {
+  /* 40px, the app's medium. This tool's .btn--md is 32px, which is the app's small. */
+  height: 40px;
+  margin: 16px;
+  align-self: stretch;
+}
+
+.picker-concept-thumbs {
+  display: flex;
+  align-items: center;
+  /* The pile leans past the card's padding on the left, so the first tile still clears it */
+  padding-left: 4px;
+  margin-bottom: 16px;
+}
+
+.picker-concept-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transform: rotate(var(--tilt, 0deg));
+}
+
+/* Each tile overlaps the one before it, later tiles on top */
+.picker-concept-thumb + .picker-concept-thumb {
+  margin-left: -16px;
+}
+
+.picker-concept-thumb:nth-child(2) { z-index: 2; }
+.picker-concept-thumb:nth-child(3) { z-index: 3; }
+.picker-concept-thumb:nth-child(4) { z-index: 4; }
+
+/* Only on a fresh batch: toggling a product re-renders these cards, and replaying the entrance
+   on every toggle would be noise. */
+.picker-concepts-grid.is-entering .picker-concept-thumb {
+  animation: conceptThumbIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+/* Lands on its resting tilt, so each tile reads as being laid onto the pile */
+@keyframes conceptThumbIn {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) rotate(0deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(var(--tilt, 0deg)) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-concepts-grid.is-entering .picker-concept-thumb {
+    animation: none;
+  }
+}
+
+.picker-concept-more {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--content-secondary);
+  padding: 0 4px;
+}
+
+/* label-md: 14/600, -0.014em */
+.picker-concept-name {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--content-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-concept-edited {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--content-secondary);
+  background: var(--content-background-base);
+  border-radius: var(--rounded-full);
+  padding: 2px 8px;
+}
+
+/* body-md: 14/400, -0.01429em */
+.picker-concept-hook {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 400;
+  letter-spacing: -0.01429em;
+  color: var(--content-secondary);
+}
+
+.picker-concept-includes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 16px 0;
+}
+
+/* body-md */
+.picker-concept-includes-label {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 400;
+  letter-spacing: -0.01429em;
+  color: var(--content-secondary);
+}
+
+.picker-concept-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picker-concept-item {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  letter-spacing: -0.01429em;
+  color: var(--content-primary);
+}
+
+.picker-concept-item-brand {
+  color: var(--content-secondary);
+}
+
+/* label-md, matching the bundle name */
+.picker-concept-total {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--content-primary);
+}
+
+/* Rail: one column per brand, snap-scrolled, with arrows once it overflows */
+/* Full-bleed escape hatch (the app's .onboarding-scan-bleed): the columns want the whole viewport
+   as canvas once there is more than one of them, and the scroll box's own clipping contains them
+   so the page never scrolls sideways. */
+.picker-rail.is-bleeding {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+/* The rail bleeds so more columns fit, not so they start at the viewport's edge: the track is
+   inset back to the body container, which keeps the first pair centred on screen. */
+.picker-rail.is-bleeding {
+  --picker-bleed-gutter: max(var(--picker-gutter), (100vw - var(--picker-body-max)) / 2);
+}
+
+.picker-rail.is-bleeding .picker-columns {
+  /* The bleed already opens the room past the body's right edge that the add column needs, so this
+     side holds back only the page gutter. */
+  margin-right: 0;
+  padding-right: var(--picker-gutter);
+}
+
+.picker-rail {
+  /* Zero until the rail bleeds; the columns and the pagination both measure from it. */
+  --picker-bleed-gutter: 0px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* display: contents so each button positions against the rail rather than against a row */
+.picker-rail-controls {
+  display: none;
+}
+
+.picker-rail.has-overflow .picker-rail-controls {
+  display: contents;
+}
+
+/* A finger scrolls the rail directly, and the mobile layout gives each column a screenful, so the
+   chevrons would float halfway down one. Nothing to offer that the gesture does not. */
+@media (pointer: coarse), (max-width: 900px) {
+  .picker-rail.has-overflow .picker-rail-controls {
+    display: none;
+  }
+}
+
+/* Sized like the tiles' own add button, and straddling the edge of the first and last panel
+   rather than the viewport's. Above the columns, which scroll beneath them. */
+.picker-rail-btn {
+  --rail-btn-x: 0;
+  position: absolute;
+  top: 50%;
+  transform: translate(var(--rail-btn-x), -50%);
+  z-index: 4;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.picker-rail-btn--prev {
+  left: var(--picker-bleed-gutter);
+  --rail-btn-x: -50%;
+}
+
+.picker-rail-btn--next {
+  right: var(--picker-bleed-gutter);
+  --rail-btn-x: 50%;
+}
+
+.picker-rail-btn:hover {
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
+}
+
+.picker-rail-btn:active {
+  transform: translate(var(--rail-btn-x), -50%) scale(0.96);
+}
+
+/* Gone rather than dimmed: the control is only worth drawing when there is track on that side to
+   reach. */
+.picker-rail-btn[disabled] {
+  display: none;
+}
+
+.picker-columns {
+  --picker-columns-gap: 10px;
+  --picker-add-width: 96px;
+  /* A column's default is a share of the BODY container, not of the scroll box: the rail bleeds out
+     to the viewport so more columns fit, but that must not make each one wider. */
+  --picker-body-width: min(var(--picker-body-max), 100vw - 2 * var(--picker-gutter));
+  display: flex;
+  gap: var(--picker-columns-gap);
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* proximity, not mandatory: the final page is a partial one, so a step that overshoots the last
+     reachable snap point gets forced back to the previous one and pagination appears to do nothing. */
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /* The scroll box clips on every side, so open room for shadow-md (4px down, 24px blur).
+     Only the sides are pulled back with negative margins; a negative TOP margin would add
+     height the flex line has to absorb, and the columns would run past the viewport. The
+     section's own gap is reduced by this much so the banner sits where it did.
+     The right is pulled back further still, by the add column and its gap, so the brand columns
+     alone fill the content area and the add control hangs outside it. */
+  padding: 20px 24px 0 calc(24px + var(--picker-bleed-gutter));
+  margin-left: -24px;
+  margin-right: calc(-24px - var(--picker-add-width) - var(--picker-columns-gap));
+  scroll-padding-inline: calc(24px + var(--picker-bleed-gutter)) 24px;
+  outline: none;
+  flex: 1;
+  min-height: 0;
+}
+
+.picker-columns::-webkit-scrollbar {
+  display: none;
+}
+
+.picker-columns:focus-visible {
+  box-shadow: 0 0 0 2px var(--content-primary);
+  border-radius: 32px;
+}
+
+/* A dragged column holds the width the drag wrote; clamp owns the floor and ceiling so the
+   controller can write any value and read back what was allowed. */
+.picker-column[data-resized] {
+  flex: 0 0 clamp(var(--picker-column-min), var(--col-w), var(--picker-column-max));
+}
+
+/* 16px of hit area centred on the 10px gutter: -3px puts the strip's middle on the gutter's */
+.picker-column-resizer-zone {
+  position: absolute;
+  left: 100%;
+  margin-left: -3px;
+  top: 24px;
+  bottom: 24px;
+  width: 16px;
+  z-index: 3;
+}
+
+/* No later column to resize against. :last-of-type would match the add column, which is a div too. */
+.picker-column:not(:has(~ .picker-column)) .picker-column-resizer-zone {
+  display: none;
+}
+
+.picker-column-resizer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.picker-column-resizer span {
+  width: 3px;
+  height: 48px;
+  border-radius: var(--rounded-full);
+  background-color: var(--content-tertiary);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+/* data-armed rather than :hover, so a cursor crossing the gutter does not flash the handle */
+.picker-column-resizer[data-armed] span,
+.picker-column-resizer:focus-visible span,
+.picker-rail[data-resizing] .picker-column-resizer span {
+  opacity: 1;
+}
+
+.picker-column-resizer:focus {
+  outline: none;
+}
+
+.picker-column-resizer:focus-visible span {
+  background-color: var(--content-primary);
+}
+
+/* Once the pointer leaves the 16px strip the cursor has to stay, and nothing may select */
+.picker-rail[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.picker-rail[data-resizing] .picker-product {
+  pointer-events: none;
+}
+
+/* Columns grow to share the rail with the add column; once their minimum width no longer
+   fits, they hold that width and the rail scrolls */
+.picker-column {
+  position: relative;
+  /* The brand columns divide the content area between them and nothing else, which is what keeps
+     them centred in the viewport however many there are. Past the floor they hold it and scroll. */
+  /* A new column arrives at the width the first pair gets, rather than squeezing everything to fit:
+     the divisor stops at 2, so the third onward overflow and the rail paginates to them. */
+  flex: 0 0 calc(
+    (var(--picker-body-width) - (min(var(--brand-count, 1), 2) - 1) * var(--picker-columns-gap))
+    / min(var(--brand-count, 1), 2)
+  );
+  /* 300px leaves 268px inside the grid's padding, which auto-fill splits into two 120px tracks */
+  min-width: min(var(--picker-column-min), 85vw);
+  scroll-snap-align: start;
+  background: var(--content-background-elevated);
+  border: 1px solid var(--content-border-neutral);
+  /* Square at the bottom: the column runs off the viewport's edge rather than ending there */
+  border-radius: 32px 32px 0 0;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The head and filter share one layer floating over the scrolling grid. It wears the scrim:
+   solid behind the rows, easing to clear across its bottom, so products dissolve under it
+   with the whole layer's height to smooth the fade. The grid pads its top to match. */
+.picker-column {
+  --picker-column-top: 132px;
+  position: relative;
+}
+
+.picker-column-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Above the tiles' add controls, which carry a z-index of their own */
+  z-index: 2;
+  padding: 16px 16px 32px;
+  /* The column no longer clips (a header tooltip has to escape), so this opaque layer carries
+     the card's top corners itself or it paints square ones over them. */
+  border-radius: 32px 32px 0 0;
+  --scrim-start: 72%;
+}
+
+.picker-column-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.picker-column-filter {
+  position: relative;
+}
+
+.picker-column-favicon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rounded-xl);
+  border: 1px solid var(--content-border-neutral);
+  object-fit: contain;
+  background: var(--content-background-base);
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.picker-column-labels {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-column-name {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-column-count {
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+}
+
+.picker-filter {
+  width: 100%;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--rounded-full);
+  border: 1px solid var(--content-border-neutral);
+  background: var(--content-background-elevated);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-primary);
+}
+
+.picker-filter:focus {
+  outline: none;
+  border-color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Ghost controls at the end of a column's header row */
+.picker-column-action {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--content-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.picker-column-action:hover {
+  background: var(--content-background-overlay);
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  padding: var(--picker-column-top) 16px 16px; /* the first row starts clear of the floating head */
+  flex: 1;
+  min-height: 0;
+  align-content: start; /* rows stack from the top rather than stretching to fill the column */
+  overflow-y: auto;
+  /* The grid does its own clipping (the column cannot, or a header tooltip would be cut off),
+     so tiles scrolling past the head follow the card's rounded top corners. clip-path as well as
+     border-radius: a radius clips the content but not the scrollbar, which then rides over the
+     corner and shows against the page. */
+  border-radius: 32px 32px 0 0;
+  clip-path: inset(0 round 32px 32px 0 0);
+  /* Y only. overflow-y makes this a scroll port on BOTH axes, so a sideways gesture over the tiles
+     lands here, on an axis with nothing to scroll; containing it there left the rail unreachable
+     from the one part of the column a pointer is usually over. */
+  overscroll-behavior-y: contain;
+  /* Thinner than default, otherwise the browser's own: its colors, and on platforms that
+     overlay their scrollbars it still fades out after scrolling stops. */
+  scrollbar-width: thin;
+}
+
+.picker-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.picker-grid-empty {
+  grid-column: 1 / -1;
+  margin: 24px 0;
+  text-align: center;
+  color: var(--content-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+
+/* Tile: the artwork is the tile; the add control is the only place selection is expressed */
+.picker-product {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--content-primary);
+  outline: none;
+}
+
+.picker-product-art {
+  aspect-ratio: 1;
+  border-radius: 20px;
+}
+
+.picker-product:focus-visible .picker-product-art {
+  box-shadow: 0 0 0 2px var(--content-primary);
+}
+
+/* The app's elevated icon button: 40px circle, white, hairline ring, 20px glyph */
+.picker-product-add {
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  outline: 1px solid var(--content-border-neutral);
+  outline-offset: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease, outline-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.picker-product-add svg {
+  width: 20px;
+  height: 20px;
+  --icon-rendered: 20;
+}
+
+.picker-product:hover .picker-product-add {
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
+}
+
+.picker-product.is-selected .picker-product-add,
+.picker-product.is-selected:hover .picker-product-add {
+  background: var(--brand-secondary-moola);
+  color: var(--white);
+  outline-color: transparent;
+}
+
+/* plus -> check morph (from the app's animations.css), keyed off the selected tile */
+.plus-check__plus {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1) 150ms, opacity 120ms linear 150ms;
+}
+
+.plus-check__check {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset 150ms ease-in;
+}
+
+.picker-product.is-selected .plus-check__plus {
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 150ms cubic-bezier(0.55, 0, 1, 0.45), opacity 110ms linear;
+}
+
+.picker-product.is-selected .plus-check__check {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 340ms ease-out 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plus-check__plus,
+  .plus-check__check {
+    transition: none;
+  }
+}
+
+.picker-product-caption {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picker-product-title,
+.picker-product-price {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.picker-product-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.picker-product-price {
+  color: var(--content-secondary);
+}
+
+/* The skinny add column at the end of the rail */
+.picker-add-column {
+  flex: 0 0 var(--picker-add-width);
+  align-self: stretch;
+  scroll-snap-align: end;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed var(--content-border-neutral);
+  border-radius: 32px 32px 0 0;
+  color: var(--content-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: var(--content-background-elevated);
+  transition: background 0.2s ease;
+}
+
+.picker-add-column:hover {
+  background: var(--background-light);
+}
+
+.picker-add-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--content-background-base);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  outline: 1px solid var(--content-border-neutral);
+  outline-offset: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.picker-add-column:hover .picker-add-btn,
+.picker-add-column:focus-visible .picker-add-btn {
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
+}
+
+.picker-add-column:focus-visible {
+  border-color: var(--content-primary);
+}
+
+/* Add-brand popover */
+.picker-add-popover {
+  position: absolute;
+  z-index: var(--z-popover);
+  width: 300px;
+  padding: 8px;
+  border-radius: 20px;
+  background: var(--content-background-elevated);
+  border: 0.5px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideIn 0.2s ease;
+}
+
+.picker-add-popover.hidden {
+  display: none;
+}
+
+.picker-add-list {
+  max-height: 480px; /* showAddPopover trims this to what fits below the anchor */
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  /* Runs to the popover's own edges rather than stopping at its padding, so rows fade out where
+     the menu ends. The padding puts the inset back inside the scroll box. */
+  --scrim-mask-fade: 20px;
+  margin-block: -6px -8px;
+  padding-block: 6px 8px;
+}
+
+.picker-add-list::-webkit-scrollbar {
+  display: none;
+}
+
+.picker-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--content-primary);
+  font-family: var(--font-family);
+}
+
+/* The URL entry is the AI-free path in; it reads in moola like the other special actions */
+.picker-add-row--url {
+  color: var(--brand-secondary-moola);
+}
+
+.picker-add-row:hover {
+  background: var(--content-background-base);
+}
+
+.picker-add-row-favicon,
+.picker-add-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--content-background-base);
+  object-fit: contain;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.picker-add-row-labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.picker-add-row-name {
+  font-size: 14px;
+  line-height: var(--line-height-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-add-row-meta {
+  font-size: var(--font-size-xs);
+  line-height: 16px;
+  color: var(--content-secondary);
+}
+
+.picker-add-divider {
+  height: 0.5px;
+  background: var(--content-border-neutral);
+  margin: 6px 8px;
+}
+
+.picker-add-heading {
+  margin: 4px 8px 8px;
+  font-size: var(--font-size-xs);
+  line-height: 16px;
+  color: var(--content-secondary);
+}
+
+.picker-add-empty {
+  margin: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Dialog (the app's atelier dialog at desktop): centered card, blurred scrim, heading row
+   with a ghost close, body, and a grid actions bar. Used by the add-brand-by-URL dialog.
+   -------------------------------------------------------------------------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: modalOverlayFadeIn 0.2s ease;
+}
+
+.dialog-backdrop.hidden {
+  display: none;
+}
+
+.dialog {
+  width: 480px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--content-background-elevated);
+  border-radius: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  animation: dialogSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dialogSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  /* Even inset: the close button carries a visible fill, so its box edge is the edge that
+     should line up with the heading rather than its glyph. */
+  padding: 20px 20px 12px;
+}
+
+.dialog-heading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.48px;
+  color: var(--content-primary);
+}
+
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dialog-close:hover {
+  background: var(--content-background-overlay-hover);
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px 24px;
+}
+
+.dialog-lead {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+}
+
+.dialog-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  padding: 20px;
+  background: var(--content-background-elevated);
+  border-radius: 0 0 32px 32px;
+}
+
+/* Floating-label field (atelier/fields/floating_label.css) */
+.floating-input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-input-field {
+  width: 100%;
+  padding: 22px 14px 8px;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--content-background-elevated);
+  border: none;
+  box-shadow: 0 0 0 1px inset rgba(52, 46, 38, 0.12);
+  border-radius: 12px;
+  color: var(--content-primary);
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The placeholder is the focused state's hint. At rest the floating label occupies that line, so
+   showing both would stack two pieces of grey text on each other. */
+.floating-input-field::placeholder {
+  color: transparent;
+  transition: color 150ms ease;
+}
+
+.floating-input:focus-within .floating-input-field::placeholder {
+  color: var(--content-secondary);
+}
+
+.floating-input-field:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px inset var(--content-primary);
+}
+
+.floating-input-field:hover:not(:focus) {
+  box-shadow: 0 0 0 1px inset var(--content-primary);
+}
+
+.floating-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%) scale(1);
+  transform-origin: left center;
+  font-size: 16px;
+  font-weight: normal;
+  color: var(--content-secondary);
+  pointer-events: none;
+  user-select: none;
+  transition: top 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* Floats on focus or once the field holds a value, and drops back to the placeholder line when a
+   blurred field is empty */
+.floating-input:focus-within .floating-label,
+.floating-input .floating-input-field:not(:placeholder-shown) + .floating-label {
+  top: 8px;
+  transform: translateY(0) scale(0.75);
+  line-height: 16px;
+}
+
+/* AI input, compact (atelier/ai_input.css): the conic glow behind the field, frozen at rest and
+   spinning on focus, with an outset hairline ring so the field sits over the glow */
+.ai-input {
+  position: relative;
+  isolation: isolate;
+}
+
+.ai-input__field {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-input .floating-input-field {
+  box-shadow: 0 0 0 1px var(--content-border-neutral) !important;
+}
+
+.ai-input:focus-within .floating-input-field {
+  box-shadow: 0 0 0 1px var(--content-border-neutral), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.ai-input__glow {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--ai-input-conic);
+  transition: opacity 0.3s ease;
+}
+
+.ai-input__glow--1 {
+  inset: 0;
+  border-radius: 12px;
+  filter: blur(4px);
+  opacity: 0.32;
+}
+
+.ai-input__glow--2 {
+  inset: -4px;
+  border-radius: 16px;
+  filter: blur(11px);
+  opacity: 0.16;
+}
+
+.ai-input:focus-within .ai-input__glow {
+  animation: aiInputSpin 6s linear infinite;
+}
+
+.ai-input:focus-within .ai-input__glow--1 {
+  filter: blur(9px);
+  opacity: 0.6;
+}
+
+.ai-input:focus-within .ai-input__glow--2 {
+  filter: blur(28px);
+  opacity: 0.42;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-input__glow {
+    animation: none;
+  }
+}
+
+.picker-url-error {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--brand-secondary-spice);
+}
+
+.picker-url-error:empty {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .dialog {
+    border-radius: 28px;
+  }
+
+  .dialog-actions {
+    border-radius: 0 0 28px 28px;
+  }
+
+  .dialog-heading {
+    font-size: 21px;
+  }
+
+  /* Ghost at this size, so the header pulls back to optically align the glyph */
+  .dialog-header {
+    padding-right: 12px;
+  }
+
+  .dialog-close {
+    background: transparent;
+  }
+}
+
+/* Floating selection tray (the app's picker tray): thumb pile, count, actions */
+.picker-tray {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 24px);
+  /* Shrink-wraps the pill; the cap keeps it off the viewport edges once brand names run long */
+  width: auto;
+  max-width: calc(100% - 32px);
+  z-index: var(--z-dropdown);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.picker-tray.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.picker-tray-pill {
+  --tray-item-gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--tray-item-gap);
+  padding: 8px 8px 8px 20px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  border: 1px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-md);
+}
+
+.picker-tray-thumbs {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.picker-tray-thumb {
+  position: absolute;
+  inset: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.picker-tray-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.picker-tray-summary strong {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--content-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-tray-summary span {
+  font-size: var(--font-size-xs);
+  color: var(--content-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
+   be read against what it is pointing at. */
+.pitch-bundles-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: var(--rounded-2xl);
+  background: var(--content-background-base);
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral);
+}
+
+.pitch-bundles-header {
+  font-size: var(--font-size-sm);
+  color: var(--content-secondary);
+}
+
+.pitch-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pitch-bundle-name {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--content-primary);
+}
+
+.pitch-bundle-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+  color: var(--content-primary);
+}
+
+.pitch-bundle-item-brand {
+  color: var(--content-secondary);
+}
+
+.pitch-bundle-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.pitch-bundle-link {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--moola-vivid, var(--content-primary));
+  text-decoration: none;
+}
+
+.pitch-bundle-link:hover {
+  text-decoration: underline;
+}
+
+/* The brand line's other job: what went wrong handing the bundle over. */
+.picker-tray-summary .picker-tray-problem {
+  color: var(--content-sentiment-negative);
+  white-space: normal;
+}
+
+.picker-tray-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-inline-start: calc(32px - var(--tray-item-gap));
+}
+
+.picker-tray-actions .btn {
+  height: 44px;
+  padding: 0 20px;
+}
+
+.picker-tray-actions .btn--overlay {
+  padding-inline: 12px;
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .picker-section {
+    --picker-column-width: 85vw;
+    --picker-gutter: 20px;
+    /* Flush to the header: the bar above already supplies the space at this size. */
+    padding-top: 0;
+  }
+
+  /* Flush to the header: at this size the banner is the first thing on screen and the bar above
+     it already supplies the space. */
+  .picker-concepts-layout {
+    padding-block-start: 0;
+  }
+
+  /* THE PAGE SCROLLS, NOT THE SECTION. On a phone there is no room to pin the banner and the rail
+     into one viewport, so the section sizes to its content and each catalog takes a screenful of
+     its own. Scrolling past the banner lands you on a full-height column. */
+  .picker-section {
+    height: auto;
+  }
+
+  .picker-rail,
+  .picker-columns {
+    flex: none;
+    min-height: 0;
+  }
+
+  .picker-columns {
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+
+  /* A screenful less the bar above it and the gap below, so the panel's own bottom edge is on
+     screen rather than running off it. */
+  .picker-column {
+    height: calc(100vh - var(--header-h, 0px) - 10px);
+  }
+
+  /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
+  .picker-column,
+  .picker-column-top {
+    border-radius: 32px;
+  }
+
+  .picker-column-top {
+    border-radius: 32px 32px 0 0;
+  }
+
+  .picker-grid {
+    border-radius: 32px;
+    clip-path: inset(0 round 32px);
+  }
+
+  /* Nothing to minimise into: the rail is no longer competing with the banner for one viewport. */
+  .picker-concepts-actions [data-action="toggle-minimize"],
+  .picker-concepts-actions-divider {
+    display: none;
+  }
+
+  /* Three cards instead of five: the outermost pair is the widest part of the fan and the first
+     thing worth giving back at this size. */
+  .picker-stack-card--far {
+    display: none;
+  }
+
+  /* DENSER CARD: the pile and the copy share one row so the card is short enough to leave the
+     catalog below it real estate. Everything in that row shrinks to pay for it.
+     The head and the body flatten into the card's own grid so the action can be placed under the
+     cards instead of beside the headline, which at 375px left the headline 28px. */
+  .picker-concepts {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+  }
+
+  .picker-concepts-head,
+  .picker-concepts-body {
+    display: contents;
+  }
+
+  .picker-stack {
+    grid-area: 1 / 1;
+    align-self: center;
+  }
+
+  .picker-concepts-copy {
+    grid-area: 1 / 2;
+    align-self: center;
+  }
+
+  /* heading-xs */
+  .picker-concepts-title {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  /* body-sm, sitting directly under the headline rather than spaced off it */
+  .picker-concepts-subtitle {
+    font-size: 12px;
+    line-height: 1.4;
+    letter-spacing: -0.01667em;
+  }
+
+  .picker-concepts-copy {
+    gap: 0;
+  }
+
+  /* One card at a time, scrolled rather than stacked: a column of full cards would bury the
+     catalog below. A card centres in the banner so its neighbours bleed by the same amount on both
+     sides; the first and last have nowhere to scroll to reach that, so they rest on the padding. */
+  .picker-concepts-grid {
+    grid-area: 2 / 1 / auto / -1;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding: 16px;
+    /* overflow-x makes the block axis clip too, which cut the cards' shadows off at both edges.
+       The block padding opens the room and is taken straight back, so the row occupies exactly
+       what it did. */
+    margin-block: -16px;
+  }
+
+  .picker-concepts-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .picker-concept {
+    flex: 0 0 calc(100% - 32px);
+    min-width: 0;
+    max-width: none;
+    scroll-snap-align: center;
+  }
+
+  /* A tighter fan: smaller cards, and the mid pair pulled in so the pile costs less width while
+     both edges still read behind the front one. */
+  .picker-stack-card--s2 { --shift: -14px; --size: 40px; }
+  .picker-stack-card--s3 { --shift: 14px; --size: 40px; }
+
+  .picker-stack-card--front {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  /* The mid pair sits at +-14 but is tilted 11deg, so each card's box is ~47px wide, not 40 */
+  .picker-stack {
+    width: 76px;
+    height: 54px;
+  }
+
+  /* Below the cards, the full span of the card. Row 2 while there are none yet, so the empty
+     row does not spend a second gap on nothing. */
+  .picker-concepts-actions > .btn {
+    grid-area: 2 / 1 / auto / -1;
+  }
+
+  .picker-concepts:has(.picker-concepts-grid) .picker-concepts-actions > .btn {
+    grid-row: 3;
+  }
+
+  /* Except while it is generating. The stop control belongs beside the thing it interrupts, not at
+     the foot of a card full of skeletons, so it takes a third column on the head row. That column
+     only exists while it is there; an empty one would hold a gap open on the copy's right. */
+  .picker-concepts:has(.stop-button) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .picker-concepts-actions > .stop-button {
+    grid-area: 1 / 3;
+    align-self: center;
+  }
+
+  /* The pill is a surface for the minimise control to sit on beside the action, and that control
+     is hidden at this size. Rather than unpick it one property at a time and leave a box that can
+     still stack with what it holds, it stops being a box at all: the button is the grid item. */
+  .picker-concepts-actions {
+    display: contents;
+  }
+
+  /* Regenerate is a ghost on desktop because the pill around it carried the elevation. Standing
+     on its own it is just the tool's elevated button: one border, one shadow. */
+  .picker-concepts-actions .btn--ghost {
+    background: var(--content-background-elevated);
+    border-color: var(--content-border-neutral);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .picker-concepts-actions .btn--ghost:hover {
+    background: var(--content-background-base);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Same reasoning for the stop control: it gave up its disc to sit inside the pill. */
+  .picker-concepts-actions .stop-button {
+    --stop-surface: var(--content-background-elevated);
+    box-shadow: 0 4px 24px rgba(52, 46, 38, 0.15);
+  }
+
+  /* Back to full width here: the pill wraps to two rows at this size, and a shrink-wrapped
+     box would wrap just the same while leaving dead margin on both sides */
+  .picker-tray {
+    width: calc(100% - 32px);
+  }
+
+  .picker-tray-pill {
+    flex-wrap: wrap;
+  }
+
+  /* Auto bases, not 0. Both of these are free to compress to nothing on the desktop pill, which
+     at this width means the row always "fits" and the count is clipped rather than the actions
+     taking a line of their own. Their real widths have to count for the wrap to happen.
+     The count takes the slack instead of the button, so the button stays its own size and still
+     ends on the pill's right edge. */
+  .picker-tray-summary {
+    flex: 1 1 auto;
+  }
+
+  .picker-tray-actions {
+    flex: 0 1 auto;
+    margin-inline-start: 0;
+  }
+
+  /* Clear becomes an eyebrow tucked under the pill's top edge instead of a third thing in a row
+     that is already carrying the pile, the count and the primary. Out of flow, so the pill's own
+     row is just those three. The tray is its containing block and the pill fills the tray, so
+     bottom: 100% is the pill's top edge; the 2px past it hides this one's bottom border under it. */
+  .picker-tray-actions .btn--overlay {
+    position: absolute;
+    /* Inset from the tray on both sides rather than centred on a width: no transform to be wiped
+       out by the one .btn:active applies. */
+    left: 20px;
+    right: 20px;
+    bottom: calc(100% - 2px);
+    /* Behind the pill's surface. The tray is the stacking context, and its background is
+       transparent, so this lands under the pill's fill rather than under the page. */
+    z-index: -1;
+    height: 36px;
+    padding: 0 16px 2px;
+    border-radius: 20px 20px 0 0;
+    background: var(--content-background-base);
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Opaque, unlike the overlay fill this variant hovers to elsewhere: the eyebrow is over the page,
+     not over a surface, and a translucent one would show the catalog through it. */
+  .picker-tray-actions .btn--overlay:hover {
+    background: var(--content-background-elevated);
+  }
+
+  /* A pair of long brand names runs past the pill on its own */
+  .picker-tray-summary span {
+    display: none;
   }
 }

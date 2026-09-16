@@ -4,12 +4,22 @@
 
 import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
+import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
+import { icon, hydrateIcons } from './icons.js';
+import * as offerlab from './offerlab.js';
+import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
+
 const CONFIG = {
   // All API keys are now server-side for security
   // Gemini, SerpAPI, and OpenGraph are all proxied through /api/* endpoints
   GEMINI_PROXY: '/api/gemini',
   SERPAPI_PROXY: '/api/serpapi',
   OPENGRAPH_PROXY: '/api/opengraph',
+  CATALOG_PROXY: '/api/catalog',
+  SOCIALS_PROXY: '/api/socials',
+  CATALOG_CONCURRENCY: 6,
+  SERP_FALLBACK_BRANDS: 5,
+  CACHED_PRODUCTS_PER_BRAND: 24,
   MAX_SEARCH_HISTORY: 10,
   BATCH_SIZE: 5,
   REQUEST_DELAY_MS: 200,
@@ -17,7 +27,7 @@ const CONFIG = {
   STORAGE_KEYS: {
     SEARCH_HISTORY: 'bcf_search_history',
     FEEDBACK: 'bcf_feedback_corpus',
-    RESULTS_CACHE: 'bcf_results_cache'
+    RESULTS_CACHE: 'bcf_results_cache_v2'
   },
   FAVICON_PRIMARY: (domain) => `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
   FAVICON_FALLBACK: (domain) => `https://icons.duckduckgo.com/ip3/${domain}.ico`
@@ -26,6 +36,7 @@ const CONFIG = {
 // State
 let currentSearchId = null;
 let currentResults = null;
+function getResults() { return currentResults; }
 let searchAbortController = null;
 let isSearchCancelled = false;
 
@@ -66,12 +77,7 @@ const elements = {
   // Results
   searchedBrandCardContainer: document.getElementById('searchedBrandCardContainer'),
   brandsGrid: document.getElementById('brandsGrid'),
-  productsGrid: document.getElementById('productsGrid'),
-  productsGroup: document.getElementById('productsGroup'),
-  productsLoading: document.getElementById('productsLoading'),
-  productsLoadingText: document.getElementById('productsLoadingText'),
-  productsSkeleton: document.getElementById('productsSkeleton'),
-  productsOutOfCredits: document.getElementById('productsOutOfCredits'),
+  pickerSection: document.getElementById('pickerSection'),
 
   // Loading
   loadingText: document.getElementById('loadingText'),
@@ -95,6 +101,7 @@ const elements = {
   // Typing placeholders
   typingPlaceholder: document.getElementById('typingPlaceholder'),
   resultsTypingPlaceholder: document.getElementById('resultsTypingPlaceholder'),
+  resultsSearchDisplay: document.getElementById('resultsSearchDisplay'),
 
   // Pitch Modal
   pitchModalOverlay: document.getElementById('pitchModalOverlay'),
@@ -103,6 +110,7 @@ const elements = {
   pitchModalBody: document.getElementById('pitchModalBody'),
   pitchModalContent: document.getElementById('pitchModalContent'),
   pitchQuickLinks: document.getElementById('pitchQuickLinks'),
+  pitchBundlesBuilt: document.getElementById('pitchBundlesBuilt'),
   pitchModalSubtitle: document.getElementById('pitchModalSubtitle'),
   pitchToolbarBtn: document.getElementById('pitchToolbarBtn')
 };
@@ -128,6 +136,7 @@ function clearSearchFromUrl() {
   const url = new URL(window.location.href);
   url.searchParams.delete(SEARCH_PARAM);
   url.searchParams.delete('pitch');
+  url.searchParams.delete('pick');
   history.replaceState(null, '', url.toString());
 }
 
@@ -420,6 +429,7 @@ function showSection(sectionName) {
   elements.landingSection.classList.add('hidden');
   elements.loadingSection.classList.add('hidden');
   elements.resultsSection.classList.add('hidden');
+  if (elements.pickerSection) elements.pickerSection.classList.add('hidden');
   elements.emptySection.classList.add('hidden');
   elements.errorSection.classList.add('hidden');
 
@@ -437,7 +447,7 @@ function showSection(sectionName) {
       elements.landingSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.remove('showing-results');
       document.body.classList.remove('showing-results');
-      elements.floatingTiles.classList.remove('whip-out');
+      elements.floatingTiles.classList.remove('whip-out', 'whip-out--fast');
       if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.remove('hidden');
       break;
     case 'loading':
@@ -460,6 +470,17 @@ function showSection(sectionName) {
       if (elements.siteHeader) {
         elements.siteHeader.classList.add('header-nav--results');
         // Remove loading state to fade in back/start over buttons
+        elements.siteHeader.classList.remove('header-nav--loading');
+      }
+      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      break;
+    case 'picker':
+      elements.pickerSection.classList.remove('hidden');
+      document.querySelector('.app-container').classList.add('showing-results');
+      document.body.classList.add('showing-results');
+      resetTileTilt();
+      if (elements.siteHeader) {
+        elements.siteHeader.classList.add('header-nav--results');
         elements.siteHeader.classList.remove('header-nav--loading');
       }
       if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
@@ -515,9 +536,7 @@ function renderSearchHistory(targetList = null) {
         >
         <span class="history-item-url">${item.domain}</span>
         <button type="button" class="history-item-remove-btn" data-url="${item.domain}" aria-label="Remove ${item.domain} from history">
-          <svg class="history-item-remove-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
+          ${icon('cross-large', { class: 'history-item-remove-icon' })}
         </button>
       </li>
     `).join('');
@@ -566,9 +585,82 @@ function hideAllSearchHistoryDropdowns() {
    Results Rendering
    -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+   Social accounts: scraped from the brand's site (same grammar as the app's Brand DNA
+   extraction), with Gemini's guesses filling any platform the site did not link.
+   Stored as {platform: {handle, url}} in the app's registry order.
+   -------------------------------------------------------------------------- */
+
+const SOCIAL_PLATFORMS = [
+  { key: 'instagram', label: 'Instagram', icon: 'instagram' },
+  { key: 'tiktok', label: 'TikTok', icon: 'tiktok' },
+  { key: 'twitter', label: 'X', icon: 'twitter-x' },
+  { key: 'youtube', label: 'YouTube', icon: 'youtube' },
+  { key: 'pinterest', label: 'Pinterest', icon: 'pinterest' },
+  { key: 'facebook', label: 'Facebook', icon: 'facebook' },
+  { key: 'snapchat', label: 'Snapchat', icon: 'snapchat' },
+  { key: 'shopmy', label: 'ShopMy', icon: 'shopmy' },
+  { key: 'amazon', label: 'Amazon shop', icon: 'amazon' },
+  { key: 'ltk', label: 'LTK', icon: 'ltk' }
+];
+
+const HANDLE_SHAPE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
+// Accepts the AI's loose shape ({instagram: "@handle" | url | name}) or the stored one.
+function normalizeSocial(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const { key } of SOCIAL_PLATFORMS) {
+    const value = raw[key];
+    if (!value) continue;
+    if (typeof value === 'object' && value.handle) {
+      out[key] = { handle: value.handle, url: value.url || synthesizeSocialUrl(key, value.handle) };
+      continue;
+    }
+    const text = String(value).trim();
+    if (/^https?:\/\//i.test(text)) {
+      const found = {};
+      matchSocial(found, text);
+      if (found[key]) out[key] = found[key];
+      continue;
+    }
+    const handle = text.replace(/^@/, '');
+    if (HANDLE_SHAPE.test(handle)) out[key] = { handle, url: synthesizeSocialUrl(key, handle) };
+  }
+  return out;
+}
+
+// The site's own links win; the AI only fills platforms the site did not link.
+function mergeSocial(scraped, ai) {
+  return { ...normalizeSocial(ai), ...normalizeSocial(scraped) };
+}
+
 function hasAnySocialLink(social) {
-  const s = social && typeof social === 'object' ? social : {};
-  return !!(s.tiktok || s.instagram || s.facebook);
+  return Object.keys(normalizeSocial(social)).length > 0;
+}
+
+function socialEntries(social) {
+  const normalized = normalizeSocial(social);
+  return SOCIAL_PLATFORMS.filter(p => normalized[p.key]).map(p => ({ ...p, ...normalized[p.key] }));
+}
+
+async function fetchSocials(domain) {
+  try {
+    const response = await fetch(`${CONFIG.SOCIALS_PROXY}?domain=${encodeURIComponent(domain)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return data.socials || {};
+  } catch (err) {
+    console.warn(`[Socials] ${domain}: ${err.message}`);
+    return {};
+  }
+}
+
+function updateCardSocial(domain, social) {
+  document.querySelectorAll(`.result-card[data-domain="${domain}"]`).forEach(card => {
+    card.dataset.social = JSON.stringify(social || {});
+    card.querySelector('.card-menu-btn')?.classList.toggle('hidden', !hasAnySocialLink(social));
+  });
 }
 
 function buildFallbackSearchedBrand(domain) {
@@ -582,6 +674,142 @@ function buildFallbackSearchedBrand(domain) {
   };
 }
 
+/* --------------------------------------------------------------------------
+   Catalog strip: what a brand sells, from its public Shopify catalog
+   -------------------------------------------------------------------------- */
+
+const CATALOG_THUMBS = 5;
+
+function catalogThumbUrl(src, width = 160) {
+  try {
+    const url = new URL(src);
+    if (url.hostname.endsWith('cdn.shopify.com')) {
+      url.searchParams.set('width', String(width));
+      return url.toString();
+    }
+  } catch {}
+  return src;
+}
+
+const CATALOG_SOURCES = {
+  shopify: { label: 'Shopify', icon: 'shopify' },
+  serp: { label: 'Google Shopping', icon: 'google' }
+};
+
+// Thumbnail row inside the card. Loading shows a shimmer; no products shows nothing.
+function renderCatalogThumbs(catalog) {
+  if (!catalog) {
+    const skeleton = '<div class="card-catalog-thumb"></div>'.repeat(4);
+    return `<div class="card-catalog card-catalog--loading"><div class="card-catalog-thumbs">${skeleton}</div></div>`;
+  }
+  const products = catalog.products || [];
+  if (products.length === 0) return '';
+
+  const count = catalog.count || products.length;
+  const shown = products.slice(0, CATALOG_THUMBS);
+  // Past the row, the last tile blurs over its image and carries the count it stands in for.
+  const overflow = count > CATALOG_THUMBS ? count - (CATALOG_THUMBS - 1) : 0;
+  const thumbs = shown.map((p, i) => {
+    const img = `<img class="media-zoom" src="${catalogThumbUrl(p.image, 240)}" alt="" loading="lazy" onerror="this.parentElement.remove()">`;
+    const more = overflow && i === shown.length - 1;
+    return `<div class="card-catalog-thumb media-tile media-hairline${more ? ' card-catalog-thumb--more' : ''}" title="${escapeHtml(p.title)}">${img}${more ? `<span class="card-catalog-thumb-count">+${overflow}</span>` : ''}</div>`;
+  }).join('');
+  return `<div class="card-catalog card-catalog--${catalog.status}"><div class="card-catalog-thumbs">${thumbs}</div></div>`;
+}
+
+// The chinstrap tucked under the card: source on the left, product count on the right.
+// Only while the catalog is loading or once it has products; a brand without one gets no strip.
+function renderCatalogChinstrap(catalog, radius = 32) {
+  let source;
+  let count = '';
+  if (!catalog) {
+    source = `${icon('spinner', { class: 'icon-spin', size: 14 })} Checking catalog`;
+  } else {
+    const n = catalog.count || (catalog.products || []).length;
+    if (n === 0) return '';
+    const meta = CATALOG_SOURCES[catalog.status] || CATALOG_SOURCES.serp;
+    source = `${icon(meta.icon, { size: 14 })} ${meta.label}`;
+    count = `${n} ${n === 1 ? 'product' : 'products'}`;
+  }
+  return `<div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--${catalog ? catalog.status : 'loading'}" style="--tuck-radius: ${radius}px">
+    <span class="card-chinstrap-source">${source}</span>
+    <span class="card-chinstrap-count">${count}</span>
+    <div class="tuck-banner__notch tuck-banner__notch--left"></div>
+    <div class="tuck-banner__notch tuck-banner__notch--right"></div>
+  </div>`;
+}
+
+function updateCardCatalog(domain, catalog) {
+  const buildable = (catalog?.products?.length || 0) > 0;
+  document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(group => {
+    const slot = group.querySelector('.card-catalog-slot');
+    if (slot) slot.innerHTML = renderCatalogThumbs(catalog);
+    const linkSlot = group.querySelector('.searched-brand-card-link-slot');
+    if (linkSlot) {
+      linkSlot.innerHTML = renderSearchedBrandLink(catalog);
+      return;
+    }
+    group.querySelector('.card-chinstrap')?.remove();
+    const chinstrap = renderCatalogChinstrap(catalog);
+    if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
+    const card = group.querySelector('.result-card');
+    if (!card) return;
+    card.dataset.buildable = buildable ? 'true' : 'false';
+    card.querySelector('.build-bundle-btn')?.classList.toggle('hidden', !buildable);
+  });
+}
+
+function brandForCard(card) {
+  return currentResults?.brands?.find(b => extractDomain(b.url || '') === card.dataset.domain) || null;
+}
+
+async function fetchCatalog(domain) {
+  try {
+    const response = await fetch(`${CONFIG.CATALOG_PROXY}?domain=${encodeURIComponent(domain)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (err) {
+    console.warn(`[Catalog] ${domain}: ${err.message}`);
+    return { status: 'error', domain, count: 0, products: [] };
+  }
+}
+
+// Sets brand.catalog on each brand as its fetch resolves, a few at a time.
+async function attachCatalogs(brands, onCatalog) {
+  const queue = [...brands];
+  const worker = async () => {
+    while (queue.length) {
+      const brand = queue.shift();
+      const domain = extractDomain(brand.url || '');
+      const [catalog, scrapedSocial] = domain
+        ? await Promise.all([fetchCatalog(domain), fetchSocials(domain)])
+        : [{ status: 'none', domain: '', count: 0, products: [] }, {}];
+      brand.catalog = catalog;
+      brand.social = mergeSocial(scrapedSocial, brand.social);
+      if (onCatalog) onCatalog(brand);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONFIG.CATALOG_CONCURRENCY, brands.length) }, worker));
+}
+
+// localStorage is small; the cache keeps enough of each catalog to render the card.
+function trimCatalogForCache(brand) {
+  if (!brand?.catalog?.products) return brand;
+  const { products, ...rest } = brand.catalog;
+  return { ...brand, catalog: { ...rest, products: products.slice(0, CONFIG.CACHED_PRODUCTS_PER_BRAND), truncated: products.length > CONFIG.CACHED_PRODUCTS_PER_BRAND } };
+}
+
+// Searched brand's visit control: the platform mark (when known) beside the external-link icon,
+// styled as an elevated button. The whole card is the link, so this is a span, not a button.
+function renderSearchedBrandLink(catalog) {
+  const platform = catalog?.status === 'shopify'
+    ? `<span class="searched-brand-card-link-ghost">${icon(CATALOG_SOURCES.shopify.icon, { class: 'searched-brand-card-link-platform', size: 18 })}</span>`
+    : '';
+  return `<span class="btn btn--md btn--secondary searched-brand-card-link" aria-hidden="true">
+    ${platform}<span class="searched-brand-card-link-ghost searched-brand-card-link-ghost--external">${icon('square-arrow-top-right-2')}</span>
+  </span>`;
+}
+
 function createSearchedBrandCard(searchedBrand) {
   const url = searchedBrand?.url || '';
   const domain = extractDomain(url);
@@ -589,6 +817,10 @@ function createSearchedBrandCard(searchedBrand) {
   const imageUrl = searchedBrand.imageUrl || '';
   const faviconUrl = searchedBrand.faviconUrl || getFaviconUrl(domain);
   const imgSrc = imageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+
+  const group = document.createElement('div');
+  group.className = 'searched-brand-card-group';
+  group.dataset.catalogDomain = domain;
 
   const card = document.createElement('a');
   card.className = 'searched-brand-card';
@@ -618,33 +850,46 @@ function createSearchedBrandCard(searchedBrand) {
             <div class="searched-brand-card-name">${searchedBrand.name}</div>
             <div class="searched-brand-card-url">${domain}</div>
           </div>
+          <div class="searched-brand-card-link-slot">${renderSearchedBrandLink(searchedBrand.catalog)}</div>
         </div>
         <p class="searched-brand-card-description">${searchedBrand.description}</p>
-      </div>
-      <div class="searched-brand-card-external-wrapper">
-        <span class="icon-button icon-button--medium searched-brand-card-external" aria-label="Open in new tab">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-        </span>
+        <div class="card-catalog-slot">${renderCatalogThumbs(searchedBrand.catalog)}</div>
       </div>
     </div>
   `;
 
-  return card;
+  group.append(card);
+  return group;
+}
+
+// Three bullets from the recommender; a cached result may still carry the old paragraph.
+function renderCardReason(brand) {
+  const bullets = Array.isArray(brand.reasons) ? brand.reasons.filter(Boolean) : [];
+  if (bullets.length) {
+    const items = bullets.map(text => `<li class="card-reason-item">${escapeHtml(text)}</li>`).join('');
+    return `<div class="card-reason-bubble"><ul class="card-reason">${items}</ul></div>`;
+  }
+  if (brand.reason) {
+    return `<div class="card-reason-bubble"><p class="card-reason card-reason--prose">${escapeHtml(brand.reason)}</p></div>`;
+  }
+  return '';
 }
 
 function createBrandCard(brand, index) {
   const url = brand?.url || '';
   const domain = extractDomain(url);
   const fullUrl = url && url.startsWith('http') ? url : (url ? `https://${url}` : '#');
+  const group = document.createElement('div');
+  group.className = 'result-card-group';
+  group.style.animationDelay = `${index * 0.05}s`;
+  group.dataset.catalogDomain = domain;
+
   const card = document.createElement('div');
   card.className = 'result-card';
-  card.style.animationDelay = `${index * 0.05}s`;
   card.dataset.url = fullUrl;
+  card.dataset.domain = domain;
   card.dataset.social = JSON.stringify(brand.social || {});
+  if (canBuildWith(brand)) card.dataset.buildable = 'true';
 
   const showMenu = hasAnySocialLink(brand.social);
   card.innerHTML = `
@@ -660,82 +905,32 @@ function createBrandCard(brand, index) {
           <div class="card-name">${brand.name}</div>
           <div class="card-url">${domain}</div>
         </div>
-        ${showMenu ? `<button class="card-menu-btn" aria-label="More options">
-          <svg class="card-menu-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M2 12a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Z" clip-rule="evenodd"/></svg>
-        </button>` : ''}
+        <button class="card-menu-btn${showMenu ? '' : ' hidden'}" aria-label="More options">
+          ${icon('dot-grid-1x3-horizontal', { class: 'card-menu-icon' })}
+        </button>
       </div>
+      <div class="card-catalog-slot">${renderCatalogThumbs(brand.catalog)}</div>
     </div>
     <div class="card-body">
-      ${brand.reason ? `<div class="card-reason-bubble"><p class="card-reason">${brand.reason}</p></div>` : ''}
+      ${renderCardReason(brand)}
       <div class="card-actions">
+        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Build bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
         </div>
-        <button type="button" class="btn btn--md btn--secondary visit-btn" data-url="${fullUrl}">Visit</button>
+        <button type="button" class="btn btn--md btn--secondary btn--icon visit-btn has-tooltip" data-url="${fullUrl}" aria-label="Visit ${escapeHtml(brand.name)}">
+          ${icon('square-arrow-top-right-2')}
+          <span class="tooltip" aria-hidden="true">Visit ${escapeHtml(brand.name)}</span>
+        </button>
       </div>
     </div>
   `;
 
-  return card;
+  group.append(card);
+  group.insertAdjacentHTML('beforeend', renderCatalogChinstrap(brand.catalog));
+  return group;
 }
 
-function createProductCard(product, index) {
-  const url = product?.url || '';
-  const domain = extractDomain(url);
-  const fullUrl = url && url.startsWith('http') ? url : (url ? `https://${url}` : '#');
-  const imageUrl = product.imageUrl || '';
-  const faviconUrl = product.faviconUrl || getFaviconUrl(domain);
-  
-  // Debug: log what image we're using
-  console.log(`[Card] ${product.productName}: imageUrl=${imageUrl ? imageUrl.substring(0, 50) + '...' : 'NONE'}`);
-  
-  // Use product image, or favicon as fallback, or empty SVG as last resort
-  let imgSrc = imageUrl;
-  if (!imgSrc && faviconUrl) {
-    // If no product image but we have favicon, use that scaled up
-    console.log(`[Card] ${product.productName}: Falling back to favicon`);
-    imgSrc = faviconUrl;
-  }
-  if (!imgSrc) {
-    imgSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
-  }
-
-  const card = document.createElement('div');
-  card.className = 'product-card';
-  card.style.animationDelay = `${index * 0.05}s`;
-  card.dataset.url = fullUrl;
-  card.dataset.social = JSON.stringify(product.social || {});
-
-  const showMenu = hasAnySocialLink(product.social);
-  card.innerHTML = `
-    <div class="product-image-container">
-      <img
-        src="${imgSrc}"
-        alt="${product.productName}"
-        class="product-image"
-        loading="lazy"
-        onerror="this.style.display='none'; this.parentElement.classList.add('no-image');"
-      >
-      ${showMenu ? `<button class="product-menu-btn card-menu-btn" aria-label="More options">
-        <svg class="card-menu-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M2 12a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm8 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Z" clip-rule="evenodd"/></svg>
-      </button>` : ''}
-    </div>
-    <div class="product-info">
-      <div class="product-brand-row">
-        <img
-          src="${faviconUrl}"
-          alt="${product.brandName}"
-          class="product-favicon"
-          onerror="this.src='${getFaviconUrl(domain)}'; this.onerror=null;"
-        >
-        <span class="product-brand-name">${product.brandName}</span>
-      </div>
-      <div class="product-name">${product.productName}</div>
-    </div>
-  `;
-
-  return card;
-}
 
 // Render brands only (called first when brands are ready)
 function renderBrandsOnly(brands, searchedBrand = null) {
@@ -758,149 +953,16 @@ function renderBrandsOnly(brands, searchedBrand = null) {
     const card = createBrandCard(brand, index);
     elements.brandsGrid.appendChild(card);
   });
-
-  // Show products loading state
-  showProductsLoading();
 }
 
-// Show products loading spinner
-function showProductsLoading() {
-  if (elements.productsLoading) {
-    elements.productsLoading.classList.remove('hidden');
-  }
-  if (elements.productsSkeleton) {
-    elements.productsSkeleton.classList.add('hidden');
-  }
-  if (elements.productsGrid) {
-    elements.productsGrid.classList.add('hidden');
-    elements.productsGrid.innerHTML = '';
-  }
-  if (elements.productsOutOfCredits) {
-    elements.productsOutOfCredits.classList.add('hidden');
-  }
-}
 
-// Show out of credits state
-function showProductsOutOfCredits() {
-  if (elements.productsLoading) {
-    elements.productsLoading.classList.add('hidden');
-  }
-  if (elements.productsSkeleton) {
-    elements.productsSkeleton.classList.add('hidden');
-  }
-  if (elements.productsGrid) {
-    elements.productsGrid.classList.add('hidden');
-  }
-  if (elements.productsOutOfCredits) {
-    elements.productsOutOfCredits.classList.remove('hidden');
-  }
-}
 
-// Transition to skeleton UI (called when products are almost ready)
-function showProductsSkeleton() {
-  if (elements.productsLoading) {
-    elements.productsLoading.classList.add('hidden');
-  }
-  if (elements.productsSkeleton) {
-    elements.productsSkeleton.classList.remove('hidden');
-  }
-}
 
-// Update products loading text
-function updateProductsLoadingText(message) {
-  if (elements.productsLoadingText) {
-    elements.productsLoadingText.textContent = message;
-  }
-}
 
-// Render products with skeleton-to-content transition
-function renderProducts(products, brands = []) {
-  console.log(`[Render] Rendering ${products.length} products`);
-  const withImages = products.filter(p => p.imageUrl);
-  const withoutImages = products.filter(p => !p.imageUrl);
-  console.log(`[Render] Products with images: ${withImages.length}, without: ${withoutImages.length}`);
-  if (withoutImages.length > 0) {
-    console.log(`[Render] Products missing images:`, withoutImages.map(p => p.productName));
-  }
 
-  // Step 1: Hide spinner, show skeleton UI briefly
-  if (elements.productsLoading) {
-    elements.productsLoading.classList.add('hidden');
-  }
-  
-  // Show skeleton UI for a brief moment before revealing products
-  if (elements.productsSkeleton) {
-    elements.productsSkeleton.classList.remove('hidden');
-  }
-
-  // Step 2: Prepare products grid (hidden)
-  elements.productsGrid.innerHTML = '';
-  
-  products.forEach((product, index) => {
-    const productData = { ...product };
-    
-    // Add social links from matching brand if product doesn't have them
-    if (!productData.social && product.brandName) {
-      const match = brands.find(b => b.name && String(b.name).toLowerCase() === String(product.brandName).toLowerCase());
-      if (match?.social) productData.social = match.social;
-    }
-    
-    const card = createProductCard(productData, index);
-    elements.productsGrid.appendChild(card);
-  });
-
-  // Step 3: After brief skeleton display, fade in actual products
-  setTimeout(() => {
-    // Hide skeleton
-    if (elements.productsSkeleton) {
-      elements.productsSkeleton.classList.add('hidden');
-    }
-    
-    // Show products grid with fade-in animation
-    elements.productsGrid.classList.remove('hidden');
-    elements.productsGrid.classList.add('fade-in');
-    
-    // Remove animation class after it completes
-    setTimeout(() => {
-      elements.productsGrid.classList.remove('fade-in');
-    }, 500);
-  }, 400); // Show skeleton for 400ms before revealing products
-
-  // Reset feedback state
-  elements.feedbackPositive.classList.remove('selected');
-  elements.feedbackNegative.classList.remove('selected');
-  elements.feedbackThanks.classList.add('hidden');
-  elements.feedbackSection.style.pointerEvents = 'auto';
-}
-
-// Legacy function for cached results (renders everything at once)
-function renderResults(brands, products, searchedBrand = null) {
-  console.log(`[renderResults] Rendering ${brands.length} brands and ${products.length} products from cache`);
-  
-  // Render brands
+// Cached results render in one pass, catalogs included.
+function renderResults(brands, searchedBrand = null) {
   renderBrandsOnly(brands, searchedBrand);
-  
-  // Immediately render products (no loading state for cached results)
-  if (elements.productsLoading) {
-    elements.productsLoading.classList.add('hidden');
-  }
-  if (elements.productsSkeleton) {
-    elements.productsSkeleton.classList.add('hidden');
-  }
-  if (elements.productsOutOfCredits) {
-    elements.productsOutOfCredits.classList.add('hidden');
-  }
-  
-  elements.productsGrid.innerHTML = '';
-  if (products.length === 0) {
-    console.log('[renderResults] No products in cache - showing loading state for fresh fetch');
-  }
-  products.forEach((product, index) => {
-    const card = createProductCard(product, index);
-    elements.productsGrid.appendChild(card);
-  });
-  elements.productsGrid.classList.remove('hidden');
-  console.log(`[renderResults] Products grid now visible with ${products.length} cards`);
 
   // Reset feedback state
   elements.feedbackPositive.classList.remove('selected');
@@ -918,7 +980,7 @@ let activePopoverCard = null;
 function showSocialPopover(button, socialData) {
   const popover = elements.socialPopover;
   const rect = button.getBoundingClientRect();
-  const parentCard = button.closest('.result-card') || button.closest('.product-card');
+  const parentCard = button.closest('.result-card');
 
   // Clear previous popover card state
   if (activePopoverCard) {
@@ -929,31 +991,12 @@ function showSocialPopover(button, socialData) {
     activePopoverCard.classList.add('popover-open');
   }
 
-  // Update links - hide unavailable, show and set href for available
-  const tiktokLink = popover.querySelector('[data-platform="tiktok"]');
-  const instagramLink = popover.querySelector('[data-platform="instagram"]');
-  const facebookLink = popover.querySelector('[data-platform="facebook"]');
-
-  if (socialData.tiktok) {
-    tiktokLink.href = socialData.tiktok.startsWith('http') ? socialData.tiktok : `https://tiktok.com/@${socialData.tiktok}`;
-    tiktokLink.classList.remove('hidden');
-  } else {
-    tiktokLink.classList.add('hidden');
-  }
-
-  if (socialData.instagram) {
-    instagramLink.href = socialData.instagram.startsWith('http') ? socialData.instagram : `https://instagram.com/${socialData.instagram}`;
-    instagramLink.classList.remove('hidden');
-  } else {
-    instagramLink.classList.add('hidden');
-  }
-
-  if (socialData.facebook) {
-    facebookLink.href = socialData.facebook.startsWith('http') ? socialData.facebook : `https://facebook.com/${socialData.facebook}`;
-    facebookLink.classList.remove('hidden');
-  } else {
-    facebookLink.classList.add('hidden');
-  }
+  popover.innerHTML = socialEntries(socialData).map(entry => `
+    <a href="${escapeHtml(entry.url)}" class="social-link" data-platform="${entry.key}" target="_blank" rel="noopener" title="@${escapeHtml(entry.handle)}">
+      ${icon(entry.icon, { class: 'social-icon' })}
+      <span>${entry.label}</span>
+      ${icon('arrow-up-right', { class: 'social-link-external' })}
+    </a>`).join('');
 
   // Append popover to card so it scrolls with the page (not fixed in viewport)
   parentCard.appendChild(popover);
@@ -962,16 +1005,8 @@ function showSocialPopover(button, socialData) {
   const cardRect = parentCard.getBoundingClientRect();
   const top = rect.bottom - cardRect.top + 4;
   const popoverWidth = 220; // matches .social-popover min-width
-  const isProductCard = parentCard.classList.contains('product-card');
-  const cardWidth = parentCard.offsetWidth;
-  let left;
-  if (isProductCard) {
-    // Product cards: menu is top-right, right-align popover to avoid overflowing adjacent cards
-    left = Math.max(0, Math.min(rect.right - cardRect.left - popoverWidth, cardWidth - popoverWidth));
-  } else {
-    // Result cards: center popover under the menu button
-    left = Math.max(0, rect.left - cardRect.left - (popoverWidth / 2) + (rect.width / 2));
-  }
+  // Center the popover under the menu button
+  const left = Math.max(0, rect.left - cardRect.left - (popoverWidth / 2) + (rect.width / 2));
   popover.style.top = `${top}px`;
   popover.style.left = `${left}px`;
 
@@ -1123,6 +1158,14 @@ Brand 2 (the brand Sean is suggesting Brand 1 should collaborate WITH via OfferL
       if (sb.brandDNA) contextBlock += `- Brand DNA: ${sb.brandDNA}\n`;
       if (sb.targetCustomer) contextBlock += `- Target Customer: ${sb.targetCustomer}\n`;
       if (sb.url) contextBlock += `- Website: ${sb.url}\n`;
+    }
+
+    if (context.bundlesBuilt?.length) {
+      contextBlock += `\nBundles already built for this pair in OfferLab. Reference these by name in the outreach rather than inventing a new concept:\n`;
+      context.bundlesBuilt.forEach(draft => {
+        const items = (draft.products || []).map(p => `${p.title} by ${p.brand}`).join(', ');
+        contextBlock += `- "${draft.name}"${items ? `: ${items}` : ''}${draft.publishedUrl ? ` (live at ${draft.publishedUrl})` : ''}\n`;
+      });
     }
 
     if (context.recommendedBrand) {
@@ -1331,13 +1374,81 @@ function renderPitchInitialState(brand1, brand2) {
       </div>
       <p class="pitch-description">AI will research both brands, recommend the best outreach channel and contacts, draft personalized messages in your voice, and surface noteworthy details for conversation starters.</p>
       <button type="button" class="pitch-generate-btn" id="pitchGenerateBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        ${icon('ai-sparkles-two-filled', { size: 18 })}
         Generate Pitch
       </button>
     </div>
   `;
 
   setPitchToolbarState('hidden');
+}
+
+// The drafts on screen for the pair currently open, so the prompt and the render agree.
+let currentPitchDrafts = [];
+
+/**
+ * "Bundles built": what has already been made for this pair, so the outreach can point at
+ * something real rather than describing it. Renders nothing for a pair with no drafts.
+ *
+ * The published page is looked up rather than stored at creation time, because publishing happens
+ * later and in the builder, not here. It needs a connection, so a disconnected operator still gets
+ * the list and the builder links, just without the PDP.
+ */
+function renderBundlesBuilt(searchedDomain, partnerDomain) {
+  const container = elements.pitchBundlesBuilt;
+  if (!container) return;
+
+  currentPitchDrafts = offerlab.draftsForPair(searchedDomain, partnerDomain);
+  if (!currentPitchDrafts.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const row = (draft) => {
+    const items = (draft.products || []).map(product =>
+      `<li class="pitch-bundle-item">${escapeHtml(product.title)} <span class="pitch-bundle-item-brand">by ${escapeHtml(product.brand)}</span></li>`
+    ).join('');
+    return `
+      <div class="pitch-bundle" data-stack-id="${draft.stackId}">
+        <div class="pitch-bundle-name">${escapeHtml(draft.name)}</div>
+        ${items ? `<ul class="pitch-bundle-items">${items}</ul>` : ''}
+        <div class="pitch-bundle-links">
+          <a href="${escapeHtml(draft.url)}" target="_blank" rel="noopener noreferrer" class="pitch-bundle-link">Open in builder</a>
+          <a href="${escapeHtml(draft.publishedUrl || '#')}" target="_blank" rel="noopener noreferrer"
+             class="pitch-bundle-link pitch-bundle-link--pdp"${draft.publishedUrl ? '' : ' hidden'}>View the live page</a>
+        </div>
+      </div>`;
+  };
+
+  container.innerHTML = `
+    <div class="pitch-bundles-card">
+      <div class="pitch-bundles-header">Bundles built</div>
+      ${currentPitchDrafts.map(row).join('')}
+    </div>`;
+
+  fillPublishedLinks(searchedDomain);
+}
+
+// Oldest first would bury today's work; newest is what the operator just made. A stack deleted in
+// OfferLab keeps its row and its link fails visibly, which is the ticket's stated behavior.
+async function fillPublishedLinks(searchedDomain) {
+  if (!offerlab.isEnabled() || !offerlab.isConnected()) return;
+
+  for (const draft of currentPitchDrafts.filter(entry => !entry.publishedUrl)) {
+    try {
+      const url = await offerlab.publishedUrlFor(draft.stackId);
+      if (!url) continue;
+      offerlab.rememberPublishedUrl(searchedDomain, draft.stackId, url);
+      draft.publishedUrl = url;
+      const link = elements.pitchBundlesBuilt?.querySelector(`[data-stack-id="${draft.stackId}"] .pitch-bundle-link--pdp`);
+      if (link) {
+        link.href = url;
+        link.hidden = false;
+      }
+    } catch (err) {
+      console.warn(`[Pitch] Could not check whether stack ${draft.stackId} is published:`, err.message);
+    }
+  }
 }
 
 function renderQuickLinksCard(searchedBrand, partnerBrand) {
@@ -1349,10 +1460,7 @@ function renderQuickLinksCard(searchedBrand, partnerBrand) {
     { name: partnerBrand?.name || 'Brand 2', url: partnerBrand?.url || '', social: partnerBrand?.social || {} }
   ];
 
-  const websiteIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="square" stroke-width="2" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c-2.21 0-4-4.03-4-9s1.79-9 4-9m0 18c2.21 0 4-4.03 4-9s-1.79-9-4-9m0 0a9 9 0 0 0-9 9"/></svg>`;
-  const instagramIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.858 2.07c-1.064.05-1.79.22-2.425.47-.658.256-1.215.6-1.77 1.156a4.898 4.898 0 0 0-1.15 1.772c-.246.637-.413 1.364-.46 2.429-.047 1.064-.057 1.407-.052 4.122.005 2.716.017 3.056.069 4.123.05 1.064.22 1.79.47 2.425.256.658.6 1.215 1.156 1.77a4.892 4.892 0 0 0 1.774 1.15c.636.245 1.363.413 2.428.46 1.064.046 1.407.057 4.122.052 2.715-.005 3.056-.017 4.123-.068 1.067-.05 1.79-.221 2.425-.47a4.9 4.9 0 0 0 1.769-1.156 4.9 4.9 0 0 0 1.15-1.774c.246-.636.413-1.363.46-2.427.046-1.067.057-1.408.052-4.123-.005-2.715-.018-3.056-.068-4.122-.05-1.067-.22-1.79-.47-2.427a4.91 4.91 0 0 0-1.156-1.769 4.88 4.88 0 0 0-1.773-1.15c-.637-.245-1.364-.413-2.428-.46-1.065-.045-1.407-.057-4.123-.052-2.716.005-3.056.017-4.123.069Zm.117 18.078c-.975-.043-1.504-.205-1.857-.34-.467-.18-.8-.398-1.152-.746a3.08 3.08 0 0 1-.75-1.149c-.137-.352-.302-.881-.347-1.856-.05-1.054-.06-1.37-.066-4.04-.006-2.67.004-2.986.05-4.04.042-.974.205-1.504.34-1.857.18-.468.397-.8.746-1.151a3.087 3.087 0 0 1 1.149-.75c.353-.138.881-.302 1.856-.348 1.054-.05 1.37-.06 4.04-.066 2.67-.006 2.986.004 4.041.05.974.043 1.505.204 1.857.34.467.18.8.397 1.151.746.352.35.568.682.75 1.15.138.35.302.88.348 1.855.05 1.054.062 1.37.066 4.04.005 2.669-.004 2.986-.05 4.04-.043.975-.205 1.504-.34 1.857a3.1 3.1 0 0 1-.747 1.152c-.349.35-.681.567-1.148.75-.352.137-.882.301-1.855.347-1.055.05-1.371.06-4.041.066-2.671.006-2.986-.005-4.04-.05Zm8.153-13.493a1.2 1.2 0 1 0 2.398-.003 1.2 1.2 0 0 0-2.398.003ZM6.865 12.01a5.134 5.134 0 1 0 10.27-.02 5.134 5.134 0 0 0-10.27.02Zm1.802-.004a3.333 3.333 0 1 1 6.666-.013 3.333 3.333 0 0 1-6.666.013Z"/></svg>`;
-  const tiktokIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.438 2.017C13.529 2 14.613 2.008 15.696 2c.067 1.275.525 2.575 1.458 3.475.934.925 2.25 1.35 3.534 1.492v3.358c-1.2-.042-2.409-.292-3.5-.808-.475-.217-.917-.492-1.35-.775-.009 2.433.008 4.866-.017 7.291a6.366 6.366 0 0 1-1.125 3.284c-1.092 1.6-2.983 2.641-4.925 2.674-1.192.067-2.383-.258-3.4-.858-1.683-.992-2.867-2.808-3.042-4.758a15.445 15.445 0 0 1-.008-1.242c.15-1.583.933-3.1 2.15-4.133 1.383-1.2 3.317-1.775 5.125-1.433.017 1.233-.033 2.466-.033 3.7-.825-.267-1.792-.192-2.517.308a2.893 2.893 0 0 0-1.133 1.458c-.175.425-.125.892-.117 1.342.2 1.366 1.517 2.517 2.917 2.392.933-.009 1.825-.55 2.308-1.342.158-.275.333-.559.342-.884.083-1.491.05-2.975.058-4.466.008-3.358-.008-6.708.017-10.058Z"/></svg>`;
-  const facebookIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c5.523 0 10 4.477 10 10 0 4.991-3.657 9.129-8.438 9.879V14.89h2.33l.445-2.89h-2.773v-1.876c0-.79.387-1.562 1.63-1.562h1.26v-2.46s-.876-.15-1.828-.187l-.41-.009c-2.284 0-3.777 1.385-3.777 3.89V12h-2.54v2.89h2.54v6.989C5.657 21.129 2 16.99 2 12 2 6.477 6.477 2 12 2Z"/></svg>`;
+  const websiteIcon = `${icon('globus', { size: 20 })}`;
 
   function buildBrandLinks(brand) {
     const links = [];
@@ -1370,42 +1478,15 @@ function renderQuickLinksCard(searchedBrand, partnerBrand) {
       `);
     }
 
-    const social = brand.social && typeof brand.social === 'object' ? brand.social : {};
-
-    // Instagram
-    if (social.instagram) {
-      const igUrl = social.instagram.startsWith('http') ? social.instagram : `https://instagram.com/${social.instagram}`;
-      const igHandle = social.instagram.startsWith('http') ? social.instagram.split('/').pop() : social.instagram;
+    socialEntries(brand.social).forEach(entry => {
+      const label = entry.key === 'facebook' ? entry.label : `@${entry.handle}`;
       links.push(`
-        <a href="${escapeHtml(igUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">@${escapeHtml(igHandle)}</span>
-          <span class="quick-link-icon">${instagramIcon}</span>
+        <a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
+          <span class="quick-link-label">${escapeHtml(label)}</span>
+          <span class="quick-link-icon">${icon(entry.icon, { size: 20 })}</span>
         </a>
       `);
-    }
-
-    // TikTok
-    if (social.tiktok) {
-      const ttUrl = social.tiktok.startsWith('http') ? social.tiktok : `https://tiktok.com/@${social.tiktok}`;
-      const ttHandle = social.tiktok.startsWith('http') ? social.tiktok.split('/').pop().replace('@', '') : social.tiktok.replace('@', '');
-      links.push(`
-        <a href="${escapeHtml(ttUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">@${escapeHtml(ttHandle)}</span>
-          <span class="quick-link-icon">${tiktokIcon}</span>
-        </a>
-      `);
-    }
-
-    // Facebook
-    if (social.facebook) {
-      const fbUrl = social.facebook.startsWith('http') ? social.facebook : `https://facebook.com/${social.facebook}`;
-      links.push(`
-        <a href="${escapeHtml(fbUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-row">
-          <span class="quick-link-label">Facebook</span>
-          <span class="quick-link-icon">${facebookIcon}</span>
-        </a>
-      `);
-    }
+    });
 
     return { links, faviconSrc };
   }
@@ -1535,7 +1616,7 @@ function renderPitchLoadingState() {
 function renderPitchError(errorMessage) {
   elements.pitchModalContent.innerHTML = `
     <div class="pitch-error">
-      <svg class="pitch-error-icon" viewBox="0 0 24 24" fill="none"><path fill="currentColor" fill-rule="evenodd" d="M8.603 4.07c1.565-2.517 5.229-2.517 6.794 0l6.103 9.818C23.156 16.553 21.24 20 18.102 20H5.897C2.76 20 .844 16.553 2.5 13.888l6.103-9.817ZM12 8a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V9a1 1 0 0 1 1-1Zm-1.25 7a1.25 1.25 0 1 1 2.5 0 1.25 1.25 0 0 1-2.5 0Z" clip-rule="evenodd"/></svg>
+      ${icon('triangle-exclamation-filled', { class: 'pitch-error-icon' })}
       <p class="pitch-error-message">${escapeHtml(errorMessage)}</p>
       <button type="button" class="pitch-try-again-btn" id="pitchTryAgainBtn">Try Again</button>
     </div>
@@ -1570,10 +1651,10 @@ function renderChannelSection(channel) {
     // Build icon buttons
     const iconButtons = [];
     if (linkedinUrl) {
-      iconButtons.push(`<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer" class="pitch-contact-icon-btn" title="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>`);
+      iconButtons.push(`<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer" class="pitch-contact-icon-btn" title="LinkedIn">${icon('linkedin', { size: 18 })}</a>`);
     }
     if (email) {
-      iconButtons.push(`<a href="mailto:${email}" class="pitch-contact-icon-btn" title="${email}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>`);
+      iconButtons.push(`<a href="mailto:${email}" class="pitch-contact-icon-btn" title="${email}">${icon('email-1', { size: 18 })}</a>`);
     }
     const actionsHtml = iconButtons.length > 0 ? `<div class="pitch-contact-actions">${iconButtons.join('')}</div>` : '';
 
@@ -1598,7 +1679,7 @@ function renderChannelSection(channel) {
     <div class="pitch-section" data-section="channel">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Channel & Contacts</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-channel-card">
@@ -1643,7 +1724,7 @@ function renderMessagesSection(messages) {
     <div class="pitch-section" data-section="messages">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Messages</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-messages">${messageCards.join('')}</div>
@@ -1661,7 +1742,7 @@ function renderSingleMessage(msg, id) {
     <div class="pitch-message-card">
       <div class="pitch-message-header">
         <span class="pitch-message-channel">${channelLabel}</span>
-        <button type="button" class="pitch-copy-btn" data-copy-target="${id}"><svg viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V5.25A2.25 2.25 0 0 1 11.25 3h7.5A2.25 2.25 0 0 1 21 5.25v7.5A2.25 2.25 0 0 1 18.75 15H15m-2.25-6h-7.5A2.25 2.25 0 0 0 3 11.25v7.5A2.25 2.25 0 0 0 5.25 21h7.5A2.25 2.25 0 0 0 15 18.75v-7.5A2.25 2.25 0 0 0 12.75 9Z"/></svg> Copy</button>
+        <button type="button" class="pitch-copy-btn" data-copy-target="${id}">${icon('copy-2-layers-pages')} Copy</button>
       </div>
       ${hasSubject ? `<p class="pitch-message-subject"><strong>Subject:</strong> ${escapeHtml(msg.subject)}</p>` : ''}
       <div class="pitch-message-body" id="${id}">${body}</div>
@@ -1715,7 +1796,7 @@ function renderBrandIntelligenceSection(intelligence) {
     <div class="pitch-section" data-section="intelligence">
       <div class="pitch-section-header">
         <h3 class="pitch-section-title">Brand Intel</h3>
-        <svg class="pitch-section-chevron" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 9-8 8-8-8"/></svg>
+        ${icon('chevron-bottom', { class: 'pitch-section-chevron' })}
       </div>
       <div class="pitch-section-content">
         <div class="pitch-brand-grid">
@@ -1755,6 +1836,7 @@ function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
 
   // Render quick links card for both brands
   renderQuickLinksCard(searchedBrand, brand);
+  renderBundlesBuilt(searchedDomain, partnerDomain);
 
   // Show modal
   elements.pitchModalOverlay.classList.remove('hidden');
@@ -1863,7 +1945,8 @@ async function triggerPitchGeneration() {
   // Build rich context from existing search results
   const context = {
     searchedBrand: currentResults?.searchedBrand || null,
-    recommendedBrand: currentPitchBrand || null
+    recommendedBrand: currentPitchBrand || null,
+    bundlesBuilt: currentPitchDrafts
   };
 
   try {
@@ -1941,7 +2024,7 @@ const LOADING_MESSAGES = [
 // ============================================
 // MAIN FUNCTION (Decoupled: Brands first, Products in parallel)
 // ============================================
-async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onProductsProgress } = {}) {
+async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog } = {}) {
   const domain = extractDomain(url);
   const brandName = extractBrandName(domain);
   const feedbackContext = buildFeedbackContext();
@@ -1949,12 +2032,6 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onP
   const updateProgress = (index) => {
     if (onProgress && typeof onProgress === 'function') {
       onProgress(LOADING_MESSAGES[index] ?? LOADING_MESSAGES[0]);
-    }
-  };
-
-  const updateProductsProgress = (message) => {
-    if (onProductsProgress && typeof onProductsProgress === 'function') {
-      onProductsProgress(message);
     }
   };
 
@@ -2011,45 +2088,39 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onP
     }
 
     // ========================================
-    // PHASE 3: Fetch Top Products from Recommended Brands (OPTIMIZED)
-    // Instead of verifying AI-suggested products (expensive: 4 searches per product),
-    // we fetch top products directly from each brand (cheap: 1 search per brand)
+    // PHASE 3: Public catalogs for the searched brand and every recommendation
     // ========================================
-    console.log('[Discovery] PHASE 3: Starting product fetch from recommended brands...');
-    updateProductsProgress('Finding top products from recommended brands...');
+    console.log('[Discovery] PHASE 3: Fetching public catalogs...');
+    await attachCatalogs([searchedBrandData, ...brands], onCatalog);
 
-    // Fetch products from the recommended brands (1 SERP call per brand)
-    console.log(`[Discovery] Calling fetchProductsFromBrands for ${brands.length} brands...`);
-    const productResult = await fetchProductsFromBrands(brands, brandName);
-    console.log('[Discovery] fetchProductsFromBrands returned:', productResult);
-    
-    // Check if we ran out of SERP API credits
-    if (productResult && productResult.outOfCredits) {
-      console.log(`[Discovery] SERP API out of credits - returning with flag`);
-      return {
-        searchedBrand: searchedBrandData,
-        brands,
-        products: [],
-        serpApiOutOfCredits: true
-      };
+    // ========================================
+    // PHASE 4: Google Shopping only for brands without a public catalog (paid, 1 search per brand)
+    // ========================================
+    const fallbackBrands = brands.filter(b => b.catalog?.status !== 'shopify').slice(0, CONFIG.SERP_FALLBACK_BRANDS);
+    let serpApiOutOfCredits = false;
+    if (fallbackBrands.length > 0) {
+      console.log(`[Discovery] PHASE 4: SERP fallback for ${fallbackBrands.length} brands without a catalog`);
+      const serpResult = await fetchProductsFromBrands(fallbackBrands, brandName);
+      if (serpResult && serpResult.outOfCredits) {
+        serpApiOutOfCredits = true;
+      } else if (Array.isArray(serpResult)) {
+        fallbackBrands.forEach(brand => {
+          const products = serpResult
+            .filter(p => p.brandName === brand.name)
+            .map(p => ({ id: p.url, title: p.productName, url: p.url, image: p.imageUrl, price: typeof p.price === 'number' ? p.price : null }));
+          if (products.length === 0) return;
+          brand.catalog = { ...brand.catalog, status: 'serp', count: products.length, products };
+          if (onCatalog) onCatalog(brand);
+        });
+      }
     }
-    
-    const verifiedProducts = Array.isArray(productResult) ? productResult : [];
-    console.log(`[Discovery] Products from brands: ${verifiedProducts.length}`);
 
-    // ========================================
-    // PHASE 4: Fetch OG Images for Products
-    // ========================================
-    updateProductsProgress('Fetching product images...');
-
-    const productsWithImages = await enrichProductsWithImages(verifiedProducts);
-
-    console.log(`[Discovery] Complete. Found ${brands.length} brands, ${productsWithImages.length} products`);
+    console.log(`[Discovery] Complete. ${brands.length} brands, ${brands.filter(b => b.catalog?.products?.length).length} with products`);
 
     return {
       searchedBrand: searchedBrandData,
       brands,
-      products: productsWithImages
+      serpApiOutOfCredits
     };
 
   } catch (error) {
@@ -2215,7 +2286,7 @@ Return valid JSON only:
       "url": "https://actualbrandwebsite.com",
       "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
       "brandStage": "emerging|growing|established",
-      "reason": "2-3 sentences explaining the SPECIFIC synergy with ${brandName}. Reference concrete details.",
+      "reasons": ["3 short bullets on why this collab works with ${brandName}. Each is its own angle: the shared customer moment, the aesthetic or values overlap, and what the pairing unlocks commercially. Under 12 words each, playful and concrete, naming real products or details rather than generic praise. No em dashes, no restating the brand's tagline."],
       "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
       "social": {
         "tiktok": "handle or null",
@@ -2336,27 +2407,6 @@ function augmentWithGroundingMetadata(results, responseData) {
   return results;
 }
 
-// ============================================
-// FILTER SOURCE BRAND PRODUCTS
-// ============================================
-function filterSourceBrandProducts(products, sourceBrandName) {
-  const normalizedSourceBrand = sourceBrandName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  return products.filter(product => {
-    const productBrand = (product.brandName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    const isSameBrand =
-      productBrand === normalizedSourceBrand ||
-      productBrand.includes(normalizedSourceBrand) ||
-      normalizedSourceBrand.includes(productBrand);
-
-    if (isSameBrand) {
-      console.log(`[Filter] Removed source brand product: ${product.productName} from ${product.brandName}`);
-      return false;
-    }
-    return true;
-  });
-}
 
 // ============================================
 // FETCH PRODUCTS FROM RECOMMENDED BRANDS (OPTIMIZED)
@@ -2494,332 +2544,10 @@ async function fetchBrandTopProducts(brand) {
   }
 }
 
-// ============================================
-// VERIFY PRODUCT URLs WITH SERPAPI
-// ============================================
-async function verifyProductUrlsWithSerpApi(products, sourceBrandName) {
-  console.log(`[Products] Verifying ${products.length} products with SerpAPI...`);
 
-  const verified = [];
-  const failed = [];
-  let outOfCredits = false;
 
-  for (let i = 0; i < products.length; i += CONFIG.BATCH_SIZE) {
-    const batch = products.slice(i, i + CONFIG.BATCH_SIZE);
 
-    try {
-      const batchResults = await Promise.all(
-        batch.map(product => searchProductWithSerpApi(product))
-      );
 
-      for (const result of batchResults) {
-        if (result.verified && result.url) {
-          verified.push(result);
-        } else {
-          failed.push(result);
-        }
-      }
-    } catch (err) {
-      if (err.message === 'SERP_API_OUT_OF_CREDITS') {
-        outOfCredits = true;
-        console.error(`[Products] SERP API out of credits!`);
-        break;
-      }
-      throw err;
-    }
-
-    if (i + CONFIG.BATCH_SIZE < products.length) {
-      await sleep(CONFIG.REQUEST_DELAY_MS);
-    }
-  }
-
-  console.log(`[Products] Verified: ${verified.length}, Failed: ${failed.length}, OutOfCredits: ${outOfCredits}`);
-
-  // Return special marker if out of credits
-  if (outOfCredits) {
-    return { outOfCredits: true, products: [] };
-  }
-
-  // Don't use fallback URLs - they're usually broken
-  // Better to show fewer products than broken ones
-  if (verified.length === 0) {
-    console.log(`[Products] No verified products found - returning empty array`);
-  }
-
-  return verified;
-}
-
-// ============================================
-// VALIDATE URL: Check if URL returns 200 OK
-// ============================================
-async function validateUrlExists(url) {
-  if (!url) return false;
-  
-  try {
-    // Use our proxy to avoid CORS issues
-    const checkUrl = `${CONFIG.OPENGRAPH_PROXY}?url=${encodeURIComponent(url)}`;
-    const response = await fetch(checkUrl, { 
-      method: 'GET',
-      signal: AbortSignal.timeout(5000)
-    });
-    
-    if (!response.ok) {
-      console.log(`[Validate] URL check failed for ${url}: ${response.status}`);
-      return false;
-    }
-    
-    const data = await response.json();
-    // If we got an image or favicon, the page exists
-    const exists = !!(data.imageUrl || data.faviconUrl);
-    console.log(`[Validate] URL ${url} exists: ${exists}`);
-    return exists;
-  } catch (err) {
-    console.warn(`[Validate] URL check error for ${url}:`, err.message);
-    return false;
-  }
-}
-
-// ============================================
-// SERPAPI: Search for Individual Product
-// ============================================
-async function searchProductWithSerpApi(product) {
-  const { productName, brandName, brandDomain } = product;
-  
-  console.log(`[SerpAPI] Searching for product: "${productName}" by "${brandName}"`);
-
-  const cleanProductName = productName
-    .replace(/\s*\([^)]*\)\s*/g, ' ')
-    .replace(/\s*-\s*\d+\s*(oz|ml|g|lb|pack).*$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const domain = brandDomain || guessBrandDomain(brandName);
-  const brandLower = brandName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  // Prioritize brand's own website over retailers
-  const searchStrategies = [
-    // First: Search the brand's own site
-    {
-      query: `"${cleanProductName}" site:${domain}`,
-      engine: 'google',
-      type: 'organic_exact_site',
-      preferBrandSite: true
-    },
-    {
-      query: `site:${domain}/products/ ${cleanProductName}`,
-      engine: 'google',
-      type: 'organic_products_path',
-      preferBrandSite: true
-    },
-    // Then: Google Shopping (but filter for brand's site when possible)
-    {
-      query: `${cleanProductName} ${brandName}`,
-      engine: 'google_shopping',
-      type: 'shopping',
-      preferBrandSite: false
-    },
-    // Fallback: General search with buy intent
-    {
-      query: `${cleanProductName} ${brandName} buy`,
-      engine: 'google',
-      type: 'organic_buy_intent',
-      preferBrandSite: false
-    }
-  ];
-
-  // Collect all candidate URLs across strategies
-  const candidates = [];
-
-  for (const strategy of searchStrategies) {
-    try {
-      const searchResult = await serpApiSearch(strategy.query, strategy.engine);
-
-      if (strategy.engine === 'google_shopping' && searchResult?.shopping_results?.length > 0) {
-        // Get multiple matches from shopping results
-        const matches = findShoppingMatches(searchResult.shopping_results, productName, brandName, 3);
-        for (const match of matches) {
-          if (match.link) {
-            candidates.push({
-              url: match.link,
-              imageUrl: match.thumbnail,
-              price: match.extracted_price || match.price,
-              source: match.source,
-              searchSource: strategy.type,
-              isBrandSite: match.link.toLowerCase().includes(brandLower),
-              score: match.matchScore || 0
-            });
-          }
-        }
-      } else if (searchResult?.organic_results?.length > 0) {
-        // Get multiple matches from organic results
-        const matches = findOrganicMatches(searchResult.organic_results, productName, brandName, 3);
-        for (const match of matches) {
-          if (match.link) {
-            candidates.push({
-              url: match.link,
-              imageUrl: match.thumbnail,
-              searchSource: strategy.type,
-              isBrandSite: match.link.toLowerCase().includes(brandLower),
-              score: match.matchScore || 0
-            });
-          }
-        }
-      }
-
-    } catch (err) {
-      console.warn(`[Product] Strategy ${strategy.type} failed for ${productName}:`, err.message);
-      continue;
-    }
-  }
-
-  if (candidates.length === 0) {
-    console.warn(`[Product] No candidates found for: ${productName} by ${brandName}`);
-    return { ...product, url: null, verified: false };
-  }
-
-  // Sort candidates: prefer brand's own site, then by score
-  candidates.sort((a, b) => {
-    // Brand site gets priority
-    if (a.isBrandSite && !b.isBrandSite) return -1;
-    if (!a.isBrandSite && b.isBrandSite) return 1;
-    // Then by score
-    return b.score - a.score;
-  });
-
-  console.log(`[Product] ${candidates.length} candidates for "${productName}":`, 
-    candidates.slice(0, 3).map(c => ({ url: c.url.substring(0, 60), brand: c.isBrandSite, score: c.score })));
-
-  // Validate candidates until we find one that works
-  for (const candidate of candidates.slice(0, 5)) { // Check top 5 candidates max
-    const isSpecific = isSpecificProductUrl(candidate.url, productName);
-    
-    if (!isSpecific) {
-      console.log(`[Product] Skipping non-specific URL: ${candidate.url}`);
-      continue;
-    }
-
-    // Validate the URL actually exists
-    const urlExists = await validateUrlExists(candidate.url);
-    
-    if (urlExists) {
-      console.log(`[Product] Verified: ${productName} -> ${candidate.url}`);
-      return {
-        ...product,
-        url: candidate.url,
-        imageUrl: candidate.imageUrl,
-        price: candidate.price,
-        source: candidate.source,
-        verified: true,
-        searchSource: candidate.searchSource
-      };
-    } else {
-      console.log(`[Product] URL failed validation: ${candidate.url}`);
-    }
-  }
-
-  console.warn(`[Product] No valid URL found for: ${productName} by ${brandName}`);
-  return { ...product, url: null, verified: false };
-}
-
-// ============================================
-// SERPAPI: Find Multiple Shopping Matches
-// ============================================
-function findShoppingMatches(shoppingResults, productName, brandName, limit = 3) {
-  const productWords = productName.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(w => w.length > 2);
-  const brandLower = brandName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  const scored = shoppingResults.map(result => {
-    const title = (result.title || '').toLowerCase();
-    const source = (result.source || '').toLowerCase();
-    const link = (result.link || '').toLowerCase();
-
-    let score = 0;
-
-    // Brand match
-    if (title.includes(brandLower) || source.includes(brandLower)) {
-      score += 15;
-    }
-
-    // Product word matches
-    const titleMatches = productWords.filter(w => title.includes(w));
-    score += titleMatches.length * 3;
-
-    // Exact product name match
-    if (title.includes(productName.toLowerCase().substring(0, 20))) {
-      score += 10;
-    }
-
-    // Brand in URL (strong signal for brand's own site)
-    if (link.includes(brandLower)) {
-      score += 20; // Increased from 8
-    }
-
-    // Penalize major retailers (we want brand's own site)
-    if (link.includes('amazon.com')) score -= 5;
-    if (link.includes('walmart.com')) score -= 5;
-    if (link.includes('target.com')) score -= 5;
-    if (link.includes('ebay.com')) score -= 20;
-
-    // Penalize non-specific URLs
-    if (result.link && !isSpecificProductUrl(result.link, productName)) {
-      score -= 25;
-    }
-
-    if (!result.link) {
-      score = -100;
-    }
-
-    return { ...result, matchScore: score };
-  });
-
-  scored.sort((a, b) => b.matchScore - a.matchScore);
-  
-  return scored.filter(r => r.matchScore >= 5 && r.link).slice(0, limit);
-}
-
-// ============================================
-// SERPAPI: Find Multiple Organic Matches
-// ============================================
-function findOrganicMatches(organicResults, productName, brandName, limit = 3) {
-  const productWords = productName.toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(w => w.length > 2);
-  const brandLower = brandName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  const scored = organicResults.map(result => {
-    const url = result.link || '';
-    const title = (result.title || '').toLowerCase();
-    const snippet = (result.snippet || '').toLowerCase();
-
-    let score = 0;
-
-    if (!isSpecificProductUrl(url, productName)) {
-      return { ...result, matchScore: -100 };
-    }
-
-    // Brand in URL or title
-    if (url.toLowerCase().includes(brandLower) || title.includes(brandLower)) {
-      score += 15;
-    }
-
-    // Product word matches
-    const titleMatches = productWords.filter(w => title.includes(w));
-    score += titleMatches.length * 4;
-
-    const snippetMatches = productWords.filter(w => snippet.includes(w));
-    score += snippetMatches.length * 2;
-
-    return { ...result, matchScore: score };
-  });
-
-  scored.sort((a, b) => b.matchScore - a.matchScore);
-
-  return scored.filter(r => r.matchScore >= 5).slice(0, limit);
-}
 
 // ============================================
 // SERPAPI: Core Search Function (via server proxy to avoid CORS)
@@ -2852,154 +2580,7 @@ async function serpApiSearch(query, engine = 'google') {
 }
 
 
-// ============================================
-// URL VALIDATION: Is Specific Product URL
-// ============================================
-function isSpecificProductUrl(url, productName) {
-  if (!url || typeof url !== 'string') return false;
 
-  try {
-    const parsed = new URL(url);
-    const path = parsed.pathname.toLowerCase();
-    const fullUrl = url.toLowerCase();
-
-    const genericPatterns = [
-      /^\/products\/?$/,
-      /^\/shop\/?$/,
-      /^\/collections\/?$/,
-      /^\/collections\/[^/]+\/?$/,
-      /^\/store\/?$/,
-      /^\/catalog\/?$/,
-      /^\/all\/?$/,
-      /^\/browse\/?$/,
-      /^\/category\/[^/]+\/?$/,
-      /^\/?$/
-    ];
-
-    for (const pattern of genericPatterns) {
-      if (pattern.test(path)) {
-        return false;
-      }
-    }
-
-    const searchParams = parsed.searchParams;
-    const listingParams = ['q', 'query', 'search', 'filter', 'category', 'sort', 'page'];
-    for (const param of listingParams) {
-      if (searchParams.has(param)) {
-        return false;
-      }
-    }
-
-    if (fullUrl.includes('amazon.com/s?') ||
-        fullUrl.includes('amazon.com/s/') ||
-        fullUrl.includes('target.com/s?') ||
-        fullUrl.includes('walmart.com/search') ||
-        fullUrl.includes('google.com/search')) {
-      return false;
-    }
-
-    const productIndicators = [
-      /\/products\/[a-z0-9-]{3,}/i,
-      /\/product\/[a-z0-9-]{3,}/i,
-      /\/p\/[a-z0-9-]{3,}/i,
-      /\/dp\/[A-Z0-9]{10}/i,
-      /\/gp\/product\/[A-Z0-9]{10}/i,
-      /\/ip\/[^/]+\/\d+/,
-      /\/-\/A-\d{7,}/,
-      /\/item\/\d{5,}/,
-    ];
-
-    for (const pattern of productIndicators) {
-      if (pattern.test(path) || pattern.test(fullUrl)) {
-        return true;
-      }
-    }
-
-    if (/\/products\/[a-z0-9][a-z0-9-]{2,}[a-z0-9]$/i.test(path)) {
-      return true;
-    }
-
-    if (/\/collections\/[^/]+\/products\/[a-z0-9-]{3,}/i.test(path)) {
-      return true;
-    }
-
-    const pathSegments = path.split('/').filter(s => s.length > 0);
-    const lastSegment = pathSegments[pathSegments.length - 1] || '';
-
-    if (lastSegment.length > 5 && lastSegment.includes('-')) {
-      const productWords = productName.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .split(/\s+/)
-        .filter(w => w.length > 3);
-
-      const slugWords = lastSegment.split('-').filter(w => w.length > 2);
-      const matchingWords = productWords.filter(pw =>
-        slugWords.some(sw => sw.includes(pw) || pw.includes(sw))
-      );
-
-      if (matchingWords.length >= 2 || matchingWords.length >= productWords.length * 0.5) {
-        return true;
-      }
-    }
-
-    return false;
-
-  } catch {
-    return false;
-  }
-}
-
-// ============================================
-// PHASE 4: Fetch OG Images for Products
-// ============================================
-async function enrichProductsWithImages(products) {
-  const enriched = [];
-
-  for (let i = 0; i < products.length; i += CONFIG.BATCH_SIZE) {
-    const batch = products.slice(i, i + CONFIG.BATCH_SIZE);
-
-    const batchResults = await Promise.all(
-      batch.map(async (product) => {
-        // Already has a valid image from SerpAPI
-        if (product.imageUrl && isValidImageUrl(product.imageUrl)) {
-          return product;
-        }
-
-        // Try to fetch OG image from product URL
-        if (product.url) {
-          try {
-            const ogImage = await fetchOgImageUrl(product.url);
-            if (ogImage && isValidImageUrl(ogImage)) {
-              return { ...product, imageUrl: ogImage };
-            }
-          } catch (err) {
-            console.warn(`[Images] Failed to fetch OG image for: ${product.url}`);
-          }
-        }
-
-        return { ...product, imageUrl: null };
-      })
-    );
-
-    enriched.push(...batchResults);
-
-    if (i + CONFIG.BATCH_SIZE < products.length) {
-      await sleep(100);
-    }
-  }
-
-  // Filter out products without valid images - better to show fewer than broken
-  const withImages = enriched.filter(p => p.imageUrl && isValidImageUrl(p.imageUrl));
-  const withoutImages = enriched.filter(p => !p.imageUrl || !isValidImageUrl(p.imageUrl));
-  
-  console.log(`[Images] Products with valid images: ${withImages.length}, without: ${withoutImages.length}`);
-  
-  if (withoutImages.length > 0) {
-    console.log(`[Images] Filtered out products without images:`, withoutImages.map(p => p.productName));
-  }
-
-  return withImages;
-}
 
 // ============================================
 // Fetch OG Image from URL (uses OpenGraph proxy to avoid CORS)
@@ -3203,9 +2784,22 @@ function ensureHttps(item) {
    -------------------------------------------------------------------------- */
 
 const TYPING_MESSAGES = ["Find your next collab", "Drop any brand URL", "Get instant recommendations"];
+// Demo teams in staging. The "Try {domain}" placeholder rotates through these, one per cycle,
+// with the brand's favicon inline after "Try".
+const DEMO_BRANDS = ['magicspoon.com', 'monos.com', 'flamingoestate.com', 'wildone.com', 'fanttik.com', 'jolieskinco.com'];
+const TRY_PREFIX = 'Try ';
 const TYPING_SPEED = 80;
 const PAUSE_AFTER_TYPE = 2000;
 const FADE_OUT_DURATION = 400;
+
+function preloadDemoAvatars() {
+  DEMO_BRANDS.forEach((domain) => { new Image().src = getFaviconUrl(domain); });
+}
+
+function buildTypingSequence(demoIndex) {
+  const domain = DEMO_BRANDS[demoIndex % DEMO_BRANDS.length];
+  return [...TYPING_MESSAGES, { text: `${TRY_PREFIX}${domain}`, avatarDomain: domain }];
+}
 function createTypingAnimation(placeholderEl, inputEl) {
   console.log('[createTypingAnimation] Called with:', { placeholderEl, inputEl });
   if (!placeholderEl || !inputEl) {
@@ -3216,28 +2810,52 @@ function createTypingAnimation(placeholderEl, inputEl) {
   let messageIndex = 0;
   let charIndex = 0;
   let timeoutId = null;
+  let demoIndex = 0;
+  let sequence = buildTypingSequence(demoIndex);
 
-  function updateDisplay(text) {
-    placeholderEl.textContent = text;
+  function updateDisplay(message, typed) {
+    const avatarDomain = message?.avatarDomain;
+    // The avatar pops in once "Try " is typed, then the domain types out after it.
+    if (!avatarDomain || typed.length < TRY_PREFIX.length) {
+      placeholderEl.textContent = typed;
+      return;
+    }
+    let avatar = placeholderEl.querySelector('.typing-placeholder-avatar');
+    if (!avatar) {
+      placeholderEl.textContent = '';
+      placeholderEl.append(TRY_PREFIX.trim());
+      avatar = document.createElement('img');
+      avatar.className = 'typing-placeholder-avatar';
+      avatar.alt = '';
+      avatar.src = getFaviconUrl(avatarDomain);
+      avatar.onerror = () => { avatar.src = CONFIG.FAVICON_FALLBACK(avatarDomain); avatar.onerror = null; };
+      placeholderEl.append(avatar, document.createTextNode(''));
+    }
+    placeholderEl.lastChild.textContent = typed.slice(TRY_PREFIX.length);
   }
 
   function fadeOutAndNext() {
     placeholderEl.classList.add('fade-out');
     timeoutId = setTimeout(() => {
       placeholderEl.classList.remove('fade-out');
-      messageIndex = (messageIndex + 1) % TYPING_MESSAGES.length;
+      messageIndex = (messageIndex + 1) % sequence.length;
+      if (messageIndex === 0) {
+        demoIndex++;
+        sequence = buildTypingSequence(demoIndex);
+      }
       charIndex = 0;
-      updateDisplay('');
+      placeholderEl.textContent = '';
       tick();
     }, FADE_OUT_DURATION);
   }
 
   function tick() {
-    const message = TYPING_MESSAGES[messageIndex];
+    const message = sequence[messageIndex];
+    const text = typeof message === 'string' ? message : message.text;
     charIndex++;
-    updateDisplay(message.substring(0, charIndex));
+    updateDisplay(message, text.substring(0, charIndex));
 
-    if (charIndex === message.length) {
+    if (charIndex === text.length) {
       timeoutId = setTimeout(fadeOutAndNext, PAUSE_AFTER_TYPE);
     } else {
       timeoutId = setTimeout(tick, TYPING_SPEED);
@@ -3251,7 +2869,7 @@ function createTypingAnimation(placeholderEl, inputEl) {
     messageIndex = 0;
     charIndex = 0;
     if (timeoutId) clearTimeout(timeoutId);
-    updateDisplay('');
+    placeholderEl.textContent = '';
     tick();
   }
 
@@ -3290,7 +2908,34 @@ function createTypingAnimation(placeholderEl, inputEl) {
   return { start, stop };
 }
 
+// The header composer shows the searched brand as favicon + domain, centered, whenever it
+// is not being edited. Focus reveals the plain input so typing reads left-aligned.
+function syncResultsSearchDisplay() {
+  const input = elements.resultsSearchInput;
+  const display = elements.resultsSearchDisplay;
+  if (!input || !display) return;
+  const wrapper = input.closest('.search-input-wrapper');
+  const domain = input.value.trim();
+  const showing = domain && document.activeElement !== input;
+  display.classList.toggle('hidden', !showing);
+  wrapper?.classList.toggle('showing-display', !!showing);
+  if (!showing) return;
+  if (display.dataset.domain !== domain) {
+    display.dataset.domain = domain;
+    display.innerHTML = '';
+    const avatar = document.createElement('span');
+    avatar.className = 'search-display-avatar';
+    const favicon = document.createElement('img');
+    favicon.alt = '';
+    favicon.src = getFaviconUrl(domain);
+    favicon.onerror = () => { favicon.src = CONFIG.FAVICON_FALLBACK(domain); favicon.onerror = null; };
+    avatar.append(favicon);
+    display.append(avatar, document.createTextNode(domain));
+  }
+}
+
 function initTypingPlaceholders() {
+  preloadDemoAvatars();
   console.log('[initTypingPlaceholders] Starting with:', {
     typingPlaceholder: elements.typingPlaceholder,
     searchInput: elements.searchInput
@@ -3318,17 +2963,22 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   // Always check cache first (saves API tokens for repeated searches)
   console.log(`[performSearch] Checking cache for: ${domain}`);
   const cached = getCachedResults(domain);
-  console.log(`[performSearch] Cache result:`, cached ? `Found (type: ${cached.type}, brands: ${cached.brands?.length}, products: ${cached.products?.length})` : 'Not found');
+  console.log(`[performSearch] Cache result:`, cached ? `Found (type: ${cached.type}, brands: ${cached.brands?.length})` : 'Not found');
   
   if (cached) {
     currentSearchId = cached.searchId || generateId();
     
-    if (cached.type === 'results' && cached.brands && cached.products) {
-      console.log(`[performSearch] Loading from cache: ${cached.brands.length} brands, ${cached.products.length} products`);
+    if (cached.type === 'results' && cached.brands) {
+      console.log(`[performSearch] Loading from cache: ${cached.brands.length} brands`);
       const searchedBrand = cached.searchedBrand || buildFallbackSearchedBrand(domain);
-      currentResults = { brands: cached.brands, products: cached.products, searchedBrand };
-      renderResults(cached.brands, cached.products, searchedBrand);
+      currentResults = { brands: cached.brands, searchedBrand };
+      // Landing is on screen: let the tiles clear before the results replace them.
+      if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) {
+        await whipOutTiles({ fast: true });
+      }
+      renderResults(cached.brands, searchedBrand);
       elements.resultsSearchInput.value = domain;
+      syncResultsSearchDisplay();
       if (elements.resultsTypingPlaceholder) {
         elements.resultsTypingPlaceholder.classList.add('hidden');
         elements.resultsTypingPlaceholder.innerHTML = '';
@@ -3337,10 +2987,14 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       showSection('results');
       // Restore pitch modal if pitch param present in URL
       restorePitchFromUrl();
+      restorePickerFromUrl();
       return;
     }
     
     if (cached.type === 'empty') {
+      if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) {
+        await whipOutTiles({ fast: true });
+      }
       if (!fromUrlRestore) updateUrlForSearch(domain);
       showSection('empty');
       return;
@@ -3366,12 +3020,15 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   isSearchCancelled = false;
   searchAbortController = new AbortController();
   
-  elements.floatingTiles.classList.add('whip-out');
+  // Only when there are tiles on screen to clear. A URL restore starts on the results view, and
+  // playing the exit there held them over it for the length of the animation.
+  if (!fromUrlRestore && !elements.landingSection.classList.contains('hidden')) whipOutTiles();
   showSection('loading');
   
   // Set the results header search input to show current search (after header is visible)
   if (elements.resultsSearchInput) {
     elements.resultsSearchInput.value = domain;
+      syncResultsSearchDisplay();
     // Dispatch input event to trigger any listeners that hide the typing placeholder
     elements.resultsSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -3383,8 +3040,9 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   addToSearchHistory(url);
   currentSearchId = generateId();
 
-  // Yield so the loading UI paints before we start
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  // Yield so the loading UI paints before we start. A timer, not requestAnimationFrame,
+  // which never fires in a background tab and would stall the search until it's visible.
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   // Track state for the decoupled flow
   let brandsData = null;
@@ -3410,6 +3068,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         // Render brands and show results page immediately
         renderBrandsOnly(brands, searchedBrand);
         elements.resultsSearchInput.value = domain;
+      syncResultsSearchDisplay();
         if (elements.resultsTypingPlaceholder) {
           elements.resultsTypingPlaceholder.classList.add('hidden');
           elements.resultsTypingPlaceholder.innerHTML = '';
@@ -3418,17 +3077,16 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         if (!fromUrlRestore) updateUrlForSearch(domain);
         showSection('results');
         brandsShown = true;
-        // Restore pitch modal if pitch param present in URL
+        // Restore pitch modal or picker if present in URL
         restorePitchFromUrl();
+        restorePickerFromUrl();
       },
-      // Called to update products loading text
-      onProductsProgress: (msg) => {
+      // Called per brand as its catalog resolves
+      onCatalog: (brand) => {
         if (isSearchCancelled) return;
-        updateProductsLoadingText(msg);
-        // Transition to skeleton when fetching images (almost done)
-        if (msg.includes('Fetching product images')) {
-          showProductsSkeleton();
-        }
+        const domain = extractDomain(brand.url || '');
+        updateCardCatalog(domain, brand.catalog);
+        updateCardSocial(domain, brand.social);
       }
     });
 
@@ -3438,10 +3096,8 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       return;
     }
 
-    // Handle empty results (no brands AND no products)
-    if ((!results.brands || results.brands.length === 0) &&
-        (!results.products || results.products.length === 0) &&
-        !results.serpApiOutOfCredits) {
+    // Handle empty results
+    if (!results.brands || results.brands.length === 0) {
       setCachedResults(domain, { type: 'empty', searchId: currentSearchId });
       if (!fromUrlRestore) updateUrlForSearch(domain);
       showSection('empty');
@@ -3450,15 +3106,14 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
 
     const searchedBrand = results.searchedBrand;
     const brands = results.brands || [];
-    const products = results.products || [];
-    
-    console.log(`[performSearch] Results received: ${brands.length} brands, ${products.length} products`);
-    console.log(`[performSearch] serpApiOutOfCredits: ${results.serpApiOutOfCredits}`);
+
+    console.log(`[performSearch] Results received: ${brands.length} brands, serpApiOutOfCredits: ${results.serpApiOutOfCredits}`);
 
     // If brands weren't shown yet (edge case), show them now
     if (!brandsShown && brands.length > 0) {
       renderBrandsOnly(brands, searchedBrand);
       elements.resultsSearchInput.value = domain;
+      syncResultsSearchDisplay();
       if (elements.resultsTypingPlaceholder) {
         elements.resultsTypingPlaceholder.classList.add('hidden');
         elements.resultsTypingPlaceholder.innerHTML = '';
@@ -3467,23 +3122,16 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
       showSection('results');
     }
 
-    // Check if SERP API ran out of credits
     if (results.serpApiOutOfCredits) {
-      console.log('[performSearch] SERP API out of credits - showing empty state');
-      showProductsOutOfCredits();
-    } else {
-      // Render products with fade-in animation
-      console.log(`[performSearch] Calling renderProducts with ${products.length} products`);
-      renderProducts(products, brands);
+      console.warn('[performSearch] SERP API out of credits; brands without a public catalog show no products');
     }
 
     // Update state and cache
-    currentResults = { brands, products, searchedBrand };
+    currentResults = { brands, searchedBrand };
     setCachedResults(domain, {
       type: 'results',
-      brands,
-      products,
-      searchedBrand,
+      brands: brands.map(trimCatalogForCache),
+      searchedBrand: trimCatalogForCache(searchedBrand),
       serpApiOutOfCredits: results.serpApiOutOfCredits || false,
       searchId: currentSearchId
     });
@@ -3508,6 +3156,27 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
    -------------------------------------------------------------------------- */
 
 const TILT_MAX_DEG = 2.5;
+
+// Plays the tiles' exit and resolves when the last one has gone. `fast` is for jumping to a
+// cached search, where there is no loading state to cover the gap. Publishes --tiles-exit so the
+// visibility swap in CSS waits exactly as long as the animation runs.
+const TILE_EXIT = { normal: 680, fast: 305 };
+
+function whipOutTiles({ fast = false } = {}) {
+  const tiles = elements.floatingTiles;
+  if (!tiles) return Promise.resolve();
+
+  const container = document.querySelector('.app-container');
+  const duration = fast ? TILE_EXIT.fast : TILE_EXIT.normal;
+  container.style.setProperty('--tiles-exit', `${duration}ms`);
+  tiles.classList.toggle('whip-out--fast', fast);
+  tiles.classList.add('whip-out');
+  return new Promise(resolve => setTimeout(() => {
+    // The exit is over, so a section change from here hides the tiles outright.
+    container.style.setProperty('--tiles-exit', '0s');
+    resolve();
+  }, duration));
+}
 
 function isTileTiltActive() {
   return elements.appContainer &&
@@ -3588,11 +3257,13 @@ function initEventListeners() {
   // Search input focus/blur for history dropdown (Results Page)
   elements.resultsSearchInput.addEventListener('focus', () => {
     elements.resultsSearchInput.classList.add('focused');
+    syncResultsSearchDisplay();
     showSearchHistory(elements.resultsSearchHistoryDropdown);
   });
 
   elements.resultsSearchInput.addEventListener('blur', (e) => {
     elements.resultsSearchInput.classList.remove('focused');
+    syncResultsSearchDisplay();
     setTimeout(() => {
       if (elements.resultsSearchHistoryDropdown && !elements.resultsSearchHistoryDropdown.contains(document.activeElement)) {
         hideSearchHistory(elements.resultsSearchHistoryDropdown);
@@ -3639,18 +3310,16 @@ function initEventListeners() {
     }
   });
 
-  // Result card clicks (handles both brand cards and product cards)
+  // Result card clicks
   document.addEventListener('click', (e) => {
-    const brandCard = e.target.closest('.result-card');
-    const productCard = e.target.closest('.product-card');
-    const card = brandCard || productCard;
+    const card = e.target.closest('.result-card');
     const menuBtn = e.target.closest('.card-menu-btn');
     const socialLink = e.target.closest('.social-link');
 
     // Handle menu button click
     if (menuBtn) {
       e.stopPropagation();
-      const parentCard = menuBtn.closest('.result-card') || menuBtn.closest('.product-card');
+      const parentCard = menuBtn.closest('.result-card');
       const socialData = JSON.parse(parentCard.dataset.social || '{}');
       showSocialPopover(menuBtn, socialData);
       return;
@@ -3676,6 +3345,15 @@ function initEventListeners() {
       return;
     }
 
+    // Handle build bundle button click
+    const buildBtn = e.target.closest('.build-bundle-btn');
+    if (buildBtn) {
+      e.stopPropagation();
+      const brand = brandForCard(buildBtn.closest('.result-card'));
+      if (brand) openPicker(brand);
+      return;
+    }
+
     // Handle visit button click
     const visitBtn = e.target.closest('.visit-btn');
     if (visitBtn) {
@@ -3689,6 +3367,10 @@ function initEventListeners() {
 
     // Handle card click (open URL) - but not if clicking buttons
     if (card && !e.target.closest('.card-menu-btn') && !e.target.closest('.card-actions')) {
+      if (card.dataset.buildable === 'true') {
+        const brand = brandForCard(card);
+        if (brand && openPicker(brand)) return;
+      }
       const url = card.dataset.url;
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -3705,7 +3387,7 @@ function initEventListeners() {
   // Feedback buttons
   elements.feedbackPositive.addEventListener('click', () => {
     if (currentSearchId && currentResults) {
-      const allResults = [...(currentResults.brands || []), ...(currentResults.products || [])];
+      const allResults = currentResults.brands || [];
       saveFeedback(currentSearchId, elements.resultsSearchInput.value, allResults, 'positive');
 
       elements.feedbackPositive.classList.add('selected');
@@ -3717,7 +3399,7 @@ function initEventListeners() {
 
   elements.feedbackNegative.addEventListener('click', () => {
     if (currentSearchId && currentResults) {
-      const allResults = [...(currentResults.brands || []), ...(currentResults.products || [])];
+      const allResults = currentResults.brands || [];
       saveFeedback(currentSearchId, elements.resultsSearchInput.value, allResults, 'negative');
 
       elements.feedbackNegative.classList.add('selected');
@@ -3728,8 +3410,12 @@ function initEventListeners() {
   });
 
   // Header back and start over buttons
+  // The header's back button steps out of the picker first, then back to the landing page.
   if (elements.headerBackBtn) {
-    elements.headerBackBtn.addEventListener('click', goToLanding);
+    elements.headerBackBtn.addEventListener('click', () => {
+      if (isPickerOpen()) closePicker();
+      else goToLanding();
+    });
   }
   if (elements.headerStartOverBtn) {
     elements.headerStartOverBtn.addEventListener('click', goToLanding);
@@ -3829,7 +3515,22 @@ function initEventListeners() {
    Initialize App
    -------------------------------------------------------------------------- */
 
+// The sticky header sits in flow above the app container, so anything sizing itself to the
+// viewport (the picker) has to subtract it. Republished whenever the header's height changes,
+// which it does between the landing and results states.
+function trackHeaderHeight() {
+  const header = elements.siteHeader;
+  if (!header) return;
+  const publish = () => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+  publish();
+  if (window.ResizeObserver) new ResizeObserver(publish).observe(header);
+  else window.addEventListener('resize', publish);
+}
+
 function init() {
+  hydrateIcons();
+  trackHeaderHeight();
+  initPicker();
   console.log('[init] Starting...');
   console.log('[init] elements.searchInput:', elements.searchInput);
   console.log('[init] elements.typingPlaceholder:', elements.typingPlaceholder);
@@ -3855,6 +3556,7 @@ function init() {
   window.addEventListener('popstate', () => {
     const q = getSearchFromUrl();
     const pitchParam = getPitchFromUrl();
+    syncPickerWithUrl();
 
     // Handle pitch modal state
     if (!pitchParam && currentPitchBrand) {
@@ -3896,3 +3598,5 @@ try {
 } catch (error) {
   console.error('=== APP INITIALIZATION ERROR ===', error);
 }
+
+export { elements, CONFIG, getResults, extractDomain, getFaviconUrl, renderFaviconDuo, escapeHtml, parseJsonResponse, extractText, fetchCatalog, catalogThumbUrl, showSection };

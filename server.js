@@ -7,12 +7,16 @@ import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
+import { fetchShopifyCatalog } from './shared/catalog.js';
+import { fetchSocials } from './shared/socials.js';
+import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp, provisionBrand } from './shared/offerlab.js';
 
 config(); // Load .env
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 5500;
+const SERPAPI_TIMEOUT_MS = 15000;
 
 // OpenGraph proxy - API key stays server-side
 app.get('/api/opengraph', async (req, res) => {
@@ -122,7 +126,7 @@ app.get('/api/serpapi', async (req, res) => {
 
   try {
     console.log(`[SerpAPI Proxy] Query: "${query.trim()}" Engine: ${engine}`);
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, { signal: AbortSignal.timeout(SERPAPI_TIMEOUT_MS) });
     
     if (!response.ok) {
       console.warn(`[SerpAPI Proxy] API returned ${response.status}`);
@@ -172,6 +176,104 @@ app.post('/api/gemini', express.json(), async (req, res) => {
   } catch (err) {
     console.error('[Gemini Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to process Gemini request' });
+  }
+});
+
+// Shopify public catalog proxy - storefronts send no CORS headers on /products.json
+app.get('/api/catalog', async (req, res) => {
+  const domain = req.query.domain;
+  if (!domain || typeof domain !== 'string' || !domain.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid domain parameter' });
+  }
+  try {
+    const catalog = await fetchShopifyCatalog(domain);
+    console.log(`[Catalog Proxy] ${domain}: ${catalog.status} (${catalog.count} products)`);
+    res.json(catalog);
+  } catch (err) {
+    console.error('[Catalog Proxy] Error:', err);
+    res.status(500).json({ error: 'Failed to fetch catalog' });
+  }
+});
+
+// Social accounts linked from a storefront homepage (same grammar as the app's Brand DNA extraction)
+app.get('/api/socials', async (req, res) => {
+  const domain = req.query.domain;
+  if (!domain || typeof domain !== 'string' || !domain.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid domain parameter' });
+  }
+  try {
+    const result = await fetchSocials(domain);
+    console.log(`[Socials Proxy] ${domain}: ${result.status} (${Object.keys(result.socials).join(', ') || 'none'})`);
+    res.json(result);
+  } catch (err) {
+    console.error('[Socials Proxy] Error:', err);
+    res.status(500).json({ error: 'Failed to fetch socials' });
+  }
+});
+
+/* OfferLab proxies. /api/mcp answers a preflight with no allow-origin header, so none of this is
+   reachable from the browser directly. The token arrives on each request and is never stored. */
+const offerlabHost = process.env.OFFERLAB_HOST || DEFAULT_OFFERLAB_HOST;
+
+// The authorize step is a redirect the browser makes itself, so the host cannot stay server-side.
+app.get('/api/offerlab/config', (req, res) => {
+  const { host, authorize } = endpoints(offerlabHost);
+  res.json({ host, authorize });
+});
+
+app.post('/api/offerlab/register', express.json(), async (req, res) => {
+  const redirectUri = req.body?.redirect_uri;
+  if (!redirectUri) return res.status(400).json({ error: 'Missing redirect_uri' });
+  try {
+    const { status, data } = await registerClient({ redirectUri, clientName: req.body?.client_name, host: offerlabHost });
+    console.log(`[OfferLab] register -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] register error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab to register' });
+  }
+});
+
+app.post('/api/offerlab/token', express.json(), async (req, res) => {
+  if (!req.body?.grant_type) return res.status(400).json({ error: 'Missing grant_type' });
+  try {
+    const { status, data } = await exchangeToken({ params: req.body, host: offerlabHost });
+    console.log(`[OfferLab] token (${req.body.grant_type}) -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] token error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab to exchange the code' });
+  }
+});
+
+// The demo endpoint is unauthenticated on QA hosts, so the developer check happens here, not
+// in the browser, and the browser never learns the provisioning url.
+app.post('/api/offerlab/provision', express.json(), async (req, res) => {
+  const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ error: 'Missing bearer token' });
+  if (!req.body?.domain) return res.status(400).json({ error: 'Missing domain' });
+  try {
+    const { status, data } = await provisionBrand({
+      token, domain: req.body.domain, externalIds: req.body.external_ids || [], host: offerlabHost
+    });
+    console.log(`[OfferLab] provision ${req.body.domain} -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] provision error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab to provision that brand' });
+  }
+});
+
+app.post('/api/offerlab/mcp', express.json({ limit: '1mb' }), async (req, res) => {
+  const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ error: 'Missing bearer token' });
+  try {
+    const { status, data } = await callMcp({ token, payload: req.body, host: offerlabHost });
+    console.log(`[OfferLab] mcp ${req.body?.params?.name || req.body?.method} -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] mcp error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab' });
   }
 });
 
