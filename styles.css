@@ -6079,18 +6079,6 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
-/* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
-   in the actions, because it qualifies what the brand is, not what the button does. */
-.card-not-set-up {
-  margin-inline-start: 6px;
-  padding: 1px 6px;
-  border-radius: var(--rounded-sm);
-  background: var(--content-background-overlay);
-  color: var(--content-secondary);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-}
-
 /* One height for everything in the bar, whatever it is otherwise made of. Scoped to the header so
    .icon-button keeps its own size wherever else it is used. */
 .header-nav .icon-button,
@@ -6265,14 +6253,22 @@ position: absolute;
 }
 
 /* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
-   in the actions, because it qualifies what the brand is, not what the button does. */
+   in the actions, because it qualifies what the brand is, not what the button does.
+
+   The app's badge, overlay variant (themes/atelier/_badge): 12/600, leading-tight, 8 by 4 in a
+   full radius. Without the status dot that partial renders by default. */
 .card-not-set-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-inline-start: 6px;
-  padding: 1px 6px;
-  border-radius: var(--rounded-sm);
+  padding: 4px 8px;
+  border-radius: var(--rounded-full);
   background: var(--content-background-overlay);
   color: var(--content-secondary);
   font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.25;
   white-space: nowrap;
 }
 
