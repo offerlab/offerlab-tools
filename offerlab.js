@@ -201,23 +201,25 @@ async function rpc(method, params) {
 }
 
 /**
- * A tool's payload can arrive as structured content or as a text part holding JSON. Both shapes
- * are in the wild depending on the tool, so unwrap whichever came back.
+ * Every tool answers with one text part holding JSON — a record for a create, {data, pagination}
+ * for a list, and {error} when it refused, with isError set alongside. structuredContent is
+ * handled too in case a hand-written tool ever uses it.
  */
 function unwrap(result) {
-  if (result?.isError) {
-    const text = result.content?.map(part => part.text).filter(Boolean).join(' ');
-    throw new OfferLabError(text || 'OfferLab rejected that request');
-  }
-  if (result?.structuredContent) return result.structuredContent;
-
   const text = result?.content?.find(part => part.type === 'text')?.text;
-  if (typeof text !== 'string') return result;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
+  let payload = result?.structuredContent;
+  if (payload === undefined && typeof text === 'string') {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = text;
+    }
   }
+
+  if (result?.isError) {
+    throw new OfferLabError(payload?.error || (typeof payload === 'string' && payload) || 'OfferLab rejected that request');
+  }
+  return payload === undefined ? result : payload;
 }
 
 export async function callTool(name, args = {}) {
