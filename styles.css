@@ -1046,6 +1046,10 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   --pill-pad: 5px;
   --pill-btn: 30px;
   --pill-max: 420px;
+  /* body-md */
+  --pill-font: var(--font-size-sm);
+  --pill-tracking: -0.01429em;
+  --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1054,6 +1058,10 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   --pill-pad: 8px;
   --pill-btn: 40px;
   --pill-max: 600px;
+  --pill-font: var(--font-size-lg);
+  /* 0 rather than normal: a keyword has nothing to interpolate towards. */
+  --pill-tracking: 0em;
+  --pill-avatar: 28px;
 }
 
 /* The anchor is a spacer holding the pill's place, so sizing it is what moves the bar's height. */
@@ -1078,6 +1086,28 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   height: var(--pill-row);
   padding: calc((var(--pill-row) - var(--pill-btn)) / 2);
   transition: width var(--pill-ease), height var(--pill-ease), padding var(--pill-ease);
+}
+
+/* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
+.view-header .search-input,
+.view-header .search-display {
+  font-size: var(--pill-font);
+  line-height: 1.5;
+  letter-spacing: var(--pill-tracking);
+  transition: font-size var(--pill-ease), letter-spacing var(--pill-ease);
+}
+
+.view-header .search-display-avatar {
+  width: var(--pill-avatar);
+  height: var(--pill-avatar);
+  transition: width var(--pill-ease), height var(--pill-ease);
+}
+
+/* Holds the 16-in-28 proportion the ring has at full size. */
+.view-header .search-display-avatar img {
+  width: calc(var(--pill-avatar) * 4 / 7);
+  height: calc(var(--pill-avatar) * 4 / 7);
+  transition: width var(--pill-ease), height var(--pill-ease);
 }
 
 .view-header .search-button,
