@@ -969,6 +969,35 @@ function renderResults(brands, searchedBrand = null) {
   elements.feedbackNegative.classList.remove('selected');
   elements.feedbackThanks.classList.add('hidden');
   elements.feedbackSection.style.pointerEvents = 'auto';
+  markBrandsNotSetUp();
+}
+
+/**
+ * A brand can have a public catalog to pick from and still have no team in the demo environment,
+ * in which case creating a bundle has to stand one up first. That is a minute or two with someone
+ * watching, so the card says so before the click rather than after (OL-3831).
+ *
+ * Only for an operator: a guest has no handoff to be warned about, and the demo environment is
+ * none of their business.
+ */
+async function markBrandsNotSetUp() {
+  if (!offerlab.isEnabled()) return;
+
+  for (const card of document.querySelectorAll('.result-card[data-domain]')) {
+    try {
+      const brand = await offerlab.demoBrand(card.dataset.domain);
+      if (brand?.ready) continue;
+      card.dataset.setUp = 'false';
+      const url = card.querySelector('.card-url');
+      if (url && !url.querySelector('.card-not-set-up')) {
+        url.insertAdjacentHTML('beforeend',
+          '<span class="card-not-set-up" title="No team in the demo environment yet. Creating a bundle will set one up first, which takes a moment.">Not set up</span>');
+      }
+    } catch {
+      // The demo environment being unreachable is not worth marking every card over.
+      return;
+    }
+  }
 }
 
 /* --------------------------------------------------------------------------

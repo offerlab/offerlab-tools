@@ -410,10 +410,19 @@ export function canCreateDrafts() {
 
 const brandCache = new Map();
 
+let hostPromise = null;
+
+/** The OfferLab this build talks to. Configured server-side, so it is asked for once and kept. */
+export function host() {
+  hostPromise = hostPromise || api('config').then(config => config.host);
+  return hostPromise;
+}
+
 /** The demo environment's own record of a brand: its team, and whether it can be bundled from. */
-export async function demoBrand(domain, host, { fresh = false } = {}) {
+export async function demoBrand(domain, hostUrl, { fresh = false } = {}) {
   if (!fresh && brandCache.has(domain)) return brandCache.get(domain);
-  const response = await fetch(`${host}/demo/brands/${encodeURIComponent(domain)}`);
+  const base = hostUrl || await host();
+  const response = await fetch(`${base}/demo/brands/${encodeURIComponent(domain)}`);
   const data = await response.json().catch(() => null);
   const brand = response.ok ? data?.brand : null;
   brandCache.set(domain, brand);

@@ -6004,6 +6004,18 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+/* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
+   in the actions, because it qualifies what the brand is, not what the button does. */
+.card-not-set-up {
+  margin-inline-start: 6px;
+  padding: 1px 6px;
+  border-radius: var(--rounded-sm);
+  background: var(--content-background-overlay);
+  color: var(--content-secondary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
 /* Which OfferLab the finder is signed in to, in the header where it is visible without a click.
    A booth demo publishes a real brand's bundle; the team it lands in is worth being sure of. */
 .offerlab-account {
