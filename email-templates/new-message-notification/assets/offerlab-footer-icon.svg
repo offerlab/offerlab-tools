@@ -1,6 +1,0 @@
-<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="40" height="40" rx="10" fill="#FFED84"/>
-  <g transform="translate(5, 5) scale(0.75)">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M34.2683 0H10.6718L0 21.2929V34.2683C0 37.4041 2.54061 39.9467 5.67642 39.9467H18.6518L39.9467 29.2443V5.67642C39.9467 2.54061 37.4047 0 34.2683 0ZM35.9573 25.6138H14.3349V3.98934H34.1411C35.1437 3.98934 35.958 4.80226 35.958 5.80492V25.6145L35.9573 25.6138Z" fill="#342E26"/>
-  </g>
-</svg>
