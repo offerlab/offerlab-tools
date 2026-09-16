@@ -9,6 +9,7 @@ import { dirname, join } from 'path';
 import { config } from 'dotenv';
 import { fetchShopifyCatalog } from './shared/catalog.js';
 import { fetchSocials } from './shared/socials.js';
+import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp } from './shared/offerlab.js';
 
 config(); // Load .env
 
@@ -207,6 +208,54 @@ app.get('/api/socials', async (req, res) => {
   } catch (err) {
     console.error('[Socials Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to fetch socials' });
+  }
+});
+
+/* OfferLab proxies. /api/mcp answers a preflight with no allow-origin header, so none of this is
+   reachable from the browser directly. The token arrives on each request and is never stored. */
+const offerlabHost = process.env.OFFERLAB_HOST || DEFAULT_OFFERLAB_HOST;
+
+// The authorize step is a redirect the browser makes itself, so the host cannot stay server-side.
+app.get('/api/offerlab/config', (req, res) => {
+  const { host, authorize } = endpoints(offerlabHost);
+  res.json({ host, authorize });
+});
+
+app.post('/api/offerlab/register', express.json(), async (req, res) => {
+  const redirectUri = req.body?.redirect_uri;
+  if (!redirectUri) return res.status(400).json({ error: 'Missing redirect_uri' });
+  try {
+    const { status, data } = await registerClient({ redirectUri, clientName: req.body?.client_name, host: offerlabHost });
+    console.log(`[OfferLab] register -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] register error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab to register' });
+  }
+});
+
+app.post('/api/offerlab/token', express.json(), async (req, res) => {
+  if (!req.body?.grant_type) return res.status(400).json({ error: 'Missing grant_type' });
+  try {
+    const { status, data } = await exchangeToken({ params: req.body, host: offerlabHost });
+    console.log(`[OfferLab] token (${req.body.grant_type}) -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] token error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab to exchange the code' });
+  }
+});
+
+app.post('/api/offerlab/mcp', express.json({ limit: '1mb' }), async (req, res) => {
+  const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ error: 'Missing bearer token' });
+  try {
+    const { status, data } = await callMcp({ token, payload: req.body, host: offerlabHost });
+    console.log(`[OfferLab] mcp ${req.body?.params?.name || req.body?.method} -> ${status}`);
+    res.status(status).json(data);
+  } catch (err) {
+    console.error('[OfferLab] mcp error:', err);
+    res.status(502).json({ error: 'Could not reach OfferLab' });
   }
 });
 
