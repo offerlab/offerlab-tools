@@ -47,7 +47,6 @@ const elements = {
   siteHeaderLogo: document.getElementById('siteHeaderLogo'),
   siteHeaderResultsNav: document.getElementById('siteHeaderResultsNav'),
   headerBackBtn: document.getElementById('headerBackBtn'),
-  headerStartOverBtn: document.getElementById('headerStartOverBtn'),
   stopSearchButton: document.getElementById('stopSearchButton'),
   resultsSearchButton: document.getElementById('resultsSearchButton'),
 
@@ -3445,9 +3444,6 @@ function initEventListeners() {
       if (isPickerOpen()) closePicker();
       else goToLanding();
     });
-  }
-  if (elements.headerStartOverBtn) {
-    elements.headerStartOverBtn.addEventListener('click', goToLanding);
   }
   
   // Stop search button (during loading)

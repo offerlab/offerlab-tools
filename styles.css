@@ -995,11 +995,6 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   background: var(--content-background-elevated);
 }
 
-/* Start over button positioning */
-.header-nav-start-over {
-  margin-left: auto;
-}
-
 /* Results header: back button (left) + search (center) + start over (right) */
 .header-nav-results-container {
   width: 100%;
@@ -1661,14 +1656,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 }
 
 /* Header loading state - hide back and start over buttons with fade */
-.header-nav-back-wrapper,
-.header-nav-start-over {
+.header-nav-back-wrapper {
   opacity: 1;
   transition: opacity 0.3s ease;
 }
 
-.header-nav--loading .header-nav-back-wrapper,
-.header-nav--loading .header-nav-start-over {
+/* The account control is about where a bundle would go, not about the search, so it stays put
+   while one runs rather than fading with the back button. */
+.header-nav--loading .header-nav-back-wrapper {
   opacity: 0;
   pointer-events: none;
 }
@@ -6016,15 +6011,13 @@ position: absolute;
   white-space: nowrap;
 }
 
-/* The OfferLab connection, pinned to the header on every view including the splash, so it is
-   always clear whether the tool can hand anything over and to which team. Absolute rather than a
-   flex sibling, because the header centres its logo on the landing page and its search elsewhere,
-   and this must not push either off centre. */
+/* The OfferLab connection: which team the tool would hand a bundle to, and the way in when it has
+   nowhere to hand one. Laid out by whichever view hosts it rather than pinned over the header,
+   which put it on top of whatever already held that corner. On the results view it takes the slot
+   the restart button had. Positioned only so its menu has something to anchor to. */
 .offerlab-account-wrap {
-  position: absolute;
-  top: 20px;
-  right: 16px;
-  z-index: 1;
+  position: relative;
+  margin-left: auto;
 }
 
 .offerlab-account {
