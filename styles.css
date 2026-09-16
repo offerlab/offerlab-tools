@@ -2589,7 +2589,7 @@ position: absolute;
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--brand-secondary-mint);
+  background: currentColor;
 }
 
 /* Card Menu Button - matches history-item-remove-btn (clear button on recent search) */
