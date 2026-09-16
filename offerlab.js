@@ -78,6 +78,58 @@ export function token() {
   return read(sessionStorage, KEY.token)?.access_token || null;
 }
 
+// Refresh this long before expiry, so a call that starts just under the wire does not land just
+// over it.
+const TOKEN_REFRESH_MARGIN_MS = 60000;
+let refreshing = null;
+
+/**
+ * The access token, renewed if it is about to lapse.
+ *
+ * A booth conversation can outlive a grant, and reconnecting in front of a brand is the kind of
+ * thing that ends a demo. Concurrent callers share one in-flight refresh: the pipeline makes
+ * several calls in a row, and each spending the same refresh token would invalidate the others.
+ */
+async function freshToken() {
+  const grant = read(sessionStorage, KEY.token);
+  if (!grant?.access_token) return null;
+  if (!grant.refresh_token || !grant.expiresAt) return grant.access_token;
+  if (Date.now() < grant.expiresAt - TOKEN_REFRESH_MARGIN_MS) return grant.access_token;
+
+  refreshing = refreshing || refresh(grant.refresh_token).finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+async function refresh(refreshToken) {
+  try {
+    const granted = await api('token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: read(localStorage, KEY.client)?.client_id
+      })
+    });
+    if (!granted.access_token) throw new OfferLabError('OfferLab refused the refresh');
+    storeGrant(granted);
+    return granted.access_token;
+  } catch (err) {
+    // A refused refresh is a dead session, not a retryable failure.
+    console.warn('[OfferLab] refresh failed, disconnecting:', err.message);
+    disconnect();
+    return null;
+  }
+}
+
+// expires_in is seconds from now, which is only meaningful at the moment it arrives.
+function storeGrant(granted) {
+  write(sessionStorage, KEY.token, {
+    ...granted,
+    expiresAt: granted.expires_in ? Date.now() + granted.expires_in * 1000 : null
+  });
+}
+
 export function isConnected() {
   return Boolean(token());
 }
@@ -262,7 +314,7 @@ async function exchange(code, verifier) {
   });
   if (!granted.access_token) throw new OfferLabError(granted.error_description || 'OfferLab did not return a token');
 
-  write(sessionStorage, KEY.token, granted);
+  storeGrant(granted);
   return true;
 }
 
@@ -273,7 +325,7 @@ async function exchange(code, verifier) {
 let requestId = 0;
 
 async function rpc(method, params) {
-  const bearer = token();
+  const bearer = await freshToken();
   if (!bearer) throw new OfferLabError('Not connected to OfferLab', 401);
 
   const response = await fetch('/api/offerlab/mcp', {
