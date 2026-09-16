@@ -64,8 +64,14 @@ export function initPicker() {
   // Before anything reads the query string: a sign-in redirect left its own parameters there and
   // this puts the finder's back. Not awaited — the token exchange only has to beat the next click.
   offerlab.completeRedirect()
-    .then(connected => { if (connected) renderTray(); })
-    .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); });
+    .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); })
+    .finally(refreshAccount);
+  dom.account = document.getElementById('offerlabAccount');
+  dom.accountTeam = document.getElementById('offerlabAccountTeam');
+  dom.account?.addEventListener('click', () => {
+    offerlab.disconnect();
+    refreshAccount();
+  });
   dom.concepts = document.getElementById('pickerConcepts');
   dom.conceptsShell = document.getElementById('pickerConceptsShell');
   dom.rail = document.getElementById('pickerRail');
@@ -538,6 +544,36 @@ function applyConcept(index) {
 /* ---------------------------------------------------------------------------
    Handing a bundle to OfferLab
    --------------------------------------------------------------------------- */
+
+/**
+ * Which OfferLab this is talking to, and whether the account may create anything. Shown because
+ * an operator about to publish a brand's bundle should be able to see, without clicking, which
+ * team it is going into.
+ */
+async function refreshAccount() {
+  const chip = dom.account;
+  if (!chip) return;
+
+  if (!offerlab.isEnabled() || !offerlab.isConnected()) {
+    chip.classList.add('hidden');
+    renderTray();
+    return;
+  }
+
+  chip.classList.remove('hidden');
+  dom.accountTeam.textContent = 'OfferLab';
+  try {
+    const { account } = await offerlab.loadAccount();
+    dom.accountTeam.textContent = account?.team || 'OfferLab';
+    chip.classList.toggle('is-limited', account?.developer === false);
+    chip.title = account?.developer === false
+      ? 'Connected without developer access, so bundles cannot be created. Click to disconnect.'
+      : 'Click to disconnect';
+  } catch (err) {
+    console.warn('[OfferLab] could not read the account:', err.message);
+  }
+  renderTray();
+}
 
 // The brands in the order they were first picked, which is what the draft is named after.
 function draftName() {
@@ -1232,6 +1268,9 @@ function trayPrimary() {
   if (offerlab.isEnabled() && !offerlab.isConnected()) {
     return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>`;
   }
+  // Connected, but without developer access there is nothing behind this button. Null means the
+  // role has not come back yet, which is not the same as no.
+  if (offerlab.isEnabled() && offerlab.canCreateDrafts() === false) return '';
   return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">${status === 'error' ? 'Try again' : 'Create bundle'}</button>`;
 }
 

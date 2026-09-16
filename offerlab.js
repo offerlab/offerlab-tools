@@ -318,15 +318,38 @@ export async function callTool(name, args = {}) {
   return unwrap(await rpc('tools/call', { name, arguments: args }));
 }
 
-/** What the connected account may do. Admin tools present means a developer. */
-export async function loadCapabilities() {
-  const result = await rpc('tools/list', {});
-  state.tools = (result?.tools || []).map(tool => tool.name);
-  return state.tools;
+/**
+ * Who this token is, and what it may do. Both come from one round trip each and are cached for
+ * the session, because neither changes while a token lives.
+ *
+ * There is no tool that names the user: /api/mcp resolves one from the bearer but exposes nothing
+ * about them. list_teams does return the team the token is scoped to, which is the thing an
+ * operator actually needs to see before creating a draft in it.
+ */
+export async function loadAccount() {
+  if (state.tools) return state;
+
+  const tools = await rpc('tools/list', {});
+  state.tools = (tools?.tools || []).map(tool => tool.name);
+
+  try {
+    const teams = await callTool('list_teams', { per_page: 1 });
+    state.account = { team: teams?.active_team?.name || null, developer: isDeveloper(state.tools) };
+  } catch (err) {
+    // The role is the half that gates the UI, and tools/list already answered it.
+    console.warn('[OfferLab] could not read the active team:', err.message);
+    state.account = { team: null, developer: isDeveloper(state.tools) };
+  }
+  return state;
 }
 
+/**
+ * Creating a draft is developer-only, and the admin tools are only listed for a developer.
+ * Unknown until loadAccount has run, which is why this answers null rather than false: a caller
+ * showing UI on it must not treat "not asked yet" as "not allowed".
+ */
 export function canCreateDrafts() {
-  return isDeveloper(state.tools);
+  return state.tools === null ? null : isDeveloper(state.tools);
 }
 
 /* -------------------------------------------------------------------------- */

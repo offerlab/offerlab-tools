@@ -6004,6 +6004,59 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+/* Which OfferLab the finder is signed in to, in the header where it is visible without a click.
+   A booth demo publishes a real brand's bundle; the team it lands in is worth being sure of. */
+.offerlab-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  /* The restart button beside it is 20px of icon in 12px of padding plus its border. */
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--content-border-neutral);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-sm);
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  max-width: 220px;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.offerlab-account:hover {
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-md);
+}
+
+.offerlab-account-team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.offerlab-account-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--moola-vivid);
+}
+
+/* Connected, but without the developer access the create path needs. */
+.offerlab-account.is-limited .offerlab-account-dot {
+  background: var(--content-sentiment-negative);
+}
+
+/* The header is already tight on a phone, and the tray says whether it is connected anyway. */
+@media (max-width: 900px) {
+  .offerlab-account {
+    display: none;
+  }
+}
+
 /* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
    be read against what it is pointing at. */
 .pitch-bundles-card {
