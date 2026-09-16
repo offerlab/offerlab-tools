@@ -7,6 +7,8 @@
  * CORS and is read here directly.
  */
 
+import { isDeveloper } from './shared/offerlab.js';
+
 const KEY = {
   client: 'offerlab.client',       // the registered public client, stable for this origin
   token: 'offerlab.token',         // session only: gone when the tab closes
@@ -16,6 +18,10 @@ const KEY = {
 };
 
 const MASTER_TEAM_NAME = 'OfferLab Demo';
+// A walk-up brand's catalog import. Generous: it is a whole storefront with images today, and
+// OL-3996 will cut it to the products the bundle asked for.
+const PROVISION_TIMEOUT_MS = 180000;
+const PROVISION_POLL_MS = 3000;
 const TEAM_PAGE_SIZE = 100;
 const PRODUCT_PAGE_SIZE = 100;
 
@@ -234,7 +240,7 @@ export async function loadCapabilities() {
 }
 
 export function canCreateDrafts() {
-  return Boolean(state.tools?.includes('create_stack') && state.tools?.includes('set_active_team'));
+  return isDeveloper(state.tools);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -244,13 +250,36 @@ export function canCreateDrafts() {
 const brandCache = new Map();
 
 /** The demo environment's own record of a brand: its team, and whether it can be bundled from. */
-export async function demoBrand(domain, host) {
-  if (brandCache.has(domain)) return brandCache.get(domain);
+export async function demoBrand(domain, host, { fresh = false } = {}) {
+  if (!fresh && brandCache.has(domain)) return brandCache.get(domain);
   const response = await fetch(`${host}/demo/brands/${encodeURIComponent(domain)}`);
   const data = await response.json().catch(() => null);
   const brand = response.ok ? data?.brand : null;
   brandCache.set(domain, brand);
   return brand;
+}
+
+/**
+ * Stands a brand up in the demo environment and waits for it. The POST is fire and forget — the
+ * run happens in a job — so readiness comes from polling the same GET the finder already reads.
+ */
+async function provision(domain, externalIds, host, onProgress) {
+  const response = await fetch('/api/offerlab/provision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+    body: JSON.stringify({ domain, external_ids: externalIds })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new OfferLabError(data.error || `Could not start ${domain} (${response.status})`);
+
+  const deadline = Date.now() + PROVISION_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, PROVISION_POLL_MS));
+    const brand = await demoBrand(domain, host, { fresh: true });
+    if (brand?.ready) return brand;
+    onProgress(`Still importing ${brand?.name || domain}`);
+  }
+  throw new OfferLabError(`${domain} is taking longer than expected to import — try again in a moment`);
 }
 
 async function masterTeamId() {
@@ -307,10 +336,18 @@ export async function createDraftBundle({ name, picks, onProgress = () => {} }) 
   onProgress('Finding these brands in OfferLab');
   const teams = new Map();
   for (const domain of domains) {
-    const brand = await demoBrand(domain, host);
-    if (!brand?.team_id) {
-      throw new OfferLabError(`${labelFor(picks, domain)} has no team in the demo environment yet`);
+    let brand = await demoBrand(domain, host);
+    if (!brand?.ready) {
+      // A brand nobody pre-created, or one whose run never finished. Stand it up and wait.
+      onProgress(`Setting ${labelFor(picks, domain)} up in OfferLab`);
+      brand = await provision(
+        domain,
+        picks.filter(pick => pick.domain === domain).map(pick => pick.product.id),
+        host,
+        onProgress
+      );
     }
+    if (!brand?.team_id) throw new OfferLabError(`${labelFor(picks, domain)} could not be set up in OfferLab`);
     teams.set(domain, brand.team_id);
   }
 
