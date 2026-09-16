@@ -6112,8 +6112,12 @@ position: absolute;
   background: var(--content-sentiment-negative);
 }
 
+/* chevron-bottom's path is inset 4 of its 24 viewBox on each side, so at 16px the glyph starts
+   ~3px into its own box and the 8px flex gap reads wider here than it does beside the avatar,
+   whose circle goes edge to edge. Pulled back by that inset so both gaps look the same. */
 .offerlab-account-caret {
   display: inline-flex;
+  margin-left: -3px;
   opacity: 0.6;
 }
 
