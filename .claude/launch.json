@@ -4,8 +4,12 @@
     {
       "name": "collab-finder",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5500
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5500,
+      "autoPort": false
     }
   ]
 }
