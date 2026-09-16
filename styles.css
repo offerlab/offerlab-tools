@@ -6386,15 +6386,19 @@ position: absolute;
     min-height: 0;
   }
 
+  /* overflow-x: auto forces the other axis to clip too, so a shadow can only show where there is
+     padding to show it in. shadow-md is 0 4px 24px: 16px below the card, 8px above, and more than
+     that diagonally off a 32px corner, which is where the cut was reading as a hard line. */
   .picker-columns {
-    padding-top: 8px;
-    padding-bottom: 10px;
+    --picker-shadow-room: 16px;
+    padding-top: 20px;
+    padding-bottom: var(--picker-shadow-room);
   }
 
-  /* A screenful less the bar above it and the gap below, so the panel's own bottom edge is on
-     screen rather than running off it. */
+  /* A screenful less the bar above it and the room below, so the panel's own bottom edge is on
+     screen rather than running off it. Tied to the padding: they are the same gap. */
   .picker-column {
-    height: calc(100vh - var(--header-h, 0px) - 10px);
+    height: calc(100vh - var(--header-h, 0px) - var(--picker-shadow-room));
   }
 
   /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
