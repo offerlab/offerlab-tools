@@ -1038,6 +1038,57 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   );
 }
 
+/* Compact until it is being used. At rest the pill matches the back button beside it, so the bar
+   reads as a navigation row; focus opens it to full size and the bar grows with it. Every box the
+   pill is made of moves off these four numbers, so there is one place to retune it. */
+.view-header .header-nav-search {
+  --pill-row: 36px;
+  --pill-pad: 5px;
+  --pill-btn: 30px;
+  --pill-max: 420px;
+  --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-header .header-nav-search:focus-within {
+  --pill-row: 48px;
+  --pill-pad: 8px;
+  --pill-btn: 40px;
+  --pill-max: 600px;
+}
+
+/* The anchor is a spacer holding the pill's place, so sizing it is what moves the bar's height. */
+.view-header .search-anchor {
+  min-height: calc(var(--pill-row) + 2 * var(--pill-pad));
+  max-width: var(--pill-max);
+  transition: min-height var(--pill-ease), max-width var(--pill-ease);
+}
+
+.view-header .omni-ai-box-container > .search-form {
+  padding: var(--pill-pad);
+  transition: padding var(--pill-ease);
+}
+
+.view-header .search-input-wrapper {
+  height: var(--pill-row);
+  transition: height var(--pill-ease);
+}
+
+.view-header .submit-button-wrapper {
+  width: var(--pill-row);
+  height: var(--pill-row);
+  padding: calc((var(--pill-row) - var(--pill-btn)) / 2);
+  transition: width var(--pill-ease), height var(--pill-ease), padding var(--pill-ease);
+}
+
+.view-header .search-button,
+.view-header .stop-button {
+  --stop-size: var(--pill-btn);
+  width: var(--pill-btn);
+  height: var(--pill-btn);
+  transition: width var(--pill-ease), height var(--pill-ease),
+    background var(--transition-fast), transform var(--transition-fast);
+}
+
 /* --------------------------------------------------------------------------
    App Container
    -------------------------------------------------------------------------- */
@@ -2949,6 +3000,10 @@ position: absolute;
 
   /* Mobile results: search box in sticky footer at bottom of viewport */
   .view-header .header-nav-search {
+    --pill-row: 48px;
+    --pill-pad: 8px;
+    --pill-btn: 40px;
+    --pill-max: 600px;
     position: fixed;
     display: flex;
     flex-direction: column;
