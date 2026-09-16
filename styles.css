@@ -509,8 +509,10 @@ img {
   display: inline-block;
 }
 
+/* The shine-on-crisp lockup, unwrapped: the mark in #ffed84 and the wordmark in #f3f0e8, which
+   is what carries it on the dark ground without a plate behind it. */
 .header-nav-logo img {
-  height: 48px;
+  height: 34px;
   width: auto;
 }
 
