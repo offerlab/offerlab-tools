@@ -6152,8 +6152,9 @@ position: absolute;
   align-items: center;
   gap: 8px;
   width: 100%;
+  /* 11 either side of body-lg's 24px line box is the 46 exactly, so nothing compresses. */
   height: 46px;
-  padding: 12px;
+  padding: 11px;
   border: none;
   border-radius: var(--rounded-full);
   background: none;
