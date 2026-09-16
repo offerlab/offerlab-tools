@@ -567,7 +567,7 @@ async function refreshAccount() {
   if (!offerlab.isConnected()) {
     chip.classList.remove('hidden', 'is-limited');
     chip.classList.add('is-disconnected');
-    dom.accountTeam.textContent = 'Connect OfferLab';
+    dom.accountTeam.textContent = 'Connect';
     chip.title = 'Sign in to OfferLab to create bundles from here';
     chip.setAttribute('aria-label', 'Connect to OfferLab');
     renderTray();
