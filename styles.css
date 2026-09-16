@@ -3027,12 +3027,9 @@ position: absolute;
     padding-bottom: var(--spacing-lg);
   }
 
-  /* Mobile results: search box in sticky footer at bottom of viewport */
+  /* Mobile results: search box in sticky footer at bottom of viewport. It keeps the collapsed
+     size it has in the desktop bar, and opens the same way on focus. */
   .view-header .header-nav-search {
-    --pill-row: 48px;
-    --pill-pad: 8px;
-    --pill-btn: 40px;
-    --pill-max: 600px;
     position: fixed;
     display: flex;
     flex-direction: column;
