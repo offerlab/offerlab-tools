@@ -432,8 +432,7 @@ function showSection(sectionName) {
   elements.emptySection.classList.add('hidden');
   elements.errorSection.classList.add('hidden');
 
-  // Hide all header states by default
-  if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.add('hidden');
+  // Hide all header states by default. The logo is not one of them: it is in the bar on every view.
   if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.add('hidden');
   if (elements.siteHeader) {
     elements.siteHeader.classList.remove('header-nav--results');
@@ -447,7 +446,6 @@ function showSection(sectionName) {
       document.querySelector('.app-container').classList.remove('showing-results');
       document.body.classList.remove('showing-results');
       elements.floatingTiles.classList.remove('whip-out', 'whip-out--fast');
-      if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.remove('hidden');
       break;
     case 'loading':
       elements.loadingSection.classList.remove('hidden');

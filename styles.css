@@ -385,7 +385,9 @@ body {
   /* Aktiv Grotesk's proportional lining figures (pnum + lnum), as in the main app */
   font-variant-numeric: proportional-nums lining-nums;
   color: var(--content-primary);
-  background-color: var(--content-background-base);
+  /* The ground the content sheet is laid on. Ported from the app's mobile builder: a dark field,
+     a transparent header drawn straight onto it, and the page itself a rounded card below. */
+  background-color: var(--background-dark);
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
@@ -490,12 +492,16 @@ img {
   position: fixed;
   top: 0;
   width: 100%;
-  padding: 20px 16px;
+  padding: 16px;
   background: transparent;
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
+}
+
+.header-nav-logo {
+  flex: 0 0 auto;
 }
 
 
@@ -1015,35 +1021,29 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 /* --------------------------------------------------------------------------
    Results Header - styled independently from landing
    -------------------------------------------------------------------------- */
-.header-nav--results {
-  background: linear-gradient(to top, transparent, rgba(255, 255, 255, 0.75) 35%, rgb(255, 255, 255) 95%);
-  padding-left: 16px;
-  padding-right: 16px;
-  padding-top: 20px;
-  padding-bottom: 0px;
-  position: sticky;
-  top: 0;
-}
-
-.header-nav--results .header-nav-logo {
-  display: none;
-}
-
+/* The results header used to be its own thing: a white gradient scrim, stuck rather than fixed,
+   with the logo hidden so the search could centre. The bar is the same on every view now, drawn
+   straight on the dark ground, so all of that goes and only the row's own layout stays. */
 .header-nav--results .header-nav-results-container {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 /* --------------------------------------------------------------------------
    App Container
    -------------------------------------------------------------------------- */
 .app-container {
+  /* The header is fixed and draws on the dark ground, so this is what holds the sheet clear of
+     it. Border-box, so the padding comes out of the 100vh rather than adding to it. */
+  height: 100vh;
+  padding-top: var(--header-h, 0px);
   /* No hold unless an exit animation asks for one: the tiles are gone the moment a section that
      is not the landing page comes up. whipOutTiles() publishes the real duration while it plays. */
   --tiles-exit: 0s;
   position: relative;
-  min-height: calc(100vh - var(--header-h, 0px));
   width: 100%;
   perspective: 1200px;
   perspective-origin: center center;
@@ -1053,7 +1053,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    Floating Brand Tiles
    -------------------------------------------------------------------------- */
 .floating-tiles {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: var(--z-tiles);
   overflow: hidden;
@@ -1228,12 +1228,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 .main-content {
   position: relative;
   z-index: var(--z-content);
-  /* The sticky header sits above this in flow, so a full 100vh here would always leave the
-     page 84px scrollable with nothing in it. */
-  min-height: calc(100vh - var(--header-h, 0px));
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  background: var(--content-background-base);
+  border-radius: 28px 28px 0 0;
+  /* The sheet is the scroll region, not a box inside it, so the rounded top holds its place under
+     the header rather than scrolling away with what it contains. */
+  overflow: hidden auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -1245,10 +1247,11 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  position: absolute;
+  position: relative;
   width: 100%;
   z-index: 20;
-  height: calc(100svh - 1rem);
+  flex: 1;
+  min-height: 0;
 }
 
 .logo-container {
@@ -4288,7 +4291,7 @@ position: absolute;
   /* The cap carries the gutter on top of the body max, so the content box is still
      --picker-body-max wide on a large screen and only narrower viewports pay for it. */
   --picker-gutter: var(--page-gutter);
-  height: calc(100vh - var(--header-h, 0px));
+  height: 100%;
   padding: 24px var(--picker-gutter) 0;
   max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
   margin: 0 auto;
