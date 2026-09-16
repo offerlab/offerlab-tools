@@ -5834,13 +5834,6 @@ position: absolute;
   padding: 0 20px 24px;
 }
 
-.dialog-lead {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-  color: var(--content-secondary);
-}
-
 .dialog-actions {
   display: grid;
   grid-auto-flow: column;
@@ -5860,7 +5853,7 @@ position: absolute;
 
 .floating-input-field {
   width: 100%;
-  padding: 22px 14px 8px;
+  padding: 22px 20px 8px;
   font-family: var(--font-family);
   font-size: 16px;
   line-height: 1.5;
@@ -5894,7 +5887,7 @@ position: absolute;
 
 .floating-label {
   position: absolute;
-  left: 14px;
+  left: 20px;
   top: 50%;
   transform: translateY(-50%) scale(1);
   transform-origin: left center;
