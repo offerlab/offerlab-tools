@@ -6031,8 +6031,11 @@ position: absolute;
   box-shadow: var(--shadow-sm);
   color: var(--content-primary);
   font-family: var(--font-family);
+  /* label-md */
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  font-weight: 600;
   max-width: 240px;
   cursor: pointer;
   transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -6077,15 +6080,9 @@ position: absolute;
   color: var(--content-primary);
 }
 
-/* label-md */
 .offerlab-account.is-disconnected {
   gap: 6px;
   padding-inline: 14px;
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-  letter-spacing: -0.014em;
-  font-weight: 600;
-  color: var(--content-primary);
 }
 
 .offerlab-account.is-limited .offerlab-account-badge {

@@ -629,7 +629,7 @@ async function refreshAccount() {
   }
 
   dom.account.classList.remove('is-disconnected');
-  dom.accountCaret.innerHTML = icon('dot-grid-1x3-vertical', { size: 16 });
+  dom.accountCaret.innerHTML = icon('chevron-bottom', { size: 16 });
   dom.account.setAttribute('aria-label', 'OfferLab account');
   dom.account.title = '';
   try {
