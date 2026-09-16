@@ -174,6 +174,9 @@
      what --background-overlay does on white. */
   --content-primary-inverse: #FFFFFF;
   --content-background-overlay-inverse: rgba(255, 255, 255, 0.08);
+  /* Every control in the header bar is this tall. Not one of the button scale's sizes: the bar
+     wants something between the 32px small and the 48px large, and it wants one number. */
+  --nav-control-h: 36px;
   --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
@@ -497,7 +500,7 @@ img {
   position: fixed;
   top: 0;
   width: 100%;
-  padding: 16px;
+  padding: 16px 20px;
   background: transparent;
   z-index: 100;
   display: flex;
@@ -506,18 +509,14 @@ img {
 }
 
 .header-nav-logo {
+  display: inline-block;
   flex: 0 0 auto;
 }
 
-
-.header-nav-logo {
-  display: inline-block;
-}
-
-/* Unwrapped lockup for the dark bar: mark in #FFED84, wordmark in #fff. 180x40 viewBox, so 34px
-   tall is 153 wide. */
+/* Unwrapped lockup for the dark bar: mark in #FFED84, wordmark in #fff. 180x40 viewBox, so 24px
+   tall is 108 wide. */
 .header-nav-logo img {
-  height: 34px;
+  height: 24px;
   width: auto;
 }
 
@@ -578,8 +577,7 @@ img {
 }
 
 .icon-button--medium {
-  /* 44px: 20px of icon, 11px either side, plus the 1px border. */
-  padding: 11px;
+  padding: 12px;
 }
 
 .icon-button--medium svg {
@@ -2883,17 +2881,6 @@ position: absolute;
 
   .history-item {
     padding: 10px 8px;
-  }
-
-  .header-nav-logo img {
-    height: 44px;
-    width: auto;
-  }
-
-  /* Wider gutters than the bar is tall: the controls sit closer to the screen's sides than to
-     its top. Beats .header-nav--results' own longhand padding on source order. */
-  .header-nav {
-    padding: 16px 20px;
   }
 
   .typing-placeholder {
@@ -6020,6 +6007,26 @@ position: absolute;
   white-space: nowrap;
 }
 
+/* One height for everything in the bar, whatever it is otherwise made of. Scoped to the header so
+   .icon-button keeps its own size wherever else it is used. */
+.header-nav .icon-button,
+.header-nav .offerlab-account {
+  height: var(--nav-control-h);
+}
+
+/* Square, and the padding is what is left once the 20px glyph is placed. */
+.header-nav .icon-button--medium {
+  width: var(--nav-control-h);
+  padding: 0;
+}
+
+/* The badge is an avatar in a pill, so it wants a little air rather than filling the height. */
+.header-nav .offerlab-account-badge {
+  flex-basis: 28px;
+  width: 28px;
+  height: 28px;
+}
+
 /* The OfferLab connection: which team the tool would hand a bundle to, and the way in when it has
    nowhere to hand one. Laid out by whichever view hosts it rather than pinned over the header,
    which put it on top of whatever already held that corner. On the results view it takes the slot
@@ -6033,7 +6040,6 @@ position: absolute;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 44px;
   padding: 0 10px 0 8px;
   border: 1px solid var(--content-border-neutral);
   border-radius: var(--rounded-full);
@@ -6094,7 +6100,6 @@ position: absolute;
    surface the way the signed-in account does. Small variant, 32px, matching .btn--md. */
 .offerlab-account.is-disconnected {
   gap: 6px;
-  height: 32px;
   padding-inline: 10px;
   border-color: transparent;
   background: none;
