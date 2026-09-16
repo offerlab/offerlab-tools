@@ -3040,8 +3040,10 @@ position: absolute;
   }
 
   /* Mobile results: search box in sticky footer at bottom of viewport. It keeps the collapsed
-     size it has in the desktop bar, and opens the same way on focus. */
+     size it has in the desktop bar, and opens the same way on focus. Narrower than the desktop
+     360 so the collapsed pill reads as a control sitting over the results, not a second footer. */
   .view-header .header-nav-search {
+    --pill-max: 300px;
     position: fixed;
     display: flex;
     flex-direction: column;
