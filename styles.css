@@ -6032,21 +6032,26 @@ position: absolute;
    nowhere to hand one. Laid out by whichever view hosts it rather than pinned over the header,
    which put it on top of whatever already held that corner. On the results view it takes the slot
    the restart button had. Positioned only so its menu has something to anchor to. */
+/* Optical alignment: the button is a ghost, so its own 10px of padding reads as gutter. Pulling
+   the wrap out by that much lands the label on the same 20px edge the logo sits on. Carried by the
+   wrap rather than the header's padding so the gutter stays 20px where the button is hidden. */
 .offerlab-account-wrap {
   position: relative;
   margin-left: auto;
+  margin-right: -10px;
 }
 
+/* A ghost on the dark bar in both states. The elevated pill it used to be signed in was a light
+   surface floating on the dark ground, which read as a card rather than a control. */
 .offerlab-account {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px 0 8px;
-  border: 1px solid var(--content-border-neutral);
+  padding: 0 10px 0 4px;
+  border: 1px solid transparent;
   border-radius: var(--rounded-full);
-  background: var(--content-background-elevated);
-  box-shadow: var(--shadow-sm);
-  color: var(--content-primary);
+  background: none;
+  color: var(--content-primary-inverse);
   font-family: var(--font-family);
   /* label-md */
   font-size: var(--font-size-sm);
@@ -6055,11 +6060,11 @@ position: absolute;
   font-weight: 600;
   max-width: 240px;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .offerlab-account:hover {
-  background: var(--content-background-base);
+  background: var(--content-background-overlay-inverse);
 }
 
 .offerlab-account-team {
@@ -6097,20 +6102,10 @@ position: absolute;
   color: inherit;
 }
 
-/* A ghost on the dark bar: nothing to sign in to yet, so it does not need to sit on its own
-   surface the way the signed-in account does. Small variant, 32px, matching .btn--md. */
+/* No avatar to hold on the left, so the padding evens up and the icon sits closer to its label. */
 .offerlab-account.is-disconnected {
   gap: 6px;
   padding-inline: 10px;
-  border-color: transparent;
-  background: none;
-  box-shadow: none;
-  color: var(--content-primary-inverse);
-}
-
-.offerlab-account.is-disconnected:hover {
-  background: var(--content-background-overlay-inverse);
-  box-shadow: none;
 }
 
 .offerlab-account.is-limited .offerlab-account-badge {
@@ -6119,7 +6114,7 @@ position: absolute;
 
 .offerlab-account-caret {
   display: inline-flex;
-  color: var(--content-secondary);
+  opacity: 0.6;
 }
 
 .offerlab-account-caret:empty {
