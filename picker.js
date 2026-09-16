@@ -560,6 +560,13 @@ function setDraft(status, message, url = null) {
 async function createDraft(name) {
   if (state.draft.status === 'working') return;
 
+  // Off for everyone the handoff is not for. It signs in against an internal demo environment,
+  // so the alternative to saying this is sending a guest to a login they cannot pass.
+  if (!offerlab.isEnabled()) {
+    setDraft('pending', 'Building bundles from here is coming soon');
+    return;
+  }
+
   if (!offerlab.isConnected()) {
     setDraft('working', 'Opening OfferLab');
     try {
@@ -819,7 +826,7 @@ function renderAll() {
 }
 
 function renderSelectionState() {
-  if (state.draft.status === 'done' || state.draft.status === 'error') state.draft = { status: 'idle', message: '', url: null };
+  if (state.draft.status !== 'working' && state.draft.status !== 'idle') state.draft = { status: 'idle', message: '', url: null };
   dom.columns.querySelectorAll('.picker-product').forEach(tile => {
     const selected = state.selection.has(tile.dataset.key);
     tile.classList.toggle('is-selected', selected);
@@ -1209,7 +1216,7 @@ function renderTray() {
 function trayNote(brands) {
   const { status, message } = state.draft;
   if (status === 'working') return `${message}\u2026`;
-  if (status === 'error') return message;
+  if (status === 'error' || status === 'pending') return message;
   if (status === 'done') return `Opened ${message} in OfferLab`;
   return brands;
 }
@@ -1222,7 +1229,7 @@ function trayPrimary() {
   if (status === 'done') {
     return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>`;
   }
-  if (!offerlab.isConnected()) {
+  if (offerlab.isEnabled() && !offerlab.isConnected()) {
     return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>`;
   }
   return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">${status === 'error' ? 'Try again' : 'Create bundle'}</button>`;

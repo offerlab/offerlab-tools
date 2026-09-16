@@ -15,7 +15,8 @@ const KEY = {
   pkce: 'offerlab.pkce',
   returnTo: 'offerlab.returnTo',
   master: 'offerlab.masterTeam',
-  drafts: 'offerlab.drafts'
+  drafts: 'offerlab.drafts',
+  enabled: 'offerlab.enabled'
 };
 
 const MASTER_TEAM_NAME = 'OfferLab Demo';
@@ -30,6 +31,28 @@ const TEAM_PAGE_SIZE = 100;
 const PRODUCT_PAGE_SIZE = 100;
 
 export const state = { account: null, tools: null };
+
+/**
+ * Whether this browser gets the OfferLab handoff at all.
+ *
+ * The finder is shared with people outside the company for the research half — searching brands
+ * and reading concepts. The handoff is not for them: it signs in against an internal demo
+ * environment they have no account on, so an unflagged visitor must never be offered it. On by
+ * default while developing, and turned on elsewhere with ?offerlab=1, which sticks.
+ */
+export function isEnabled() {
+  const asked = new URLSearchParams(location.search).get('offerlab');
+  // An explicit no settles it, including on a dev machine — otherwise there is no way to see what
+  // a guest sees without deploying.
+  if (asked === '0') {
+    write(localStorage, KEY.enabled, null);
+    return false;
+  }
+  if (asked === '1') write(localStorage, KEY.enabled, true);
+
+  if (read(localStorage, KEY.enabled)) return true;
+  return ['localhost', '127.0.0.1'].includes(location.hostname);
+}
 
 /* -------------------------------------------------------------------------- */
 /* Storage                                                                     */
