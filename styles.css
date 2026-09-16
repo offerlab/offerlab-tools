@@ -6158,7 +6158,11 @@ position: absolute;
   background: none;
   color: var(--content-primary);
   font-family: var(--font-family);
-  font-size: var(--font-size-md);
+  /* body-lg: 16/400, -0.0125em */
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  letter-spacing: -0.0125em;
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
   transition: background var(--transition-fast);
