@@ -5867,7 +5867,7 @@ position: absolute;
   background: var(--content-background-elevated);
   border: none;
   box-shadow: 0 0 0 1px inset rgba(52, 46, 38, 0.12);
-  border-radius: 12px;
+  border-radius: var(--rounded-full);
   color: var(--content-primary);
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -5945,14 +5945,14 @@ position: absolute;
 
 .ai-input__glow--1 {
   inset: 0;
-  border-radius: 12px;
+  border-radius: var(--rounded-full);
   filter: blur(4px);
   opacity: 0.32;
 }
 
 .ai-input__glow--2 {
   inset: -4px;
-  border-radius: 16px;
+  border-radius: var(--rounded-full);
   filter: blur(11px);
   opacity: 0.16;
 }
