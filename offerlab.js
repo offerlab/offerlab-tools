@@ -112,6 +112,35 @@ export function rememberDraft(searchedDomain, draft) {
   return all[searchedDomain];
 }
 
+/**
+ * The drafts built for one pair. Matched on domain rather than brand name, which is display text
+ * and can differ between what the catalog reports and what a recommendation called the brand.
+ */
+export function draftsForPair(searchedDomain, partnerDomain) {
+  if (!searchedDomain || !partnerDomain) return [];
+  return draftsFor(searchedDomain).filter(draft => (draft.domains || []).includes(partnerDomain));
+}
+
+/** Records the published page against a draft, so the lookup happens once per stack. */
+export function rememberPublishedUrl(searchedDomain, stackId, publishedUrl) {
+  const all = read(localStorage, KEY.drafts) || {};
+  const list = all[searchedDomain] || [];
+  const entry = list.find(draft => draft.stackId === stackId);
+  if (!entry || entry.publishedUrl === publishedUrl) return;
+  entry.publishedUrl = publishedUrl;
+  write(localStorage, KEY.drafts, all);
+}
+
+/**
+ * The bundle's page on the demo store, once the builder has published it. A stack carries an
+ * external page per destination; only a published one has a url worth showing.
+ */
+export async function publishedUrlFor(stackId) {
+  const result = await callTool('list_stack_external_pages', { stack_id: stackId, per_page: 20 });
+  const page = (result?.data || []).find(entry => entry.published && entry.url);
+  return page?.url || null;
+}
+
 export function forgetDrafts(searchedDomain) {
   const all = read(localStorage, KEY.drafts) || {};
   if (searchedDomain) delete all[searchedDomain];
@@ -437,7 +466,9 @@ export async function createDraftBundle({ name, picks, onProgress = () => {} }) 
     stackId: stack.id,
     url,
     name,
+    domains,
     brands: domains.map(domain => labelFor(picks, domain)),
+    products: picks.map(pick => ({ title: pick.product.title, brand: labelFor(picks, pick.domain) })),
     productCount: resolved.length
   };
 }

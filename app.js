@@ -6,6 +6,7 @@ import { jsonrepair } from 'https://esm.sh/jsonrepair';
 // Configuration
 import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
 import { icon, hydrateIcons } from './icons.js';
+import * as offerlab from './offerlab.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
 const CONFIG = {
@@ -109,6 +110,7 @@ const elements = {
   pitchModalBody: document.getElementById('pitchModalBody'),
   pitchModalContent: document.getElementById('pitchModalContent'),
   pitchQuickLinks: document.getElementById('pitchQuickLinks'),
+  pitchBundlesBuilt: document.getElementById('pitchBundlesBuilt'),
   pitchModalSubtitle: document.getElementById('pitchModalSubtitle'),
   pitchToolbarBtn: document.getElementById('pitchToolbarBtn')
 };
@@ -1158,6 +1160,14 @@ Brand 2 (the brand Sean is suggesting Brand 1 should collaborate WITH via OfferL
       if (sb.url) contextBlock += `- Website: ${sb.url}\n`;
     }
 
+    if (context.bundlesBuilt?.length) {
+      contextBlock += `\nBundles already built for this pair in OfferLab. Reference these by name in the outreach rather than inventing a new concept:\n`;
+      context.bundlesBuilt.forEach(draft => {
+        const items = (draft.products || []).map(p => `${p.title} by ${p.brand}`).join(', ');
+        contextBlock += `- "${draft.name}"${items ? `: ${items}` : ''}${draft.publishedUrl ? ` (live at ${draft.publishedUrl})` : ''}\n`;
+      });
+    }
+
     if (context.recommendedBrand) {
       const rb = context.recommendedBrand;
       contextBlock += `\nAbout ${brand2Name}:\n`;
@@ -1371,6 +1381,74 @@ function renderPitchInitialState(brand1, brand2) {
   `;
 
   setPitchToolbarState('hidden');
+}
+
+// The drafts on screen for the pair currently open, so the prompt and the render agree.
+let currentPitchDrafts = [];
+
+/**
+ * "Bundles built": what has already been made for this pair, so the outreach can point at
+ * something real rather than describing it. Renders nothing for a pair with no drafts.
+ *
+ * The published page is looked up rather than stored at creation time, because publishing happens
+ * later and in the builder, not here. It needs a connection, so a disconnected operator still gets
+ * the list and the builder links, just without the PDP.
+ */
+function renderBundlesBuilt(searchedDomain, partnerDomain) {
+  const container = elements.pitchBundlesBuilt;
+  if (!container) return;
+
+  currentPitchDrafts = offerlab.draftsForPair(searchedDomain, partnerDomain);
+  if (!currentPitchDrafts.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const row = (draft) => {
+    const items = (draft.products || []).map(product =>
+      `<li class="pitch-bundle-item">${escapeHtml(product.title)} <span class="pitch-bundle-item-brand">by ${escapeHtml(product.brand)}</span></li>`
+    ).join('');
+    return `
+      <div class="pitch-bundle" data-stack-id="${draft.stackId}">
+        <div class="pitch-bundle-name">${escapeHtml(draft.name)}</div>
+        ${items ? `<ul class="pitch-bundle-items">${items}</ul>` : ''}
+        <div class="pitch-bundle-links">
+          <a href="${escapeHtml(draft.url)}" target="_blank" rel="noopener noreferrer" class="pitch-bundle-link">Open in builder</a>
+          <a href="${escapeHtml(draft.publishedUrl || '#')}" target="_blank" rel="noopener noreferrer"
+             class="pitch-bundle-link pitch-bundle-link--pdp"${draft.publishedUrl ? '' : ' hidden'}>View the live page</a>
+        </div>
+      </div>`;
+  };
+
+  container.innerHTML = `
+    <div class="pitch-bundles-card">
+      <div class="pitch-bundles-header">Bundles built</div>
+      ${currentPitchDrafts.map(row).join('')}
+    </div>`;
+
+  fillPublishedLinks(searchedDomain);
+}
+
+// Oldest first would bury today's work; newest is what the operator just made. A stack deleted in
+// OfferLab keeps its row and its link fails visibly, which is the ticket's stated behavior.
+async function fillPublishedLinks(searchedDomain) {
+  if (!offerlab.isEnabled() || !offerlab.isConnected()) return;
+
+  for (const draft of currentPitchDrafts.filter(entry => !entry.publishedUrl)) {
+    try {
+      const url = await offerlab.publishedUrlFor(draft.stackId);
+      if (!url) continue;
+      offerlab.rememberPublishedUrl(searchedDomain, draft.stackId, url);
+      draft.publishedUrl = url;
+      const link = elements.pitchBundlesBuilt?.querySelector(`[data-stack-id="${draft.stackId}"] .pitch-bundle-link--pdp`);
+      if (link) {
+        link.href = url;
+        link.hidden = false;
+      }
+    } catch (err) {
+      console.warn(`[Pitch] Could not check whether stack ${draft.stackId} is published:`, err.message);
+    }
+  }
 }
 
 function renderQuickLinksCard(searchedBrand, partnerBrand) {
@@ -1758,6 +1836,7 @@ function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
 
   // Render quick links card for both brands
   renderQuickLinksCard(searchedBrand, brand);
+  renderBundlesBuilt(searchedDomain, partnerDomain);
 
   // Show modal
   elements.pitchModalOverlay.classList.remove('hidden');
@@ -1866,7 +1945,8 @@ async function triggerPitchGeneration() {
   // Build rich context from existing search results
   const context = {
     searchedBrand: currentResults?.searchedBrand || null,
-    recommendedBrand: currentPitchBrand || null
+    recommendedBrand: currentPitchBrand || null,
+    bundlesBuilt: currentPitchDrafts
   };
 
   try {

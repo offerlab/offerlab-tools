@@ -6004,6 +6004,65 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+/* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
+   be read against what it is pointing at. */
+.pitch-bundles-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: var(--rounded-2xl);
+  background: var(--content-background-base);
+  box-shadow: inset 0 0 0 1px var(--content-border-neutral);
+}
+
+.pitch-bundles-header {
+  font-size: var(--font-size-sm);
+  color: var(--content-secondary);
+}
+
+.pitch-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pitch-bundle-name {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--content-primary);
+}
+
+.pitch-bundle-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+  color: var(--content-primary);
+}
+
+.pitch-bundle-item-brand {
+  color: var(--content-secondary);
+}
+
+.pitch-bundle-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.pitch-bundle-link {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--moola-vivid, var(--content-primary));
+  text-decoration: none;
+}
+
+.pitch-bundle-link:hover {
+  text-decoration: underline;
+}
+
 /* The brand line's other job: what went wrong handing the bundle over. */
 .picker-tray-summary .picker-tray-problem {
   color: var(--content-sentiment-negative);
