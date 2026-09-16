@@ -14,10 +14,14 @@ const KEY = {
   token: 'offerlab.token',         // session only: gone when the tab closes
   pkce: 'offerlab.pkce',
   returnTo: 'offerlab.returnTo',
-  master: 'offerlab.masterTeam'
+  master: 'offerlab.masterTeam',
+  drafts: 'offerlab.drafts'
 };
 
 const MASTER_TEAM_NAME = 'OfferLab Demo';
+// Per searched brand, so a booth conversation that ran long does not push out the draft from the
+// one before it. Enough for a show day; the store is not a record of anything that matters.
+const DRAFTS_PER_BRAND = 20;
 // A walk-up brand's catalog import. Generous: it is a whole storefront with images today, and
 // OL-3996 will cut it to the products the bundle asked for.
 const PROVISION_TIMEOUT_MS = 180000;
@@ -59,6 +63,36 @@ export function disconnect() {
   write(sessionStorage, KEY.token, null);
   state.account = null;
   state.tools = null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Drafts already created, per searched brand                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What the pitch step reads back (OL-3987). Local storage, not session: the operator closes the
+ * tab between conversations and the links have to survive that. Keyed by the searched brand,
+ * because that is the brand the pitch is for, whoever else ended up in the bundle.
+ */
+export function draftsFor(searchedDomain) {
+  return read(localStorage, KEY.drafts)?.[searchedDomain] || [];
+}
+
+export function rememberDraft(searchedDomain, draft) {
+  if (!searchedDomain || !draft?.stackId) return draftsFor(searchedDomain);
+
+  const all = read(localStorage, KEY.drafts) || {};
+  // Same stack twice is a rebuild, not a second draft: the newer record replaces the older one.
+  const kept = (all[searchedDomain] || []).filter(entry => entry.stackId !== draft.stackId);
+  all[searchedDomain] = [{ ...draft, createdAt: new Date().toISOString() }, ...kept].slice(0, DRAFTS_PER_BRAND);
+  write(localStorage, KEY.drafts, all);
+  return all[searchedDomain];
+}
+
+export function forgetDrafts(searchedDomain) {
+  const all = read(localStorage, KEY.drafts) || {};
+  if (searchedDomain) delete all[searchedDomain];
+  write(localStorage, KEY.drafts, searchedDomain ? all : null);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -376,7 +410,13 @@ export async function createDraftBundle({ name, picks, onProgress = () => {} }) 
 
   const url = builderUrl(stack, host);
   if (!url) throw new OfferLabError('The draft was created but OfferLab did not return a link to it');
-  return { stackId: stack.id, url, name };
+  return {
+    stackId: stack.id,
+    url,
+    name,
+    brands: domains.map(domain => labelFor(picks, domain)),
+    productCount: resolved.length
+  };
 }
 
 function labelFor(picks, domain) {

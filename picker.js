@@ -582,6 +582,7 @@ async function createDraft(name) {
       picks,
       onProgress: message => setDraft('working', message)
     });
+    offerlab.rememberDraft(sellerEntry()?.domain, draft);
     setDraft('done', draft.name, draft.url);
     // A draft nobody looks at is not a handoff. Opened here, off the click that started it.
     window.open(draft.url, '_blank', 'noopener');
