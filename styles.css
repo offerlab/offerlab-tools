@@ -514,8 +514,8 @@ img {
   display: inline-block;
 }
 
-/* The shine-on-crisp lockup, unwrapped: the mark in #ffed84 and the wordmark in #f3f0e8, which
-   is what carries it on the dark ground without a plate behind it. */
+/* Unwrapped lockup for the dark bar: mark in #FFED84, wordmark in #fff. 180x40 viewBox, so 34px
+   tall is 153 wide. */
 .header-nav-logo img {
   height: 34px;
   width: auto;
