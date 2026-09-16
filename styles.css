@@ -6074,14 +6074,27 @@ position: absolute;
   overflow: hidden;
 }
 
-/* Signed out the badge holds the passkey mark, which wants no fill behind it. */
+/* Signed out there is no avatar to hold, so the badge stops being a 30px circle and shrinks to
+   the passkey mark itself. Sized as a circle it left the icon floating in its own padding, and
+   the gap to the label read as two gaps. */
 .offerlab-account.is-disconnected .offerlab-account-badge {
+  flex: none;
+  width: auto;
+  height: auto;
+  border-radius: 0;
   background: none;
   color: var(--content-primary);
 }
 
+/* label-md */
 .offerlab-account.is-disconnected {
-  padding-inline: 12px 14px;
+  gap: 6px;
+  padding-inline: 14px;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  font-weight: 600;
+  color: var(--content-primary);
 }
 
 .offerlab-account.is-limited .offerlab-account-badge {
@@ -6209,10 +6222,6 @@ position: absolute;
 }
 
 /* Signed out: the same slot invites the sign-in, so it is reachable before the work, not after. */
-.offerlab-account.is-disconnected {
-  color: var(--content-secondary);
-}
-
 /* The header is already tight on a phone, and the tray says whether it is connected anyway. */
 @media (max-width: 900px) {
   .offerlab-account {
