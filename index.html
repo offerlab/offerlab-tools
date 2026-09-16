@@ -87,14 +87,21 @@
           </div>
         </div>
       </div>
-      <button type="button" class="offerlab-account hidden" id="offerlabAccount" aria-label="Disconnect from OfferLab">
-        <img class="offerlab-account-mark" src="assets/logo/offerlab-mark.svg" alt="" width="20" height="20">
-        <span class="offerlab-account-team" id="offerlabAccountTeam"></span>
-        <span class="offerlab-account-dot" aria-hidden="true"></span>
-      </button>
       <button type="button" class="icon-button icon-button--medium header-nav-start-over" id="headerStartOverBtn" aria-label="Restart">
         <span data-icon="arrow-rotate-clockwise"></span>
       </button>
+    </div>
+    <div class="offerlab-account-wrap hidden" id="offerlabAccountWrap">
+      <button type="button" class="offerlab-account" id="offerlabAccount" aria-haspopup="true" aria-expanded="false">
+        <span class="offerlab-account-badge" id="offerlabAccountBadge" aria-hidden="true"></span>
+        <span class="offerlab-account-team" id="offerlabAccountTeam">Sign in</span>
+        <span class="offerlab-account-caret" id="offerlabAccountCaret" aria-hidden="true"></span>
+      </button>
+      <div class="offerlab-account-menu hidden" id="offerlabAccountMenu" role="menu">
+        <div class="offerlab-account-menu-meta" id="offerlabAccountMeta" hidden></div>
+        <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-switch">Switch account</button>
+        <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-signout">Sign out</button>
+      </div>
     </div>
   </header>
   <div class="app-container">

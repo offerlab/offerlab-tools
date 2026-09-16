@@ -66,13 +66,14 @@ export function initPicker() {
   offerlab.completeRedirect()
     .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); })
     .finally(refreshAccount);
+  dom.accountWrap = document.getElementById('offerlabAccountWrap');
   dom.account = document.getElementById('offerlabAccount');
   dom.accountTeam = document.getElementById('offerlabAccountTeam');
-  dom.account?.addEventListener('click', () => {
-    if (!offerlab.isConnected()) { connectOfferLab(); return; }
-    offerlab.disconnect();
-    refreshAccount();
-  });
+  dom.accountBadge = document.getElementById('offerlabAccountBadge');
+  dom.accountCaret = document.getElementById('offerlabAccountCaret');
+  dom.accountMenu = document.getElementById('offerlabAccountMenu');
+  dom.accountMeta = document.getElementById('offerlabAccountMeta');
+  initAccountControl();
   dom.concepts = document.getElementById('pickerConcepts');
   dom.conceptsShell = document.getElementById('pickerConceptsShell');
   dom.rail = document.getElementById('pickerRail');
@@ -551,39 +552,95 @@ function applyConcept(index) {
  * an operator about to publish a brand's bundle should be able to see, without clicking, which
  * team it is going into.
  */
+// Signed out the chip signs in; signed in it opens its menu. One control, two jobs, because the
+// header has room for one thing and both are about the same connection.
+function initAccountControl() {
+  if (!dom.account) return;
+
+  dom.account.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!offerlab.isConnected()) { connectOfferLab(); return; }
+    toggleAccountMenu();
+  });
+
+  dom.accountMenu?.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-action]');
+    if (!item) return;
+    closeAccountMenu();
+    if (item.dataset.action === 'offerlab-signout') {
+      offerlab.disconnect();
+      refreshAccount();
+    } else if (item.dataset.action === 'offerlab-switch') {
+      switchAccount();
+    }
+  });
+
+  document.addEventListener('click', closeAccountMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAccountMenu(); });
+}
+
+function toggleAccountMenu() {
+  const open = dom.accountMenu.classList.toggle('hidden');
+  dom.account.setAttribute('aria-expanded', String(!open));
+}
+
+function closeAccountMenu() {
+  dom.accountMenu?.classList.add('hidden');
+  dom.account?.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * Re-running OAuth would hand back the same account: the authorize step reuses the session on
+ * OfferLab's side and the server has no prompt handling to override that. So signing out there is
+ * a separate step, in its own tab, and the operator comes back and signs in again.
+ */
+async function switchAccount() {
+  offerlab.disconnect();
+  refreshAccount();
+  window.open(`${await offerlab.host()}/users/sign_out`, '_blank', 'noopener');
+  setDraft('pending', 'Sign out of OfferLab in the new tab, then sign in again here');
+}
+
 async function refreshAccount() {
-  const chip = dom.account;
-  if (!chip) return;
+  const wrap = dom.accountWrap;
+  if (!wrap) return;
+  closeAccountMenu();
 
   if (!offerlab.isEnabled()) {
-    chip.classList.add('hidden');
+    wrap.classList.add('hidden');
     renderTray();
     return;
   }
 
-  // Signed out, the same slot is the way in. Connecting used to be reachable only from the tray,
-  // which means only after searching, opening a picker and selecting something — by which point
-  // the operator has done the work and is told to go and sign in.
+  wrap.classList.remove('hidden');
+
+  // Signed out, this is the way in. Connecting used to be reachable only from the tray, which
+  // means only after searching, opening a picker and selecting something.
   if (!offerlab.isConnected()) {
-    chip.classList.remove('hidden', 'is-limited');
-    chip.classList.add('is-disconnected');
-    dom.accountTeam.textContent = 'Connect';
-    chip.title = 'Sign in to OfferLab to create bundles from here';
-    chip.setAttribute('aria-label', 'Connect to OfferLab');
+    dom.account.classList.add('is-disconnected');
+    dom.account.classList.remove('is-limited');
+    dom.accountBadge.innerHTML = icon('passkeys', { size: 18 });
+    dom.accountCaret.innerHTML = '';
+    dom.accountTeam.textContent = 'Sign in';
+    dom.account.title = 'Sign in to OfferLab to create bundles from here';
+    dom.account.setAttribute('aria-label', 'Sign in to OfferLab');
     renderTray();
     return;
   }
 
-  chip.classList.remove('hidden', 'is-disconnected');
-  chip.setAttribute('aria-label', 'Disconnect from OfferLab');
-  dom.accountTeam.textContent = 'OfferLab';
+  dom.account.classList.remove('is-disconnected');
+  dom.accountCaret.innerHTML = icon('dot-grid-1x3-vertical', { size: 16 });
+  dom.account.setAttribute('aria-label', 'OfferLab account');
+  dom.account.title = '';
   try {
     const { account } = await offerlab.loadAccount();
-    dom.accountTeam.textContent = account?.team || 'OfferLab';
-    chip.classList.toggle('is-limited', account?.developer === false);
-    chip.title = account?.developer === false
-      ? 'Connected without developer access, so bundles cannot be created. Click to disconnect.'
-      : 'Click to disconnect';
+    const team = account?.team || 'OfferLab';
+    dom.accountTeam.textContent = team;
+    // Standing in for the team's avatar, which list_teams does not return yet (OL-3997).
+    dom.accountBadge.textContent = team.trim().charAt(0).toUpperCase();
+    dom.account.classList.toggle('is-limited', account?.developer === false);
+    dom.accountMeta.hidden = account?.developer !== false;
+    dom.accountMeta.textContent = 'No developer access, so bundles cannot be created';
   } catch (err) {
     console.warn('[OfferLab] could not read the account:', err.message);
   }
