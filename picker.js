@@ -8,6 +8,7 @@ import {
   parseJsonResponse, extractText, fetchCatalog, catalogThumbUrl, showSection
 } from './app.js';
 import { icon } from './icons.js';
+import * as offerlab from './offerlab.js';
 
 const PICK_PARAM = 'pick';
 const CONCEPT_MODEL = 'gemini-2.5-flash';
@@ -38,6 +39,7 @@ const THUMB_PILE_TILTS = [-6, 4, -3, 5];
 const state = {
   brands: [],             // [{ domain, brand }], the searched brand first
   selection: new Map(),   // "domain:id" -> { domain, product, sequence }
+  draft: { status: 'idle', message: '', url: null },
   sequence: 0,
   concepts: [],           // [{ name, hook, why, picks: [{ domain, product }], discountPercent, edited }]
   activeConcept: -1,
@@ -59,6 +61,11 @@ const dom = {};
 export function initPicker() {
   dom.section = document.getElementById('pickerSection');
   if (!dom.section) return;
+  // Before anything reads the query string: a sign-in redirect left its own parameters there and
+  // this puts the finder's back. Not awaited — the token exchange only has to beat the next click.
+  offerlab.completeRedirect()
+    .then(connected => { if (connected) renderTray(); })
+    .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); });
   dom.concepts = document.getElementById('pickerConcepts');
   dom.conceptsShell = document.getElementById('pickerConceptsShell');
   dom.rail = document.getElementById('pickerRail');
@@ -528,6 +535,62 @@ function applyConcept(index) {
   renderSelectionState();
 }
 
+/* ---------------------------------------------------------------------------
+   Handing a bundle to OfferLab
+   --------------------------------------------------------------------------- */
+
+// The brands in the order they were first picked, which is what the draft is named after.
+function draftName() {
+  const seen = [];
+  [...state.selection.values()]
+    .sort((a, b) => a.sequence - b.sequence)
+    .forEach(pick => { if (!seen.includes(pick.domain)) seen.push(pick.domain); });
+  return seen.map(domain => entryFor(domain)?.brand.name || domain).join(' \u00d7 ');
+}
+
+function setDraft(status, message, url = null) {
+  state.draft = { status, message, url };
+  renderTray();
+}
+
+/**
+ * Turns the current selection into a draft collab in OfferLab and opens the builder on it.
+ * Signing in comes first when there is no session; the operator lands back here and clicks again.
+ */
+async function createDraft(name) {
+  if (state.draft.status === 'working') return;
+
+  if (!offerlab.isConnected()) {
+    setDraft('working', 'Opening OfferLab');
+    try {
+      await offerlab.connect();
+    } catch (err) {
+      setDraft('error', err.message || 'Could not reach OfferLab');
+    }
+    return;
+  }
+
+  const picks = [...state.selection.values()]
+    .sort((a, b) => a.sequence - b.sequence)
+    .map(pick => ({ domain: pick.domain, brandName: entryFor(pick.domain)?.brand.name, product: pick.product }));
+  if (!picks.length) return;
+
+  setDraft('working', 'Connecting to OfferLab');
+  try {
+    const draft = await offerlab.createDraftBundle({
+      name: name || draftName(),
+      picks,
+      onProgress: message => setDraft('working', message)
+    });
+    setDraft('done', draft.name, draft.url);
+    // A draft nobody looks at is not a handoff. Opened here, off the click that started it.
+    window.open(draft.url, '_blank', 'noopener');
+  } catch (err) {
+    console.warn('[OfferLab] draft failed:', err);
+    setDraft('error', err.message || 'Could not create the draft');
+  }
+}
+
 function syncActiveConceptToSelection() {
   const concept = state.concepts[state.activeConcept];
   if (!concept) return;
@@ -755,6 +818,7 @@ function renderAll() {
 }
 
 function renderSelectionState() {
+  if (state.draft.status === 'done' || state.draft.status === 'error') state.draft = { status: 'idle', message: '', url: null };
   dom.columns.querySelectorAll('.picker-product').forEach(tile => {
     const selected = state.selection.has(tile.dataset.key);
     tile.classList.toggle('is-selected', selected);
@@ -1118,7 +1182,7 @@ function renderTray() {
   // Brands with picks, in the order they were first picked: "Our Place × Graza"
   const firstPick = new Map();
   picks.forEach(p => { if (!firstPick.has(p.domain)) firstPick.set(p.domain, p.sequence); });
-  const split = [...firstPick.keys()].map(domain => escapeHtml(entryFor(domain)?.brand.name || domain)).join(' &times; ');
+  const split = [...firstPick.keys()].map(domain => entryFor(domain)?.brand.name || domain).join(' \u00d7 ');
   const thumbs = picks.slice(-TRAY_THUMBS).map(pick => {
     const tilt = THUMB_TILTS[pick.sequence % THUMB_TILTS.length];
     return `<div class="picker-tray-thumb media-tile media-hairline" data-key="${escapeHtml(productKey(pick.domain, pick.product.id))}" style="transform: translateX(${tilt.shift}px) rotate(${tilt.rotate}deg)" title="${escapeHtml(pick.product.title)}"><img src="${catalogThumbUrl(pick.product.image, 96)}" alt=""></div>`;
@@ -1129,14 +1193,38 @@ function renderTray() {
       <div class="picker-tray-thumbs">${thumbs}</div>
       <div class="picker-tray-summary">
         <strong>${count} ${count === 1 ? 'product' : 'products'}</strong>
-        <span>${split}</span>
+        <span${state.draft.status === 'error' ? ' class="picker-tray-problem"' : ''}>${escapeHtml(trayNote(split))}</span>
       </div>
       <div class="picker-tray-actions">
         <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection">${icon('cross-large', { size: 14 })}<span class="picker-tray-action-label">Clear</span></button>
-        <button type="button" class="btn btn--md btn--primary" data-action="suggest"${state.conceptsStatus === 'loading' ? ' disabled' : ''}>Create bundle</button>
+        ${trayPrimary()}
       </div>
     </div>
   `;
+}
+
+// The brand line doubles as the progress line: while a draft is being created there is nothing
+// the operator needs from it, and it is the one place in the pill with room for a sentence.
+function trayNote(brands) {
+  const { status, message } = state.draft;
+  if (status === 'working') return `${message}\u2026`;
+  if (status === 'error') return message;
+  if (status === 'done') return `Opened ${message} in OfferLab`;
+  return brands;
+}
+
+function trayPrimary() {
+  const { status } = state.draft;
+  if (status === 'working') {
+    return `<button type="button" class="btn btn--md btn--primary" disabled>Working</button>`;
+  }
+  if (status === 'done') {
+    return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>`;
+  }
+  if (!offerlab.isConnected()) {
+    return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>`;
+  }
+  return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">${status === 'error' ? 'Try again' : 'Create bundle'}</button>`;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1321,7 +1409,16 @@ function onSectionClick(e) {
       break;
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
     // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
-    case 'create-concept': applyConcept(Number(target.dataset.index)); break;
+    case 'create-concept': {
+      const index = Number(target.dataset.index);
+      applyConcept(index);
+      createDraft(state.concepts[index]?.name);
+      break;
+    }
+    case 'create-bundle': createDraft(); break;
+    case 'open-draft':
+      if (state.draft.url) window.open(state.draft.url, '_blank', 'noopener');
+      break;
     case 'toggle-minimize': toggleMinimize(); break;
     case 'rail-prev': scrollRail(-1); break;
     case 'rail-next': scrollRail(1); break;

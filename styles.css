@@ -5998,6 +5998,12 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+/* The brand line's other job: what went wrong handing the bundle over. */
+.picker-tray-summary .picker-tray-problem {
+  color: var(--content-sentiment-negative);
+  white-space: normal;
+}
+
 .picker-tray-actions {
   display: flex;
   align-items: center;
