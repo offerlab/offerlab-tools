@@ -1026,7 +1026,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px var(--page-gutter);
+  padding: 16px var(--page-gutter);
   /* A scrim, not a flat fill: results dissolve into it as they scroll under rather than meeting a
      hard edge. Same ramp the results header carried before it moved in here, read off the sheet's
      own colour so the two cannot drift. */
