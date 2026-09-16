@@ -367,6 +367,7 @@
   /* Z-Index Scale */
   --z-tiles: 5;
   --z-content: 10;
+  --z-view-header: 50;
   --z-dropdown: 100;
   --z-popover: 200;
   --z-popover-overlay: 9999;
@@ -1009,33 +1010,27 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 }
 
 /* Results header: back button (left) + search (center) + start over (right) */
-.header-nav-results-container {
-  width: 100%;
-}
-
 .header-nav-search {
   flex: 1;
   min-width: 0;
   position: relative;
 }
 
-.header-nav-search-anchor {
-  margin: 0;
-  min-height: 48px;
-}
-
 /* --------------------------------------------------------------------------
-   Results Header - styled independently from landing
+   View Header - the contextual bar for the search views
    -------------------------------------------------------------------------- */
-/* The results header used to be its own thing: a white gradient scrim, stuck rather than fixed,
-   with the logo hidden so the search could centre. The bar is the same on every view now, drawn
-   straight on the dark ground, so all of that goes and only the row's own layout stays. */
-.header-nav--results .header-nav-results-container {
+/* Lives inside the sheet, not in the dark bar above it, so the global header stays one fixed thing
+   across the whole tool and each view brings its own context bar. The sheet is the scroll region,
+   so sticking to its top holds this in place while the results move under it. */
+.view-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-view-header);
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
-  min-width: 0;
+  padding: 12px var(--page-gutter);
+  background: var(--content-background-elevated);
 }
 
 /* --------------------------------------------------------------------------
@@ -1239,9 +1234,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   flex-direction: column;
   background: var(--content-background-base);
   border-radius: 28px 28px 0 0;
+
   /* The sheet is the scroll region, not a box inside it, so the rounded top holds its place under
      the header rather than scrolling away with what it contains. */
   overflow: hidden auto;
+}
+
+body.showing-results .main-content {
+  background: var(--content-background-elevated);
 }
 
 /* --------------------------------------------------------------------------
@@ -1673,7 +1673,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 /* The account control is about where a bundle would go, not about the search, so it stays put
    while one runs rather than fading with the back button. */
-.header-nav--loading .header-nav-back-wrapper {
+.view-header--loading .header-nav-back-wrapper {
   opacity: 0;
   pointer-events: none;
 }
@@ -1684,16 +1684,16 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 }
 
 /* During loading, show stop button and hide search button */
-.header-nav--loading .search-button:not(.search-button--stop) {
+.view-header--loading .search-button:not(.search-button--stop) {
   display: none;
 }
 
-.header-nav--loading .search-button--stop {
+.view-header--loading .search-button--stop {
   display: flex;
 }
 
 /* Make search input read-only appearance during loading */
-.header-nav--loading .search-input {
+.view-header--loading .search-input {
   pointer-events: none;
 }
 
@@ -2047,7 +2047,7 @@ position: absolute;
    Results Section
    -------------------------------------------------------------------------- */
 .results-section {
-  padding: 72px var(--page-gutter);
+  padding: 24px var(--page-gutter) 72px;
   /* Same as the picker's: the cap carries the gutter, so the content box is still 1154px wide on
      a large screen and the narrower ones get their sides back. */
   max-width: calc(1154px + 2 * var(--page-gutter));
@@ -2943,7 +2943,7 @@ position: absolute;
   }
 
   /* Mobile results: search box in sticky footer at bottom of viewport */
-  .header-nav--results .header-nav-search {
+  .view-header .header-nav-search {
     position: fixed;
     display: flex;
     flex-direction: column;

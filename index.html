@@ -41,53 +41,6 @@
     <a href="/" class="header-nav-logo" aria-label="OfferLab home" id="siteHeaderLogo">
       <img src="assets/logo/offerlab-lockup-shine-white.svg" alt="OfferLab" width="108" height="24">
     </a>
-    <!-- Results/Loading: back button + search + start over (back & start over hidden during loading) -->
-    <div class="header-nav-results-container hidden" id="siteHeaderResultsNav">
-      <div class="flex justify-start header-nav-back-wrapper">
-        <button type="button" class="icon-button icon-button--medium" id="headerBackBtn" aria-label="Back to search">
-          <span data-icon="arrow-left"></span>
-        </button>
-      </div>
-      <div class="header-nav-search">
-        <div class="search-anchor header-nav-search-anchor">
-          <div class="omni-ai-box-container omni-ai-box-container--header">
-            <form class="search-form" id="resultsSearchForm">
-              <div class="search-input-wrapper">
-                <span class="typing-placeholder typing-placeholder-results hidden" id="resultsTypingPlaceholder" aria-hidden="true"></span>
-                <span class="search-display hidden" id="resultsSearchDisplay" aria-hidden="true"></span>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="resultsSearchInput"
-                  placeholder="www.yourbrand.com"
-                  autocomplete="off"
-                  spellcheck="false"
-                  data-placeholder-focus="www.yourbrand.com"
-                >
-                <div class="submit-button-wrapper">
-                  <!-- Normal search button (visible when not loading) -->
-                  <button type="submit" class="search-button" id="resultsSearchButton">
-                    <span data-icon="arrow-up" class="search-icon"></span>
-                  </button>
-                  <!-- Stop button (visible during loading) -->
-                  <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search">
-                    <span data-icon="spinner" class="spinner-ring"></span>
-                    <span data-icon="stop-filled" class="stop-icon"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="search-history-dropdown" id="resultsSearchHistoryDropdown">
-                <div class="history-header">
-                  <span>Search history</span>
-                </div>
-                <ul class="history-list" id="resultsHistoryList"></ul>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div>
     <div class="offerlab-account-wrap hidden" id="offerlabAccountWrap">
       <button type="button" class="offerlab-account" id="offerlabAccount" aria-haspopup="true" aria-expanded="false">
         <span class="offerlab-account-badge" id="offerlabAccountBadge" aria-hidden="true"></span>
@@ -99,6 +52,7 @@
         <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-switch"><span data-icon="arrows-switch-swap" data-icon-size="20"></span>Switch account</button>
         <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-signout"><span data-icon="arrow-box-left" data-icon-size="20"></span>Sign out</button>
       </div>
+    </div>
   </header>
   <div class="app-container">
     <main class="main-content">
@@ -135,6 +89,54 @@
       <div class="tile tile-8 tile-md">
         <img src="brand-tile-media/brand-tile-nkoclub.webp" alt="NKO Club">
       </div>
+    </div>
+
+    <!-- Contextual bar for the search views. Sticks to the top of the sheet, inside it, so the
+         dark bar above stays the one global header. Back button hidden while a search runs. -->
+    <div class="view-header hidden" id="viewHeader">
+    <div class="flex justify-start header-nav-back-wrapper">
+      <button type="button" class="icon-button icon-button--medium" id="headerBackBtn" aria-label="Back to search">
+        <span data-icon="arrow-left"></span>
+      </button>
+    </div>
+    <div class="header-nav-search">
+      <div class="search-anchor header-nav-search-anchor">
+        <div class="omni-ai-box-container omni-ai-box-container--header">
+          <form class="search-form" id="resultsSearchForm">
+            <div class="search-input-wrapper">
+              <span class="typing-placeholder typing-placeholder-results hidden" id="resultsTypingPlaceholder" aria-hidden="true"></span>
+              <span class="search-display hidden" id="resultsSearchDisplay" aria-hidden="true"></span>
+              <input
+                type="text"
+                class="search-input"
+                id="resultsSearchInput"
+                placeholder="www.yourbrand.com"
+                autocomplete="off"
+                spellcheck="false"
+                data-placeholder-focus="www.yourbrand.com"
+              >
+              <div class="submit-button-wrapper">
+                <!-- Normal search button (visible when not loading) -->
+                <button type="submit" class="search-button" id="resultsSearchButton">
+                  <span data-icon="arrow-up" class="search-icon"></span>
+                </button>
+                <!-- Stop button (visible during loading) -->
+                <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search">
+                  <span data-icon="spinner" class="spinner-ring"></span>
+                  <span data-icon="stop-filled" class="stop-icon"></span>
+                </button>
+              </div>
+            </div>
+            <div class="search-history-dropdown" id="resultsSearchHistoryDropdown">
+              <div class="history-header">
+                <span>Search history</span>
+              </div>
+              <ul class="history-list" id="resultsHistoryList"></ul>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     </div>
 
     <!-- Main Content -->
