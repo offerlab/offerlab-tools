@@ -302,6 +302,35 @@
   <!-- Social Links Popover Template -->
   <div class="social-popover hidden" id="socialPopover"></div>
 
+  <!-- Generate Pitch Modal -->
+  <div class="modal-overlay hidden" id="pitchModalOverlay">
+    <div class="modal pitch-modal" id="pitchModal">
+      <div class="pitch-modal-toolbar">
+        <button type="button" class="pitch-toolbar-btn" id="pitchToolbarBtn">
+          <!-- Generating state: icon-only stop button -->
+          <span class="pitch-toolbar-generating">
+            <span data-icon="stop-filled" class="pitch-toolbar-stop-svg"></span>
+          </span>
+          <!-- Regenerate state: full pill button with text -->
+          <span class="pitch-toolbar-regenerate">
+            <span data-icon="arrow-rotate-clockwise" data-icon-size="16"></span>
+            Regenerate
+          </span>
+        </button>
+        <button type="button" class="modal-close-btn" id="pitchModalClose" aria-label="Close modal">
+          <span data-icon="cross-large"></span>
+        </button>
+      </div>
+      <div class="modal-body" id="pitchModalBody">
+        <div class="modal-header-text" id="pitchModalSubtitle"></div>
+        <div class="pitch-quick-links" id="pitchQuickLinks"></div>
+        <div class="pitch-modal-content" id="pitchModalContent">
+          <!-- Pitch content dynamically rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="app.js" type="module"></script>
 </body>
