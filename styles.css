@@ -1046,9 +1046,9 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   --pill-pad: 5px;
   --pill-btn: 30px;
   --pill-max: 360px;
-  /* body-md */
-  --pill-font: var(--font-size-sm);
-  --pill-tracking: -0.01429em;
+  /* body-lg */
+  --pill-font: var(--font-size-base);
+  --pill-tracking: -0.0125em;
   --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
