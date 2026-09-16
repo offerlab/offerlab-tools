@@ -500,7 +500,8 @@ img {
   position: fixed;
   top: 0;
   width: 100%;
-  padding: 16px 20px;
+  height: 60px;
+  padding: 0 20px;
   background: transparent;
   z-index: 100;
   display: flex;
@@ -1020,7 +1021,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 .header-nav-search-anchor {
   margin: 0;
-  min-height: 64px;
+  min-height: 48px;
 }
 
 /* --------------------------------------------------------------------------
