@@ -553,10 +553,10 @@ img {
   transform: scale(1.1);
 }
 
-/* Elevated buttons lift on hover: a step darker and a step further off the surface. */
+/* Elevated buttons go a step darker on hover. The shadow holds: stepping it up as well read as
+   the button jumping, and the fill already carries the state. */
 .icon-button:hover {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .icon-button:active {
@@ -5104,7 +5104,6 @@ position: absolute;
 
 .picker-rail-btn:hover {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .picker-rail-btn:active {
@@ -5436,7 +5435,6 @@ position: absolute;
 
 .picker-product:hover .picker-product-add {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .picker-product.is-selected .picker-product-add,
@@ -6041,7 +6039,6 @@ position: absolute;
 
 .offerlab-account:hover {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .offerlab-account-team {
@@ -6159,65 +6156,9 @@ position: absolute;
   white-space: nowrap;
 }
 
-/* Which OfferLab the finder is signed in to, in the header where it is visible without a click.
-   A booth demo publishes a real brand's bundle; the team it lands in is worth being sure of. */
-.offerlab-account {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  /* The restart button beside it is 20px of icon in 12px of padding plus its border. */
-  height: 46px;
-  padding: 0 16px;
-  border: 1px solid var(--content-border-neutral);
-  border-radius: var(--rounded-full);
-  background: var(--content-background-elevated);
-  box-shadow: var(--shadow-sm);
-  color: var(--content-primary);
-  font-family: var(--font-family);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  max-width: 220px;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.offerlab-account:hover {
-  background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
-}
-
-.offerlab-account-team {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.offerlab-account-mark {
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--rounded-sm);
-}
-
-/* The mark says which product this is, so the dot is left to say the one thing it cannot: that
-   this account is connected but cannot create anything. */
-.offerlab-account-dot {
-  display: none;
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--content-sentiment-negative);
-}
-
-.offerlab-account.is-limited .offerlab-account-dot {
-  display: block;
-}
-
-/* Signed out: the same slot invites the sign-in, so it is reachable before the work, not after. */
-/* The header is already tight on a phone, and the tray says whether it is connected anyway. */
+/* The header is tight on a phone, and the tray already says whether it is connected. */
 @media (max-width: 900px) {
-  .offerlab-account {
+  .offerlab-account-wrap {
     display: none;
   }
 }
@@ -6504,7 +6445,6 @@ position: absolute;
 
   .picker-concepts-actions .btn--ghost:hover {
     background: var(--content-background-base);
-    box-shadow: var(--shadow-md);
   }
 
   /* Same reasoning for the stop control: it gave up its disc to sit inside the pill. */
