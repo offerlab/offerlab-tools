@@ -6516,8 +6516,17 @@ position: absolute;
 
   /* Below the cards, the full span of the card. Row 2 while there are none yet, so the empty
      row does not spend a second gap on nothing. */
+  /* Out of the pill, so it goes back to being a plain md button: its own padding and gap instead
+     of the tightening the pill's row wanted, and its own width instead of the whole span. It keeps
+     the full grid area so it still gets a row to itself, centred in it. */
+  .picker-concepts-head .btn {
+    padding-inline: 14px;
+    gap: 8px;
+  }
+
   .picker-concepts-actions > .btn {
     grid-area: 2 / 1 / auto / -1;
+    justify-self: center;
   }
 
   .picker-concepts:has(.picker-concepts-grid) .picker-concepts-actions > .btn {
