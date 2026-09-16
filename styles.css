@@ -727,6 +727,11 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    Media treatments (from the main app's atelier utilities): a hairline frame drawn on a
    pseudo-element so it survives the zoom, an opaque tile with a 4% richBlack veil over the
    artwork, and a hover zoom. Hosts are positioned, rounded, and clip.
+
+   Both pseudo-elements are given a layer because the artwork takes one on hover: a transform
+   promotes the img into the positioned-descendant paint phase, where tree order puts it after
+   these two, and the veil and the frame dropped out from over it for as long as the cursor was
+   there. z-index 1 rather than more, so .picker-product-add still sits above both.
    -------------------------------------------------------------------------- */
 .media-hairline,
 .media-tile {
@@ -738,6 +743,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   border-radius: inherit;
   border: var(--media-hairline-width, 1px) solid var(--content-border-neutral);
   pointer-events: none;
@@ -751,6 +757,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 1;
   border-radius: inherit;
   background-color: rgba(11, 5, 29, 0.04);
   pointer-events: none;
