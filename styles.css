@@ -771,8 +771,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 .card-catalog-thumb:hover .media-zoom,
 .picker-product:hover .media-zoom,
 .picker-product:active .media-zoom,
-.picker-concept:hover .media-zoom,
-.picker-stack-card:hover .media-zoom {
+.picker-concept:hover .media-zoom {
   transform: scale(1.05);
 }
 
