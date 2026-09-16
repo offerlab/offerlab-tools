@@ -177,6 +177,21 @@
   /* Every control in the header bar is this tall. Not one of the button scale's sizes: the bar
      wants something between the 32px small and the 48px large, and it wants one number. */
   --nav-control-h: 36px;
+  /* The results search pill at rest. On :root rather than on the bar because the mobile search
+     footer's height is these numbers, and the catalogs have to clear that footer. Only
+     :focus-within overrides them, so what is read from here is always the resting size. */
+  --pill-row: 36px;
+  --pill-pad: 5px;
+  --pill-btn: 30px;
+  --pill-max: 360px;
+  /* body-lg */
+  --pill-font: var(--font-size-base);
+  --pill-tracking: -0.0125em;
+  --pill-avatar: 22px;
+  --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Below 768px the pill is fixed to the bottom of the viewport: the resting pill on this gutter. */
+  --search-footer-gutter: 16px;
+  --search-footer-h: calc(var(--pill-row) + 2 * var(--pill-pad) + var(--search-footer-gutter));
   --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
@@ -1043,27 +1058,15 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   );
 }
 
-/* Compact until it is being used. At rest the pill matches the back button beside it, so the bar
-   reads as a navigation row; focus opens it to full size and the bar grows with it. Every box the
-   pill is made of moves off these four numbers, so there is one place to retune it. */
 /* The icon button reaches the bar's height through its own padding; a text button has to be told.
    Neither of the .btn scale's sizes is 44. */
 .view-header .btn {
   height: var(--bar-control-h);
 }
 
-.view-header .header-nav-search {
-  --pill-row: 36px;
-  --pill-pad: 5px;
-  --pill-btn: 30px;
-  --pill-max: 360px;
-  /* body-lg */
-  --pill-font: var(--font-size-base);
-  --pill-tracking: -0.0125em;
-  --pill-avatar: 22px;
-  --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
+/* Compact until it is being used. At rest the pill matches the back button beside it, so the bar
+   reads as a navigation row; focus opens it to full size and the bar grows with it. The resting
+   values are on :root; this is the only thing that changes them. */
 .view-header .header-nav-search:focus-within {
   --pill-row: 48px;
   --pill-pad: 8px;
@@ -3053,7 +3056,7 @@ position: absolute;
     right: 0;
     z-index: 100;
     background: linear-gradient(to top, rgb(255, 255, 255) 5%, rgba(255, 255, 255, 0.75) 65%, transparent);
-    padding-bottom: 16px;
+    padding-bottom: var(--search-footer-gutter);
     padding-left: 24px;
     padding-right: 24px;
   }
@@ -6394,15 +6397,20 @@ position: absolute;
      padding to show it in. shadow-md is 0 4px 24px: 16px below the card, 8px above, and more than
      that diagonally off a 32px corner, which is where the cut was reading as a hard line. */
   .picker-columns {
-    --picker-shadow-room: 16px;
+    /* One gap under a panel, doing two jobs: shadow-md wants 16px below the card, and 16px is also
+       the clearance the search footer should keep. The footer floats over the rail, so its height
+       is in the padding too or the last row of products can never be scrolled out from under it. */
+    --picker-bottom-gap: 16px;
     padding-top: 20px;
-    padding-bottom: var(--picker-shadow-room);
+    padding-bottom: calc(var(--search-footer-h) + var(--picker-bottom-gap));
   }
 
-  /* A screenful less the bar above it and the room below, so the panel's own bottom edge is on
-     screen rather than running off it. Tied to the padding: they are the same gap. */
+  /* A screenful less the two bars that float over it, so a panel's own bottom edge lands above the
+     footer rather than behind it. Same terms as the padding, so the two cannot drift. */
   .picker-column {
-    height: calc(100vh - var(--header-h, 0px) - var(--picker-shadow-room));
+    height: calc(
+      100vh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
+    );
   }
 
   /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
