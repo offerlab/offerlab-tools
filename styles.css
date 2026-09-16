@@ -1043,6 +1043,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   top: 0;
   z-index: var(--z-view-header);
   --bar-control-h: 44px;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -4389,7 +4390,10 @@ position: absolute;
   /* The cap carries the gutter on top of the body max, so the content box is still
      --picker-body-max wide on a large screen and only narrower viewports pay for it. */
   --picker-gutter: var(--page-gutter);
-  height: 100%;
+  /* Whatever the sheet has left under the context bar. height: 100% was the whole sheet, which
+     was the bar's height too much once the bar moved in here as a sibling. */
+  flex: 1;
+  min-height: 0;
   padding: 24px var(--picker-gutter) 0;
   max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
   margin: 0 auto;
@@ -6381,6 +6385,7 @@ position: absolute;
      into one viewport, so the section sizes to its content and each catalog takes a screenful of
      its own. Scrolling past the banner lands you on a full-height column. */
   .picker-section {
+    flex: none;
     height: auto;
   }
 
