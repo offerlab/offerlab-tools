@@ -5256,20 +5256,17 @@ position: absolute;
   flex: 0 0 clamp(var(--picker-column-min), var(--col-w), var(--picker-column-max));
 }
 
-/* 16px of hit area centred on the 10px gutter: -3px puts the strip's middle on the gutter's */
+/* 16px of hit area centred on the 10px gutter. left: 100% resolves against the column's PADDING
+   box, so it lands 1px inside the border box and the strip has to be given that back: -3 centres
+   16 on 10, +1 for the border. Without it the handle sat a pixel into the left-hand column. */
 .picker-column-resizer-zone {
   position: absolute;
   left: 100%;
-  margin-left: -3px;
+  margin-left: -2px;
   top: 24px;
   bottom: 24px;
   width: 16px;
   z-index: 3;
-}
-
-/* No later column to resize against. :last-of-type would match the add column, which is a div too. */
-.picker-column:not(:has(~ .picker-column)) .picker-column-resizer-zone {
-  display: none;
 }
 
 .picker-column-resizer {
