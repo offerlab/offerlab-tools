@@ -169,6 +169,11 @@
   --brand-primary-brew: #342E26FF;
   --brand-primary-chocolate: #4D2F06FF;
   --background-dark: #24201BFF;
+  /* Content placed ON a dark surface. The app's convention: the surface is "dark", what sits on it
+     is "inverse". The overlay is the same 8% lift the inverse ramp uses everywhere else, which is
+     what --background-overlay does on white. */
+  --content-primary-inverse: #FFFFFF;
+  --content-background-overlay-inverse: rgba(255, 255, 255, 0.08);
   --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
@@ -6082,12 +6087,24 @@ position: absolute;
   height: auto;
   border-radius: 0;
   background: none;
-  color: var(--content-primary);
+  color: inherit;
 }
 
+/* A ghost on the dark bar: nothing to sign in to yet, so it does not need to sit on its own
+   surface the way the signed-in account does. Small variant, 32px, matching .btn--md. */
 .offerlab-account.is-disconnected {
   gap: 6px;
-  padding-inline: 14px;
+  height: 32px;
+  padding-inline: 10px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--content-primary-inverse);
+}
+
+.offerlab-account.is-disconnected:hover {
+  background: var(--content-background-overlay-inverse);
+  box-shadow: none;
 }
 
 .offerlab-account.is-limited .offerlab-account-badge {
