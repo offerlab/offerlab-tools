@@ -1536,7 +1536,7 @@ function onSectionClick(e) {
       renderTray();
       break;
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
-    // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
+    // Creating the draft on ShopTalk arrives with OL-3986; until then it loads the concept.
     case 'create-concept': {
       const index = Number(target.dataset.index);
       applyConcept(index);

@@ -2794,8 +2794,8 @@ function ensureHttps(item) {
    -------------------------------------------------------------------------- */
 
 const TYPING_MESSAGES = ["Find your next collab", "Drop any brand URL", "Get instant recommendations"];
-// Demo teams in staging. The "Try {domain}" placeholder rotates through these, one per cycle,
-// with the brand's favicon inline after "Try".
+// Brands seeded into the demo environment. The "Try {domain}" placeholder rotates through these,
+// one per cycle, with the brand's favicon inline after "Try".
 const DEMO_BRANDS = ['magicspoon.com', 'monos.com', 'flamingoestate.com', 'wildone.com', 'fanttik.com', 'jolieskinco.com'];
 const TRY_PREFIX = 'Try ';
 const TYPING_SPEED = 80;
