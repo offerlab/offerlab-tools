@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#F7F5F0">
-  <title>✦ Collab finder | OfferLab</title>
+  <title>✦ Collab finder: Discover co-selling today | OfferLab</title>
   
   <!-- Open Graph / Social Media -->
   <meta property="og:type" content="website">
@@ -38,61 +38,24 @@
 </head>
 <body>
   <header class="header-nav" id="siteHeader">
-    <!-- Landing: logo centered -->
     <a href="/" class="header-nav-logo" aria-label="OfferLab home" id="siteHeaderLogo">
-      <img src="assets/logo/offerlab-lockup-wrapped.svg" alt="OfferLab" width="129" height="44">
+      <img src="assets/logo/offerlab-lockup-shine-white.svg" alt="OfferLab" width="108" height="24">
     </a>
-    <!-- Results/Loading: back button + search + start over (back & start over hidden during loading) -->
-    <div class="header-nav-results-container hidden" id="siteHeaderResultsNav">
-      <div class="flex justify-start header-nav-back-wrapper">
-        <button type="button" class="icon-button icon-button--medium" id="headerBackBtn" aria-label="Back to search">
-          <span data-icon="arrow-left"></span>
-        </button>
-      </div>
-      <div class="header-nav-search">
-        <div class="search-anchor header-nav-search-anchor">
-          <div class="omni-ai-box-container omni-ai-box-container--header">
-            <form class="search-form" id="resultsSearchForm">
-              <div class="search-input-wrapper">
-                <span class="typing-placeholder typing-placeholder-results hidden" id="resultsTypingPlaceholder" aria-hidden="true"></span>
-                <span class="search-display hidden" id="resultsSearchDisplay" aria-hidden="true"></span>
-                <input
-                  type="text"
-                  class="search-input"
-                  id="resultsSearchInput"
-                  placeholder="www.yourbrand.com"
-                  autocomplete="off"
-                  spellcheck="false"
-                  data-placeholder-focus="www.yourbrand.com"
-                >
-                <div class="submit-button-wrapper">
-                  <!-- Normal search button (visible when not loading) -->
-                  <button type="submit" class="search-button" id="resultsSearchButton">
-                    <span data-icon="arrow-up" class="search-icon"></span>
-                  </button>
-                  <!-- Stop button (visible during loading) -->
-                  <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search">
-                    <span data-icon="spinner" class="spinner-ring"></span>
-                    <span data-icon="stop-filled" class="stop-icon"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="search-history-dropdown" id="resultsSearchHistoryDropdown">
-                <div class="history-header">
-                  <span>Search history</span>
-                </div>
-                <ul class="history-list" id="resultsHistoryList"></ul>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-      <button type="button" class="icon-button icon-button--medium header-nav-start-over" id="headerStartOverBtn" aria-label="Restart">
-        <span data-icon="arrow-rotate-clockwise"></span>
+    <div class="offerlab-account-wrap hidden" id="offerlabAccountWrap">
+      <button type="button" class="offerlab-account" id="offerlabAccount" aria-haspopup="true" aria-expanded="false">
+        <span class="offerlab-account-badge" id="offerlabAccountBadge" aria-hidden="true"></span>
+        <span class="offerlab-account-team" id="offerlabAccountTeam">Sign in</span>
+        <span class="offerlab-account-caret" id="offerlabAccountCaret" aria-hidden="true"></span>
       </button>
+      <div class="offerlab-account-menu hidden" id="offerlabAccountMenu" role="menu">
+        <div class="offerlab-account-menu-meta" id="offerlabAccountMeta" hidden></div>
+        <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-switch"><span data-icon="arrows-switch-swap" data-icon-size="20"></span>Switch account</button>
+        <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-signout"><span data-icon="arrow-box-left" data-icon-size="20"></span>Sign out</button>
+      </div>
     </div>
   </header>
   <div class="app-container">
+    <main class="main-content">
     <!-- Floating Brand Tiles Background -->
     <div class="floating-tiles" id="floatingTiles">
       <!-- Top-left corner -->
@@ -128,8 +91,55 @@
       </div>
     </div>
 
+    <!-- Contextual bar for the search views. Sticks to the top of the sheet, inside it, so the
+         dark bar above stays the one global header. Back button hidden while a search runs. -->
+    <div class="view-header hidden" id="viewHeader">
+    <div class="flex justify-start header-nav-back-wrapper">
+      <button type="button" class="icon-button icon-button--medium" id="headerBackBtn" aria-label="Back to search">
+        <span data-icon="arrow-left"></span>
+      </button>
+    </div>
+    <div class="header-nav-search">
+      <div class="search-anchor header-nav-search-anchor">
+        <div class="omni-ai-box-container omni-ai-box-container--header">
+          <form class="search-form" id="resultsSearchForm">
+            <div class="search-input-wrapper">
+              <span class="typing-placeholder typing-placeholder-results hidden" id="resultsTypingPlaceholder" aria-hidden="true"></span>
+              <span class="search-display hidden" id="resultsSearchDisplay" aria-hidden="true"></span>
+              <input
+                type="text"
+                class="search-input"
+                id="resultsSearchInput"
+                placeholder="www.yourbrand.com"
+                autocomplete="off"
+                spellcheck="false"
+                data-placeholder-focus="www.yourbrand.com"
+              >
+              <div class="submit-button-wrapper">
+                <!-- Normal search button (visible when not loading) -->
+                <button type="submit" class="search-button" id="resultsSearchButton">
+                  <span data-icon="arrow-up" class="search-icon"></span>
+                </button>
+                <!-- Stop button (visible during loading) -->
+                <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search">
+                  <span data-icon="spinner" class="spinner-ring"></span>
+                  <span data-icon="stop-filled" class="stop-icon"></span>
+                </button>
+              </div>
+            </div>
+            <div class="search-history-dropdown" id="resultsSearchHistoryDropdown">
+              <div class="history-header">
+                <span>Search history</span>
+              </div>
+              <ul class="history-list" id="resultsHistoryList"></ul>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    </div>
+
     <!-- Main Content -->
-    <main class="main-content">
       <!-- Landing State -->
       <section class="landing-section" id="landingSection">
         <div class="logo-container">
@@ -255,11 +265,10 @@
         <form class="dialog-backdrop picker-url-dialog hidden" id="pickerUrlDialog" novalidate>
           <div class="dialog picker-url-modal" role="dialog" aria-modal="true" aria-labelledby="pickerUrlHeading">
             <div class="dialog-header">
-              <h2 class="dialog-heading" id="pickerUrlHeading">Add a brand</h2>
+              <h2 class="dialog-heading" id="pickerUrlHeading">Add brand from URL</h2>
               <button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close"><span data-icon="cross-large" data-icon-size="16"></span></button>
             </div>
             <div class="dialog-body">
-              <p class="dialog-lead">Tell me the website of a brand. I'll pull its catalog in as a new column.</p>
               <div class="ai-input ai-input--compact">
                 <span class="ai-input__glow ai-input__glow--1" aria-hidden="true"></span>
                 <span class="ai-input__glow ai-input__glow--2" aria-hidden="true"></span>

@@ -45,9 +45,8 @@ const elements = {
   // Header
   siteHeader: document.getElementById('siteHeader'),
   siteHeaderLogo: document.getElementById('siteHeaderLogo'),
-  siteHeaderResultsNav: document.getElementById('siteHeaderResultsNav'),
+  viewHeader: document.getElementById('viewHeader'),
   headerBackBtn: document.getElementById('headerBackBtn'),
-  headerStartOverBtn: document.getElementById('headerStartOverBtn'),
   stopSearchButton: document.getElementById('stopSearchButton'),
   resultsSearchButton: document.getElementById('resultsSearchButton'),
 
@@ -433,12 +432,11 @@ function showSection(sectionName) {
   elements.emptySection.classList.add('hidden');
   elements.errorSection.classList.add('hidden');
 
-  // Hide all header states by default
-  if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.add('hidden');
-  if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.add('hidden');
-  if (elements.siteHeader) {
-    elements.siteHeader.classList.remove('header-nav--results');
-    elements.siteHeader.classList.remove('header-nav--loading');
+  // The dark bar is global and holds nothing that varies by view. The context bar inside the
+  // sheet is what each view turns on.
+  if (elements.viewHeader) {
+    elements.viewHeader.classList.add('hidden');
+    elements.viewHeader.classList.remove('view-header--loading');
   }
 
   // Show requested section
@@ -448,62 +446,45 @@ function showSection(sectionName) {
       document.querySelector('.app-container').classList.remove('showing-results');
       document.body.classList.remove('showing-results');
       elements.floatingTiles.classList.remove('whip-out', 'whip-out--fast');
-      if (elements.siteHeaderLogo) elements.siteHeaderLogo.classList.remove('hidden');
       break;
     case 'loading':
       elements.loadingSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.add('showing-results');
       document.body.classList.add('showing-results');
       resetTileTilt();
-      // Show results header in loading state (back/start over hidden, stop button visible)
-      if (elements.siteHeader) {
-        elements.siteHeader.classList.add('header-nav--results');
-        elements.siteHeader.classList.add('header-nav--loading');
+      // Back button hidden and the submit swapped for a stop button while a search runs.
+      if (elements.viewHeader) {
+        elements.viewHeader.classList.remove('hidden');
+        elements.viewHeader.classList.add('view-header--loading');
       }
-      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
       break;
     case 'results':
       elements.resultsSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.add('showing-results');
       document.body.classList.add('showing-results');
       resetTileTilt();
-      if (elements.siteHeader) {
-        elements.siteHeader.classList.add('header-nav--results');
-        // Remove loading state to fade in back/start over buttons
-        elements.siteHeader.classList.remove('header-nav--loading');
-      }
-      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      if (elements.viewHeader) elements.viewHeader.classList.remove('hidden');
       break;
     case 'picker':
       elements.pickerSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.add('showing-results');
       document.body.classList.add('showing-results');
       resetTileTilt();
-      if (elements.siteHeader) {
-        elements.siteHeader.classList.add('header-nav--results');
-        elements.siteHeader.classList.remove('header-nav--loading');
-      }
-      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      if (elements.viewHeader) elements.viewHeader.classList.remove('hidden');
       break;
     case 'empty':
       elements.emptySection.classList.remove('hidden');
       document.querySelector('.app-container').classList.add('showing-results');
       document.body.classList.add('showing-results');
       resetTileTilt();
-      if (elements.siteHeader) {
-        elements.siteHeader.classList.add('header-nav--results');
-      }
-      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      if (elements.viewHeader) elements.viewHeader.classList.remove('hidden');
       break;
     case 'error':
       elements.errorSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.add('showing-results');
       document.body.classList.add('showing-results');
       resetTileTilt();
-      if (elements.siteHeader) {
-        elements.siteHeader.classList.add('header-nav--results');
-      }
-      if (elements.siteHeaderResultsNav) elements.siteHeaderResultsNav.classList.remove('hidden');
+      if (elements.viewHeader) elements.viewHeader.classList.remove('hidden');
       break;
   }
 }
@@ -969,6 +950,35 @@ function renderResults(brands, searchedBrand = null) {
   elements.feedbackNegative.classList.remove('selected');
   elements.feedbackThanks.classList.add('hidden');
   elements.feedbackSection.style.pointerEvents = 'auto';
+  markBrandsNotSetUp();
+}
+
+/**
+ * A brand can have a public catalog to pick from and still have no team in the demo environment,
+ * in which case creating a bundle has to stand one up first. That is a minute or two with someone
+ * watching, so the card says so before the click rather than after (OL-3831).
+ *
+ * Only for an operator: a guest has no handoff to be warned about, and the demo environment is
+ * none of their business.
+ */
+async function markBrandsNotSetUp() {
+  if (!offerlab.isEnabled()) return;
+
+  for (const card of document.querySelectorAll('.result-card[data-domain]')) {
+    try {
+      const brand = await offerlab.demoBrand(card.dataset.domain);
+      if (brand?.ready) continue;
+      card.dataset.setUp = 'false';
+      const url = card.querySelector('.card-url');
+      if (url && !url.querySelector('.card-not-set-up')) {
+        url.insertAdjacentHTML('beforeend',
+          '<span class="card-not-set-up" title="No team in the demo environment yet. Creating a bundle will set one up first, which takes a moment.">Not set up</span>');
+      }
+    } catch {
+      // The demo environment being unreachable is not worth marking every card over.
+      return;
+    }
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -2784,8 +2794,8 @@ function ensureHttps(item) {
    -------------------------------------------------------------------------- */
 
 const TYPING_MESSAGES = ["Find your next collab", "Drop any brand URL", "Get instant recommendations"];
-// Demo teams in staging. The "Try {domain}" placeholder rotates through these, one per cycle,
-// with the brand's favicon inline after "Try".
+// Brands seeded into the demo environment. The "Try {domain}" placeholder rotates through these,
+// one per cycle, with the brand's favicon inline after "Try".
 const DEMO_BRANDS = ['magicspoon.com', 'monos.com', 'flamingoestate.com', 'wildone.com', 'fanttik.com', 'jolieskinco.com'];
 const TRY_PREFIX = 'Try ';
 const TYPING_SPEED = 80;
@@ -3417,9 +3427,6 @@ function initEventListeners() {
       else goToLanding();
     });
   }
-  if (elements.headerStartOverBtn) {
-    elements.headerStartOverBtn.addEventListener('click', goToLanding);
-  }
   
   // Stop search button (during loading)
   if (elements.stopSearchButton) {
@@ -3515,9 +3522,8 @@ function initEventListeners() {
    Initialize App
    -------------------------------------------------------------------------- */
 
-// The sticky header sits in flow above the app container, so anything sizing itself to the
-// viewport (the picker) has to subtract it. Republished whenever the header's height changes,
-// which it does between the landing and results states.
+// The dark bar is fixed, so anything sizing itself to the viewport (the picker) has to subtract
+// it. A fixed 60px today, but published rather than hardcoded so type or zoom changes carry.
 function trackHeaderHeight() {
   const header = elements.siteHeader;
   if (!header) return;

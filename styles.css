@@ -169,6 +169,29 @@
   --brand-primary-brew: #342E26FF;
   --brand-primary-chocolate: #4D2F06FF;
   --background-dark: #24201BFF;
+  /* Content placed ON a dark surface. The app's convention: the surface is "dark", what sits on it
+     is "inverse". The overlay is the same 8% lift the inverse ramp uses everywhere else, which is
+     what --background-overlay does on white. */
+  --content-primary-inverse: #FFFFFF;
+  --content-background-overlay-inverse: rgba(255, 255, 255, 0.08);
+  /* Every control in the header bar is this tall. Not one of the button scale's sizes: the bar
+     wants something between the 32px small and the 48px large, and it wants one number. */
+  --nav-control-h: 36px;
+  /* The results search pill at rest. On :root rather than on the bar because the mobile search
+     footer's height is these numbers, and the catalogs have to clear that footer. Only
+     :focus-within overrides them, so what is read from here is always the resting size. */
+  --pill-row: 36px;
+  --pill-pad: 5px;
+  --pill-btn: 30px;
+  --pill-max: 360px;
+  /* body-lg */
+  --pill-font: var(--font-size-base);
+  --pill-tracking: -0.0125em;
+  --pill-avatar: 22px;
+  --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Below 768px the pill is fixed to the bottom of the viewport: the resting pill on this gutter. */
+  --search-footer-gutter: 16px;
+  --search-footer-h: calc(var(--pill-row) + 2 * var(--pill-pad) + var(--search-footer-gutter));
   --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
@@ -359,6 +382,7 @@
   /* Z-Index Scale */
   --z-tiles: 5;
   --z-content: 10;
+  --z-view-header: 50;
   --z-dropdown: 100;
   --z-popover: 200;
   --z-popover-overlay: 9999;
@@ -385,7 +409,9 @@ body {
   /* Aktiv Grotesk's proportional lining figures (pnum + lnum), as in the main app */
   font-variant-numeric: proportional-nums lining-nums;
   color: var(--content-primary);
-  background-color: var(--content-background-base);
+  /* The ground the content sheet is laid on. Ported from the app's mobile builder: a dark field,
+     a transparent header drawn straight onto it, and the page itself a rounded card below. */
+  background-color: var(--background-dark);
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
@@ -400,9 +426,6 @@ button {
   font-variant-numeric: inherit;
 }
 
-body.showing-results {
-  background-color: var(--content-background-elevated);
-}
 .gap-2 {
   gap: 4px;
 }
@@ -490,21 +513,24 @@ img {
   position: fixed;
   top: 0;
   width: 100%;
-  padding: 20px 16px;
+  height: 60px;
+  padding: 0 20px;
   background: transparent;
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
 }
-
 
 .header-nav-logo {
   display: inline-block;
+  flex: 0 0 auto;
 }
 
+/* Unwrapped lockup for the dark bar: mark in #FFED84, wordmark in #fff. 180x40 viewBox, so 24px
+   tall is 108 wide. */
 .header-nav-logo img {
-  height: 48px;
+  height: 24px;
   width: auto;
 }
 
@@ -536,7 +562,8 @@ img {
 .picker-product-add svg,
 .picker-add-btn svg,
 .picker-column-action svg,
-.dialog-close svg {
+.dialog-close svg,
+.stop-button .stop-icon {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -549,14 +576,16 @@ img {
 .picker-column-action:hover svg,
 .picker-column-action:active svg,
 .dialog-close:hover svg,
-.dialog-close:active svg {
+.dialog-close:active svg,
+.stop-button:hover .stop-icon,
+.stop-button:active .stop-icon {
   transform: scale(1.1);
 }
 
-/* Elevated buttons lift on hover: a step darker and a step further off the surface. */
+/* Elevated buttons go a step darker on hover. The shadow holds: stepping it up as well read as
+   the button jumping, and the fill already carries the state. */
 .icon-button:hover {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .icon-button:active {
@@ -564,8 +593,9 @@ img {
   transform: matrix(0.96, 0, 0, 0.96, 0, 0);
 }
 
+/* 44px: 20px of glyph, 11 either side, plus the 1px border. Square, since the padding is even. */
 .icon-button--medium {
-  padding: 12px;
+  padding: 11px;
 }
 
 .icon-button--medium svg {
@@ -995,59 +1025,127 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   background: var(--content-background-elevated);
 }
 
-/* Start over button positioning */
-.header-nav-start-over {
-  margin-left: auto;
-}
-
 /* Results header: back button (left) + search (center) + start over (right) */
-.header-nav-results-container {
-  width: 100%;
-}
-
 .header-nav-search {
   flex: 1;
   min-width: 0;
   position: relative;
 }
 
-.header-nav-search-anchor {
-  margin: 0;
-  min-height: 64px;
-}
-
 /* --------------------------------------------------------------------------
-   Results Header - styled independently from landing
+   View Header - the contextual bar for the search views
    -------------------------------------------------------------------------- */
-.header-nav--results {
-  background: linear-gradient(to top, transparent, rgba(255, 255, 255, 0.75) 35%, rgb(255, 255, 255) 95%);
-  padding-left: 16px;
-  padding-right: 16px;
-  padding-top: 20px;
-  padding-bottom: 0px;
+/* Lives inside the sheet, not in the dark bar above it, so the global header stays one fixed thing
+   across the whole tool and each view brings its own context bar. The sheet is the scroll region,
+   so sticking to its top holds this in place while the results move under it. */
+.view-header {
   position: sticky;
   top: 0;
-}
-
-.header-nav--results .header-nav-logo {
-  display: none;
-}
-
-.header-nav--results .header-nav-results-container {
+  z-index: var(--z-view-header);
+  --bar-control-h: 44px;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 16px var(--page-gutter);
+  /* A scrim, not a flat fill: results dissolve into it as they scroll under rather than meeting a
+     hard edge. Same ramp the results header carried before it moved in here, read off the sheet's
+     own colour so the two cannot drift. */
+  background: linear-gradient(
+    to top,
+    transparent,
+    color-mix(in srgb, var(--content-background-elevated) 75%, transparent) 35%,
+    var(--content-background-elevated) 95%
+  );
+}
+
+/* The icon button reaches the bar's height through its own padding; a text button has to be told.
+   Neither of the .btn scale's sizes is 44. */
+.view-header .btn {
+  height: var(--bar-control-h);
+}
+
+/* Compact until it is being used. At rest the pill matches the back button beside it, so the bar
+   reads as a navigation row; focus opens it to full size and the bar grows with it. The resting
+   values are on :root; this is the only thing that changes them. */
+.view-header .header-nav-search:focus-within {
+  --pill-row: 48px;
+  --pill-pad: 8px;
+  --pill-btn: 40px;
+  --pill-max: 600px;
+  --pill-font: var(--font-size-lg);
+  /* 0 rather than normal: a keyword has nothing to interpolate towards. */
+  --pill-tracking: 0em;
+  --pill-avatar: 28px;
+}
+
+/* The anchor is a spacer holding the pill's place, so sizing it is what moves the bar's height. */
+.view-header .search-anchor {
+  min-height: calc(var(--pill-row) + 2 * var(--pill-pad));
+  max-width: var(--pill-max);
+  transition: min-height var(--pill-ease), max-width var(--pill-ease);
+}
+
+.view-header .omni-ai-box-container > .search-form {
+  padding: var(--pill-pad);
+  transition: padding var(--pill-ease);
+}
+
+.view-header .search-input-wrapper {
+  height: var(--pill-row);
+  transition: height var(--pill-ease);
+}
+
+.view-header .submit-button-wrapper {
+  width: var(--pill-row);
+  height: var(--pill-row);
+  padding: calc((var(--pill-row) - var(--pill-btn)) / 2);
+  transition: width var(--pill-ease), height var(--pill-ease), padding var(--pill-ease);
+}
+
+/* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
+.view-header .search-input,
+.view-header .search-display {
+  font-size: var(--pill-font);
+  line-height: 1.5;
+  letter-spacing: var(--pill-tracking);
+  transition: font-size var(--pill-ease), letter-spacing var(--pill-ease);
+}
+
+.view-header .search-display-avatar {
+  width: var(--pill-avatar);
+  height: var(--pill-avatar);
+  transition: width var(--pill-ease), height var(--pill-ease);
+}
+
+/* Holds the 16-in-28 proportion the ring has at full size. */
+.view-header .search-display-avatar img {
+  width: calc(var(--pill-avatar) * 4 / 7);
+  height: calc(var(--pill-avatar) * 4 / 7);
+  transition: width var(--pill-ease), height var(--pill-ease);
+}
+
+.view-header .search-button,
+.view-header .stop-button {
+  --stop-size: var(--pill-btn);
+  width: var(--pill-btn);
+  height: var(--pill-btn);
+  transition: width var(--pill-ease), height var(--pill-ease),
+    background var(--transition-fast), transform var(--transition-fast);
 }
 
 /* --------------------------------------------------------------------------
    App Container
    -------------------------------------------------------------------------- */
 .app-container {
+  /* The header is fixed and draws on the dark ground, so this is what holds the sheet clear of
+     it. Border-box, so the padding comes out of the 100vh rather than adding to it. */
+  height: 100vh;
+  padding-top: var(--header-h, 0px);
   /* No hold unless an exit animation asks for one: the tiles are gone the moment a section that
      is not the landing page comes up. whipOutTiles() publishes the real duration while it plays. */
   --tiles-exit: 0s;
   position: relative;
-  min-height: calc(100vh - var(--header-h, 0px));
   width: 100%;
   perspective: 1200px;
   perspective-origin: center center;
@@ -1057,7 +1155,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    Floating Brand Tiles
    -------------------------------------------------------------------------- */
 .floating-tiles {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: var(--z-tiles);
   overflow: hidden;
@@ -1232,12 +1330,19 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 .main-content {
   position: relative;
   z-index: var(--z-content);
-  /* The sticky header sits above this in flow, so a full 100vh here would always leave the
-     page 84px scrollable with nothing in it. */
-  min-height: calc(100vh - var(--header-h, 0px));
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  background: var(--content-background-base);
+  border-radius: 28px 28px 0 0;
+
+  /* The sheet is the scroll region, not a box inside it, so the rounded top holds its place under
+     the header rather than scrolling away with what it contains. */
+  overflow: hidden auto;
+}
+
+body.showing-results .main-content {
+  background: var(--content-background-elevated);
 }
 
 /* --------------------------------------------------------------------------
@@ -1249,10 +1354,11 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  position: absolute;
+  position: relative;
   width: 100%;
   z-index: 20;
-  height: calc(100svh - 1rem);
+  flex: 1;
+  min-height: 0;
 }
 
 .logo-container {
@@ -1621,10 +1727,6 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   transition: transform var(--transition-fast);
 }
 
-.stop-button:hover {
-  transform: scale(1.05);
-}
-
 /* The icon font's own spinner is replaced by the conic ring below */
 .stop-button .spinner-ring {
   display: none;
@@ -1661,14 +1763,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 }
 
 /* Header loading state - hide back and start over buttons with fade */
-.header-nav-back-wrapper,
-.header-nav-start-over {
+.header-nav-back-wrapper {
   opacity: 1;
   transition: opacity 0.3s ease;
 }
 
-.header-nav--loading .header-nav-back-wrapper,
-.header-nav--loading .header-nav-start-over {
+/* The account control is about where a bundle would go, not about the search, so it stays put
+   while one runs rather than fading with the back button. */
+.view-header--loading .header-nav-back-wrapper {
   opacity: 0;
   pointer-events: none;
 }
@@ -1679,16 +1781,16 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 }
 
 /* During loading, show stop button and hide search button */
-.header-nav--loading .search-button:not(.search-button--stop) {
+.view-header--loading .search-button:not(.search-button--stop) {
   display: none;
 }
 
-.header-nav--loading .search-button--stop {
+.view-header--loading .search-button--stop {
   display: flex;
 }
 
 /* Make search input read-only appearance during loading */
-.header-nav--loading .search-input {
+.view-header--loading .search-input {
   pointer-events: none;
 }
 
@@ -2042,7 +2144,7 @@ position: absolute;
    Results Section
    -------------------------------------------------------------------------- */
 .results-section {
-  padding: 72px var(--page-gutter);
+  padding: 24px var(--page-gutter) 72px;
   /* Same as the picker's: the cap carries the gutter, so the content box is still 1154px wide on
      a large screen and the narrower ones get their sides back. */
   max-width: calc(1154px + 2 * var(--page-gutter));
@@ -2579,7 +2681,7 @@ position: absolute;
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--brand-secondary-mint);
+  background: currentColor;
 }
 
 /* Card Menu Button - matches history-item-remove-btn (clear button on recent search) */
@@ -2879,17 +2981,6 @@ position: absolute;
     padding: 10px 8px;
   }
 
-  .header-nav-logo img {
-    height: 44px;
-    width: auto;
-  }
-
-  /* Wider gutters than the bar is tall: the controls sit closer to the screen's sides than to
-     its top. Beats .header-nav--results' own longhand padding on source order. */
-  .header-nav {
-    padding: 16px 20px;
-  }
-
   .typing-placeholder {
   font-size: var(--font-size-base);
 }
@@ -2948,8 +3039,15 @@ position: absolute;
     padding-bottom: var(--spacing-lg);
   }
 
-  /* Mobile results: search box in sticky footer at bottom of viewport */
-  .header-nav--results .header-nav-search {
+  .view-header {
+    padding-inline: 16px;
+  }
+
+  /* Mobile results: search box in sticky footer at bottom of viewport. It keeps the collapsed
+     size it has in the desktop bar, and opens the same way on focus. Narrower than the desktop
+     360 so the collapsed pill reads as a control sitting over the results, not a second footer. */
+  .view-header .header-nav-search {
+    --pill-max: 300px;
     position: fixed;
     display: flex;
     flex-direction: column;
@@ -2959,7 +3057,7 @@ position: absolute;
     right: 0;
     z-index: 100;
     background: linear-gradient(to top, rgb(255, 255, 255) 5%, rgba(255, 255, 255, 0.75) 65%, transparent);
-    padding-bottom: 16px;
+    padding-bottom: var(--search-footer-gutter);
     padding-left: 24px;
     padding-right: 24px;
   }
@@ -4292,7 +4390,10 @@ position: absolute;
   /* The cap carries the gutter on top of the body max, so the content box is still
      --picker-body-max wide on a large screen and only narrower viewports pay for it. */
   --picker-gutter: var(--page-gutter);
-  height: calc(100vh - var(--header-h, 0px));
+  /* Whatever the sheet has left under the context bar. height: 100% was the whole sheet, which
+     was the bar's height too much once the bar moved in here as a sibling. */
+  flex: 1;
+  min-height: 0;
   padding: 24px var(--picker-gutter) 0;
   max-width: calc(var(--picker-body-max) + 2 * var(--picker-gutter));
   margin: 0 auto;
@@ -4655,13 +4756,6 @@ position: absolute;
   --stop-surface: transparent;
   box-shadow: none;
 }
-
-.picker-concepts-actions .stop-button:hover {
-  --stop-surface: var(--content-background-overlay);
-  transform: none;
-}
-
-
 
 /* Copy crossfades when the brand set changes, so the card updates rather than redrawing */
 .picker-concepts-copy {
@@ -5109,7 +5203,6 @@ position: absolute;
 
 .picker-rail-btn:hover {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .picker-rail-btn:active {
@@ -5167,20 +5260,17 @@ position: absolute;
   flex: 0 0 clamp(var(--picker-column-min), var(--col-w), var(--picker-column-max));
 }
 
-/* 16px of hit area centred on the 10px gutter: -3px puts the strip's middle on the gutter's */
+/* 16px of hit area centred on the 10px gutter. left: 100% resolves against the column's PADDING
+   box, so it lands 1px inside the border box and the strip has to be given that back: -3 centres
+   16 on 10, +1 for the border. Without it the handle sat a pixel into the left-hand column. */
 .picker-column-resizer-zone {
   position: absolute;
   left: 100%;
-  margin-left: -3px;
+  margin-left: -2px;
   top: 24px;
   bottom: 24px;
   width: 16px;
   z-index: 3;
-}
-
-/* No later column to resize against. :last-of-type would match the add column, which is a div too. */
-.picker-column:not(:has(~ .picker-column)) .picker-column-resizer-zone {
-  display: none;
 }
 
 .picker-column-resizer {
@@ -5441,7 +5531,6 @@ position: absolute;
 
 .picker-product:hover .picker-product-add {
   background: var(--content-background-base);
-  box-shadow: var(--shadow-md);
 }
 
 .picker-product.is-selected .picker-product-add,
@@ -5752,13 +5841,6 @@ position: absolute;
   padding: 0 20px 24px;
 }
 
-.dialog-lead {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-  color: var(--content-secondary);
-}
-
 .dialog-actions {
   display: grid;
   grid-auto-flow: column;
@@ -5778,14 +5860,14 @@ position: absolute;
 
 .floating-input-field {
   width: 100%;
-  padding: 22px 14px 8px;
+  padding: 22px 20px 8px;
   font-family: var(--font-family);
   font-size: 16px;
   line-height: 1.5;
   background: var(--content-background-elevated);
   border: none;
   box-shadow: 0 0 0 1px inset rgba(52, 46, 38, 0.12);
-  border-radius: 12px;
+  border-radius: var(--rounded-full);
   color: var(--content-primary);
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -5812,7 +5894,7 @@ position: absolute;
 
 .floating-label {
   position: absolute;
-  left: 14px;
+  left: 20px;
   top: 50%;
   transform: translateY(-50%) scale(1);
   transform-origin: left center;
@@ -5863,14 +5945,14 @@ position: absolute;
 
 .ai-input__glow--1 {
   inset: 0;
-  border-radius: 12px;
+  border-radius: var(--rounded-full);
   filter: blur(4px);
   opacity: 0.32;
 }
 
 .ai-input__glow--2 {
   inset: -4px;
-  border-radius: 16px;
+  border-radius: var(--rounded-full);
   filter: blur(11px);
   opacity: 0.16;
 }
@@ -6004,6 +6086,199 @@ position: absolute;
   text-overflow: ellipsis;
 }
 
+/* The account control is all the dark bar holds besides the logo, but the height is the bar's
+   rather than the control's: anything else that lands up there takes the same number. */
+.header-nav .offerlab-account {
+  height: var(--nav-control-h);
+}
+
+/* The badge is an avatar in a pill, so it wants a little air rather than filling the height. */
+.header-nav .offerlab-account-badge {
+  flex-basis: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+/* The OfferLab connection: which team the tool would hand a bundle to, and the way in when it has
+   nowhere to hand one. Laid out by whichever view hosts it rather than pinned over the header,
+   which put it on top of whatever already held that corner. On the results view it takes the slot
+   the restart button had. Positioned only so its menu has something to anchor to. */
+/* Optical alignment: the button is a ghost, so its own 10px of padding reads as gutter. Pulling
+   the wrap out by that much lands the label on the same 20px edge the logo sits on. Carried by the
+   wrap rather than the header's padding so the gutter stays 20px where the button is hidden. */
+.offerlab-account-wrap {
+  position: relative;
+  margin-left: auto;
+  margin-right: -10px;
+}
+
+/* A ghost on the dark bar in both states. The elevated pill it used to be signed in was a light
+   surface floating on the dark ground, which read as a card rather than a control. */
+.offerlab-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-primary-inverse);
+  font-family: var(--font-family);
+  /* label-md */
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  font-weight: 600;
+  max-width: 240px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.offerlab-account:hover {
+  background: var(--content-background-overlay-inverse);
+}
+
+.offerlab-account-team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The team's monogram until list_teams carries an avatar (OL-3997), at which point this becomes
+   the image and keeps the same footprint. */
+.offerlab-account-badge {
+  flex: 0 0 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--moola-vivid);
+  color: var(--content-background-elevated);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+/* Signed out there is no avatar to hold, so the badge stops being a 30px circle and shrinks to
+   the passkey mark itself. Sized as a circle it left the icon floating in its own padding, and
+   the gap to the label read as two gaps. */
+.offerlab-account.is-disconnected .offerlab-account-badge {
+  flex: none;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+}
+
+/* No avatar to hold on the left, so the padding evens up and the icon sits closer to its label. */
+.offerlab-account.is-disconnected {
+  gap: 6px;
+  padding-inline: 10px;
+}
+
+.offerlab-account.is-limited .offerlab-account-badge {
+  background: var(--content-sentiment-negative);
+}
+
+/* chevron-bottom's path is inset 4 of its 24 viewBox on each side, so at 12px the glyph starts
+   2px into its own box and the 8px flex gap reads wider here than it does beside the avatar,
+   whose circle goes edge to edge. Pulled back by that inset so both gaps look the same. */
+.offerlab-account-caret {
+  display: inline-flex;
+  margin-left: -2px;
+  opacity: 0.6;
+}
+
+.offerlab-account-caret:empty {
+  display: none;
+}
+
+/* The wrap is pulled 10px right so the ghost button's padding reads as gutter. The menu is a
+   solid surface, so it aligns to the real 20px edge instead and gives that pull back. */
+.offerlab-account-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 10px;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: var(--rounded-3xl);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-popover);
+  animation: popoverFadeIn 0.2s ease;
+}
+
+.offerlab-account-menu-meta {
+  padding: 8px 12px;
+  color: var(--content-sentiment-negative);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.offerlab-account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  /* 11 either side of body-lg's 24px line box is the 46 exactly, so nothing compresses. */
+  height: 46px;
+  padding: 11px;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  /* body-lg: 16/400, -0.0125em */
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  letter-spacing: -0.0125em;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.offerlab-account-menu-item:hover {
+  background: var(--content-background-base);
+}
+
+/* The header is already tight on a phone, and the tray says whether it is connected anyway. */
+@media (max-width: 900px) {
+  .offerlab-account-wrap {
+    display: none;
+  }
+}
+
+/* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
+   in the actions, because it qualifies what the brand is, not what the button does.
+
+   The app's badge, overlay variant (themes/atelier/_badge): 12/600, leading-tight, 8 by 4 in a
+   full radius. Without the status dot that partial renders by default. */
+.card-not-set-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 6px;
+  padding: 4px 8px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-overlay);
+  color: var(--content-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* The header is tight on a phone, and the tray already says whether it is connected. */
+@media (max-width: 900px) {
+  .offerlab-account-wrap {
+    display: none;
+  }
+}
+
 /* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
    be read against what it is pointing at. */
 .pitch-bundles-card {
@@ -6110,6 +6385,7 @@ position: absolute;
      into one viewport, so the section sizes to its content and each catalog takes a screenful of
      its own. Scrolling past the banner lands you on a full-height column. */
   .picker-section {
+    flex: none;
     height: auto;
   }
 
@@ -6119,15 +6395,24 @@ position: absolute;
     min-height: 0;
   }
 
+  /* overflow-x: auto forces the other axis to clip too, so a shadow can only show where there is
+     padding to show it in. shadow-md is 0 4px 24px: 16px below the card, 8px above, and more than
+     that diagonally off a 32px corner, which is where the cut was reading as a hard line. */
   .picker-columns {
-    padding-top: 8px;
-    padding-bottom: 10px;
+    /* One gap under a panel, doing two jobs: shadow-md wants 16px below the card, and 16px is also
+       the clearance the search footer should keep. The footer floats over the rail, so its height
+       is in the padding too or the last row of products can never be scrolled out from under it. */
+    --picker-bottom-gap: 16px;
+    padding-top: 20px;
+    padding-bottom: calc(var(--search-footer-h) + var(--picker-bottom-gap));
   }
 
-  /* A screenful less the bar above it and the gap below, so the panel's own bottom edge is on
-     screen rather than running off it. */
+  /* A screenful less the two bars that float over it, so a panel's own bottom edge lands above the
+     footer rather than behind it. Same terms as the padding, so the two cannot drift. */
   .picker-column {
-    height: calc(100vh - var(--header-h, 0px) - 10px);
+    height: calc(
+      100vh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
+    );
   }
 
   /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
@@ -6249,6 +6534,14 @@ position: absolute;
 
   /* Below the cards, the full span of the card. Row 2 while there are none yet, so the empty
      row does not spend a second gap on nothing. */
+  /* Out of the pill, so it drops the tightening that the pill's row wanted and takes .btn--md's
+     own padding and gap. The width is not md's: it spans the card, which is what a call to action
+     under a set of cards should do at this size. */
+  .picker-concepts-head .btn {
+    padding-inline: 14px;
+    gap: 8px;
+  }
+
   .picker-concepts-actions > .btn {
     grid-area: 2 / 1 / auto / -1;
   }
@@ -6286,7 +6579,6 @@ position: absolute;
 
   .picker-concepts-actions .btn--ghost:hover {
     background: var(--content-background-base);
-    box-shadow: var(--shadow-md);
   }
 
   /* Same reasoning for the stop control: it gave up its disc to sit inside the pill. */

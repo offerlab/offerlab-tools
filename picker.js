@@ -64,8 +64,16 @@ export function initPicker() {
   // Before anything reads the query string: a sign-in redirect left its own parameters there and
   // this puts the finder's back. Not awaited — the token exchange only has to beat the next click.
   offerlab.completeRedirect()
-    .then(connected => { if (connected) renderTray(); })
-    .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); });
+    .catch(err => { console.warn('[OfferLab] sign-in did not complete:', err); })
+    .finally(refreshAccount);
+  dom.accountWrap = document.getElementById('offerlabAccountWrap');
+  dom.account = document.getElementById('offerlabAccount');
+  dom.accountTeam = document.getElementById('offerlabAccountTeam');
+  dom.accountBadge = document.getElementById('offerlabAccountBadge');
+  dom.accountCaret = document.getElementById('offerlabAccountCaret');
+  dom.accountMenu = document.getElementById('offerlabAccountMenu');
+  dom.accountMeta = document.getElementById('offerlabAccountMeta');
+  initAccountControl();
   dom.concepts = document.getElementById('pickerConcepts');
   dom.conceptsShell = document.getElementById('pickerConceptsShell');
   dom.rail = document.getElementById('pickerRail');
@@ -539,6 +547,106 @@ function applyConcept(index) {
    Handing a bundle to OfferLab
    --------------------------------------------------------------------------- */
 
+/**
+ * Which OfferLab this is talking to, and whether the account may create anything. Shown because
+ * an operator about to publish a brand's bundle should be able to see, without clicking, which
+ * team it is going into.
+ */
+// Signed out the chip signs in; signed in it opens its menu. One control, two jobs, because the
+// header has room for one thing and both are about the same connection.
+function initAccountControl() {
+  if (!dom.account) return;
+
+  dom.account.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!offerlab.isConnected()) { connectOfferLab(); return; }
+    toggleAccountMenu();
+  });
+
+  dom.accountMenu?.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-action]');
+    if (!item) return;
+    closeAccountMenu();
+    if (item.dataset.action === 'offerlab-signout') {
+      offerlab.disconnect();
+      refreshAccount();
+    } else if (item.dataset.action === 'offerlab-switch') {
+      switchAccount();
+    }
+  });
+
+  document.addEventListener('click', closeAccountMenu);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAccountMenu(); });
+}
+
+function toggleAccountMenu() {
+  const open = dom.accountMenu.classList.toggle('hidden');
+  dom.account.setAttribute('aria-expanded', String(!open));
+}
+
+function closeAccountMenu() {
+  dom.accountMenu?.classList.add('hidden');
+  dom.account?.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * Re-running OAuth would hand back the same account: the authorize step reuses the session on
+ * OfferLab's side and the server has no prompt handling to override that. So signing out there is
+ * a separate step, in its own tab, and the operator comes back and signs in again.
+ */
+async function switchAccount() {
+  offerlab.disconnect();
+  refreshAccount();
+  window.open(`${await offerlab.host()}/users/sign_out`, '_blank', 'noopener');
+  setDraft('pending', 'Sign out of OfferLab in the new tab, then sign in again here');
+}
+
+async function refreshAccount() {
+  const wrap = dom.accountWrap;
+  if (!wrap) return;
+  closeAccountMenu();
+
+  if (!offerlab.isEnabled()) {
+    wrap.classList.add('hidden');
+    renderTray();
+    return;
+  }
+
+  wrap.classList.remove('hidden');
+
+  // Signed out, this is the way in. Connecting used to be reachable only from the tray, which
+  // means only after searching, opening a picker and selecting something.
+  if (!offerlab.isConnected()) {
+    dom.account.classList.add('is-disconnected');
+    dom.account.classList.remove('is-limited');
+    dom.accountBadge.innerHTML = icon('passkeys', { size: 18 });
+    dom.accountCaret.innerHTML = '';
+    dom.accountTeam.textContent = 'Sign in';
+    dom.account.title = 'Sign in to OfferLab to create bundles from here';
+    dom.account.setAttribute('aria-label', 'Sign in to OfferLab');
+    renderTray();
+    return;
+  }
+
+  dom.account.classList.remove('is-disconnected');
+  dom.accountCaret.innerHTML = icon('chevron-bottom', { size: 12 });
+  dom.account.setAttribute('aria-label', 'OfferLab account');
+  dom.account.title = '';
+  try {
+    const { account } = await offerlab.loadAccount();
+    const team = account?.team || 'OfferLab';
+    dom.accountTeam.textContent = team;
+    // Standing in for the team's avatar, which list_teams does not return yet (OL-3997).
+    dom.accountBadge.textContent = team.trim().charAt(0).toUpperCase();
+    dom.account.classList.toggle('is-limited', account?.developer === false);
+    dom.accountMeta.hidden = account?.developer !== false;
+    dom.accountMeta.textContent = 'No developer access, so bundles cannot be created';
+  } catch (err) {
+    console.warn('[OfferLab] could not read the account:', err.message);
+  }
+  renderTray();
+}
+
 // The brands in the order they were first picked, which is what the draft is named after.
 function draftName() {
   const seen = [];
@@ -551,6 +659,15 @@ function draftName() {
 function setDraft(status, message, url = null) {
   state.draft = { status, message, url };
   renderTray();
+}
+
+async function connectOfferLab() {
+  try {
+    await offerlab.connect();
+  } catch (err) {
+    console.warn('[OfferLab] could not start sign-in:', err);
+    setDraft('error', err.message || 'Could not reach OfferLab');
+  }
 }
 
 /**
@@ -1232,6 +1349,9 @@ function trayPrimary() {
   if (offerlab.isEnabled() && !offerlab.isConnected()) {
     return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>`;
   }
+  // Connected, but without developer access there is nothing behind this button. Null means the
+  // role has not come back yet, which is not the same as no.
+  if (offerlab.isEnabled() && offerlab.canCreateDrafts() === false) return '';
   return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">${status === 'error' ? 'Try again' : 'Create bundle'}</button>`;
 }
 
@@ -1416,7 +1536,7 @@ function onSectionClick(e) {
       renderTray();
       break;
     case 'apply-concept': applyConcept(Number(target.dataset.index)); break;
-    // Creating the draft in staging arrives with OL-3986; until then it loads the concept.
+    // Creating the draft on ShopTalk arrives with OL-3986; until then it loads the concept.
     case 'create-concept': {
       const index = Number(target.dataset.index);
       applyConcept(index);

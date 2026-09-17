@@ -78,6 +78,58 @@ export function token() {
   return read(sessionStorage, KEY.token)?.access_token || null;
 }
 
+// Refresh this long before expiry, so a call that starts just under the wire does not land just
+// over it.
+const TOKEN_REFRESH_MARGIN_MS = 60000;
+let refreshing = null;
+
+/**
+ * The access token, renewed if it is about to lapse.
+ *
+ * A booth conversation can outlive a grant, and reconnecting in front of a brand is the kind of
+ * thing that ends a demo. Concurrent callers share one in-flight refresh: the pipeline makes
+ * several calls in a row, and each spending the same refresh token would invalidate the others.
+ */
+async function freshToken() {
+  const grant = read(sessionStorage, KEY.token);
+  if (!grant?.access_token) return null;
+  if (!grant.refresh_token || !grant.expiresAt) return grant.access_token;
+  if (Date.now() < grant.expiresAt - TOKEN_REFRESH_MARGIN_MS) return grant.access_token;
+
+  refreshing = refreshing || refresh(grant.refresh_token).finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+async function refresh(refreshToken) {
+  try {
+    const granted = await api('token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: read(localStorage, KEY.client)?.client_id
+      })
+    });
+    if (!granted.access_token) throw new OfferLabError('OfferLab refused the refresh');
+    storeGrant(granted);
+    return granted.access_token;
+  } catch (err) {
+    // A refused refresh is a dead session, not a retryable failure.
+    console.warn('[OfferLab] refresh failed, disconnecting:', err.message);
+    disconnect();
+    return null;
+  }
+}
+
+// expires_in is seconds from now, which is only meaningful at the moment it arrives.
+function storeGrant(granted) {
+  write(sessionStorage, KEY.token, {
+    ...granted,
+    expiresAt: granted.expires_in ? Date.now() + granted.expires_in * 1000 : null
+  });
+}
+
 export function isConnected() {
   return Boolean(token());
 }
@@ -262,7 +314,7 @@ async function exchange(code, verifier) {
   });
   if (!granted.access_token) throw new OfferLabError(granted.error_description || 'OfferLab did not return a token');
 
-  write(sessionStorage, KEY.token, granted);
+  storeGrant(granted);
   return true;
 }
 
@@ -273,7 +325,7 @@ async function exchange(code, verifier) {
 let requestId = 0;
 
 async function rpc(method, params) {
-  const bearer = token();
+  const bearer = await freshToken();
   if (!bearer) throw new OfferLabError('Not connected to OfferLab', 401);
 
   const response = await fetch('/api/offerlab/mcp', {
@@ -318,15 +370,38 @@ export async function callTool(name, args = {}) {
   return unwrap(await rpc('tools/call', { name, arguments: args }));
 }
 
-/** What the connected account may do. Admin tools present means a developer. */
-export async function loadCapabilities() {
-  const result = await rpc('tools/list', {});
-  state.tools = (result?.tools || []).map(tool => tool.name);
-  return state.tools;
+/**
+ * Who this token is, and what it may do. Both come from one round trip each and are cached for
+ * the session, because neither changes while a token lives.
+ *
+ * There is no tool that names the user: /api/mcp resolves one from the bearer but exposes nothing
+ * about them. list_teams does return the team the token is scoped to, which is the thing an
+ * operator actually needs to see before creating a draft in it.
+ */
+export async function loadAccount() {
+  if (state.tools) return state;
+
+  const tools = await rpc('tools/list', {});
+  state.tools = (tools?.tools || []).map(tool => tool.name);
+
+  try {
+    const teams = await callTool('list_teams', { per_page: 1 });
+    state.account = { team: teams?.active_team?.name || null, developer: isDeveloper(state.tools) };
+  } catch (err) {
+    // The role is the half that gates the UI, and tools/list already answered it.
+    console.warn('[OfferLab] could not read the active team:', err.message);
+    state.account = { team: null, developer: isDeveloper(state.tools) };
+  }
+  return state;
 }
 
+/**
+ * Creating a draft is developer-only, and the admin tools are only listed for a developer.
+ * Unknown until loadAccount has run, which is why this answers null rather than false: a caller
+ * showing UI on it must not treat "not asked yet" as "not allowed".
+ */
 export function canCreateDrafts() {
-  return isDeveloper(state.tools);
+  return state.tools === null ? null : isDeveloper(state.tools);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -335,10 +410,19 @@ export function canCreateDrafts() {
 
 const brandCache = new Map();
 
+let hostPromise = null;
+
+/** The OfferLab this build talks to. Configured server-side, so it is asked for once and kept. */
+export function host() {
+  hostPromise = hostPromise || api('config').then(config => config.host);
+  return hostPromise;
+}
+
 /** The demo environment's own record of a brand: its team, and whether it can be bundled from. */
-export async function demoBrand(domain, host, { fresh = false } = {}) {
+export async function demoBrand(domain, hostUrl, { fresh = false } = {}) {
   if (!fresh && brandCache.has(domain)) return brandCache.get(domain);
-  const response = await fetch(`${host}/demo/brands/${encodeURIComponent(domain)}`);
+  const base = hostUrl || await host();
+  const response = await fetch(`${base}/demo/brands/${encodeURIComponent(domain)}`);
   const data = await response.json().catch(() => null);
   const brand = response.ok ? data?.brand : null;
   brandCache.set(domain, brand);
