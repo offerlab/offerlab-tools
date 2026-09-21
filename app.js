@@ -7,6 +7,7 @@ import { jsonrepair } from 'https://esm.sh/jsonrepair';
 import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
 import { icon, hydrateIcons } from './icons.js';
 import * as offerlab from './offerlab.js';
+import { initLibrary, showLibrary, hideLibrary, libraryFilterParams } from './library.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
 const CONFIG = {
@@ -46,6 +47,8 @@ const elements = {
   siteHeader: document.getElementById('siteHeader'),
   siteHeaderLogo: document.getElementById('siteHeaderLogo'),
   viewHeader: document.getElementById('viewHeader'),
+  librarySection: document.getElementById('librarySection'),
+  modeSwitch: document.getElementById('modeSwitch'),
   headerBackBtn: document.getElementById('headerBackBtn'),
   stopSearchButton: document.getElementById('stopSearchButton'),
   resultsSearchButton: document.getElementById('resultsSearchButton'),
@@ -439,8 +442,19 @@ function showSection(sectionName) {
     elements.viewHeader.classList.remove('view-header--loading');
   }
 
+  // The two modes are exclusive: any finder view puts the library away, and the library view
+  // leaves every finder section hidden above. The switch reflects whichever is showing.
+  if (sectionName !== 'library') hideLibrary();
+  setMode(sectionName === 'library' ? 'library' : 'finder');
+
   // Show requested section
   switch (sectionName) {
+    case 'library':
+      document.querySelector('.app-container').classList.add('showing-results');
+      document.body.classList.add('showing-results');
+      resetTileTilt();
+      showLibrary();
+      break;
     case 'landing':
       elements.landingSection.classList.remove('hidden');
       document.querySelector('.app-container').classList.remove('showing-results');
@@ -487,6 +501,64 @@ function showSection(sectionName) {
       if (elements.viewHeader) elements.viewHeader.classList.remove('hidden');
       break;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Mode switch: Finder | Library
+   -------------------------------------------------------------------------- */
+const MODE_PARAM = 'view';
+
+function setMode(mode) {
+  elements.modeSwitch?.querySelectorAll('.mode-switch-btn').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+  });
+}
+
+function modeFromUrl() {
+  return new URLSearchParams(window.location.search).get(MODE_PARAM) === 'library' ? 'library' : 'finder';
+}
+
+/**
+ * Switching modes is a navigation, so it pushes. Leaving the library drops its filters from the
+ * URL; leaving the finder keeps ?q= so the search is still there on the way back.
+ */
+function switchMode(mode) {
+  if (mode === modeFromUrl()) return;
+  const url = new URL(window.location.href);
+  if (mode === 'library') {
+    url.searchParams.set(MODE_PARAM, 'library');
+  } else {
+    url.searchParams.delete(MODE_PARAM);
+    Object.values(libraryFilterParams()).forEach(param => url.searchParams.delete(param));
+  }
+  history.pushState({ mode }, '', url.toString());
+  routeFromUrl();
+}
+
+/**
+ * What the URL says to show. Used by the switch; back/forward goes through the finder's own
+ * popstate handler in init(), which asks modeFromUrl() first so the two never both act.
+ */
+function routeFromUrl() {
+  if (modeFromUrl() === 'library') {
+    showSection('library');
+    return;
+  }
+  const domain = getSearchFromUrl();
+  if (!domain || !isValidUrl(domain)) {
+    showSection('landing');
+  } else if (currentResults?.brands) {
+    showSection('results');
+  } else {
+    performSearch(domain, { fromUrlRestore: true });
+  }
+}
+
+function initModeSwitch() {
+  elements.modeSwitch?.addEventListener('click', event => {
+    const button = event.target.closest('.mode-switch-btn');
+    if (button) switchMode(button.dataset.mode);
+  });
 }
 
 /* --------------------------------------------------------------------------
@@ -3552,14 +3624,24 @@ function init() {
   renderSearchHistory();
   console.log('[init] Render complete');
 
-  // Restore search results from URL (refresh, direct link, or browser back/forward)
+  initLibrary();
+  initModeSwitch();
+
+  // Restore from URL (refresh, direct link, or browser back/forward). The library mode wins
+  // over a search, so ?view=library&q=... opens the library with the search kept for the way back.
   const initialSearch = getSearchFromUrl();
-  if (initialSearch && isValidUrl(initialSearch)) {
+  if (modeFromUrl() === 'library') {
+    showSection('library');
+  } else if (initialSearch && isValidUrl(initialSearch)) {
     performSearch(initialSearch, { fromUrlRestore: true });
   }
 
   // Sync UI when user uses browser back/forward
   window.addEventListener('popstate', () => {
+    if (modeFromUrl() === 'library') {
+      showSection('library');
+      return;
+    }
     const q = getSearchFromUrl();
     const pitchParam = getPitchFromUrl();
     syncPickerWithUrl();

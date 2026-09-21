@@ -6644,3 +6644,585 @@ position: absolute;
     display: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Mode switch: Finder | Library, centred in the dark bar
+   -------------------------------------------------------------------------- */
+/* Absolutely centred rather than a third flex item, so it holds the middle whether or not the
+   account control is showing on the right. */
+.mode-switch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-overlay-inverse);
+}
+
+.mode-switch-btn {
+  height: calc(var(--nav-control-h) - 6px);
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-primary-inverse);
+  font-family: var(--font-family);
+  /* label-md */
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  font-weight: 600;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+}
+
+.mode-switch-btn:hover {
+  opacity: 1;
+}
+
+.mode-switch-btn[aria-pressed="true"] {
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  opacity: 1;
+}
+
+/* Below 900px the account control is hidden, so the right side of the bar is free; the switch
+   docks there rather than collide with the lockup in the middle of a phone. */
+@media (max-width: 900px) {
+  .mode-switch {
+    left: auto;
+    right: 16px;
+    transform: translateY(-50%);
+  }
+
+  .mode-switch-btn {
+    padding: 0 12px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Collabs library
+   -------------------------------------------------------------------------- */
+/* Fills the sheet. The viewport is the crop; the board inside it is the whole picture and moves
+   under it. Nothing here scrolls in the ordinary sense on desktop, which is why the section clips. */
+.library-section {
+  --shelf-tile: 220px;
+  --shelf-gap: 28px;
+  --shelf-pad: 96px;
+  --shelf-plank: 14px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.9), transparent 60%),
+    var(--content-background-base);
+}
+
+.library-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.library-viewport:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--content-primary);
+}
+
+.library-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.library-viewport.is-dragging .library-tile {
+  pointer-events: none;
+}
+
+/* Positioned from the top-left and moved with a transform; layout() measures it and clamps. */
+.library-board {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  padding: var(--shelf-pad);
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  will-change: transform;
+}
+
+/* One shelf: the row of covers standing on a plank. Perspective on the shelf, not the board, so
+   the vanishing point stays with each row as the board pans. */
+.library-shelf {
+  position: relative;
+  perspective: 1400px;
+  perspective-origin: 50% 0%;
+}
+
+.library-shelf-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--shelf-gap);
+  padding: 0 24px calc(var(--shelf-plank) - 2px);
+  min-height: var(--shelf-tile);
+}
+
+.library-shelf-plank {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--shelf-plank);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff, #ececea);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.06),
+    0 14px 28px -10px rgba(0, 0, 0, 0.22),
+    0 40px 60px -30px rgba(0, 0, 0, 0.18);
+}
+
+/* Each cover stands on the plank, tilted back a touch, throwing a soft shadow down onto it. */
+.library-tile {
+  position: relative;
+  width: var(--shelf-tile);
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: var(--content-background-elevated);
+  border-radius: 4px;
+  cursor: pointer;
+  transform: rotateX(4deg);
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 18px 30px -12px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+  outline: none;
+}
+
+.library-tile:hover,
+.library-tile:focus-visible {
+  transform: rotateX(0deg) translateY(-10px) scale(1.03);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 32px 44px -14px rgba(0, 0, 0, 0.38);
+  z-index: 2;
+}
+
+.library-tile:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--content-background-elevated),
+    0 0 0 5px var(--content-primary),
+    0 32px 44px -14px rgba(0, 0, 0, 0.38);
+}
+
+.library-tile-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--content-background-base);
+}
+
+.library-tile-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The name rides along the bottom of the cover on hover; a cover that failed to load shows it
+   always, on a plain surface, rather than a broken image. */
+.library-tile-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 28px 12px 10px;
+  color: var(--content-primary-inverse);
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.62));
+  border-radius: 0 0 4px 4px;
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.library-tile:hover .library-tile-name,
+.library-tile:focus-visible .library-tile-name,
+.library-tile.is-bare .library-tile-name {
+  opacity: 1;
+}
+
+.library-tile.is-bare .library-tile-cover img {
+  display: none;
+}
+
+.library-tile.is-bare .library-tile-name {
+  top: 0;
+  padding-top: 12px;
+  color: var(--content-primary);
+  background: none;
+}
+
+/* Empty result, centred in the viewport where the board would be. */
+.library-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 24px;
+}
+
+.library-empty-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--content-primary);
+}
+
+.library-empty-copy {
+  margin: 0 0 12px;
+  color: var(--content-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* The omnibox, anchored to the bottom of the viewport. The pill is the finder's own; only the
+   anchoring and the count belong to the library. */
+.library-omni {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-dropdown);
+  padding: 0 var(--page-gutter) 20px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.9) 10%, rgba(255, 255, 255, 0.5) 60%, transparent);
+}
+
+.library-omni .omni-ai-box-container--library {
+  position: relative;
+  left: auto;
+  transform: none;
+  margin: 0 auto;
+  max-width: 640px;
+  pointer-events: auto;
+}
+
+.library-omni .search-input {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  letter-spacing: -0.0125em;
+  text-align: left;
+  padding-right: 148px;
+}
+
+.library-count {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--content-tertiary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The filter trigger is the pill's own submit disc, wearing a chevron and neutral colours. */
+.library-filter-btn {
+  background: var(--content-background-base);
+  color: var(--content-primary);
+  box-shadow: 0 0 0 1px var(--content-border-neutral) inset;
+}
+
+.library-filter-btn:hover {
+  background: var(--content-background-overlay);
+}
+
+.library-filter-btn.is-active {
+  background: var(--content-primary);
+  color: var(--content-primary-inverse);
+  box-shadow: none;
+}
+
+.library-filter-btn[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* The structured filters, a popover rising off the pill. Same surface as the brand card popover. */
+.library-filters {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: var(--z-popover);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 14px;
+  border-radius: var(--rounded-3xl);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-md);
+  animation: popoverFadeIn 0.2s ease;
+}
+
+.library-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.library-filter-field > span {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--content-tertiary);
+}
+
+.library-filter-field select {
+  height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--content-border-neutral);
+  border-radius: var(--rounded-lg);
+  background: var(--content-background-base) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23342e26' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m20 9-8 8-8-8'/></svg>") no-repeat right 10px center;
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.library-filter-field select:focus-visible {
+  outline: none;
+  border-color: var(--content-primary);
+}
+
+/* The lightbox: the board blurs away and the cover comes forward, then one action opens the
+   live page. Mirrors the Editions zoom without a scene behind it. */
+.library-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(36, 32, 27, 0.45);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.library-lightbox.is-open {
+  opacity: 1;
+}
+
+.library-lightbox-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(280px, 460px) minmax(280px, 380px);
+  width: min(100%, 860px);
+  max-height: calc(100vh - 48px);
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.94) translateY(12px);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.library-lightbox.is-open .library-lightbox-card {
+  transform: none;
+}
+
+.library-lightbox-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.library-lightbox-cover {
+  background: var(--content-background-base);
+  min-height: 320px;
+}
+
+.library-lightbox-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-lightbox-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px 28px 28px;
+  overflow: auto;
+}
+
+.library-lightbox-eyebrow {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--content-tertiary);
+}
+
+.library-lightbox-title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--content-primary);
+  overflow-wrap: anywhere;
+}
+
+.library-lightbox-brands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-lightbox-brands li {
+  padding: 4px 10px;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.library-lightbox-products {
+  margin: 0;
+  color: var(--content-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.library-lightbox-open {
+  margin-top: auto;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+/* On a phone the board is a grid you scroll, not a picture you drag. Same tiles, same omnibox. */
+@media (max-width: 900px) {
+  .library-viewport {
+    overflow: auto;
+    cursor: default;
+    touch-action: auto;
+    user-select: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 120px;
+  }
+
+  .library-board {
+    position: static;
+    width: auto;
+    padding: 20px 16px 0;
+    gap: 20px;
+    transform: none !important;
+  }
+
+  .library-shelf {
+    perspective: none;
+  }
+
+  .library-shelf-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .library-shelf-plank {
+    display: none;
+  }
+
+  .library-tile {
+    width: auto;
+    transform: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 10px 22px -12px rgba(0, 0, 0, 0.3);
+  }
+
+  .library-tile:hover,
+  .library-tile:focus-visible {
+    transform: none;
+  }
+
+  .library-tile-name {
+    opacity: 1;
+  }
+
+  .library-omni {
+    position: fixed;
+    padding: 0 16px 16px;
+  }
+
+  .library-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .library-count {
+    display: none;
+  }
+
+  .library-omni .search-input {
+    padding-right: 60px;
+  }
+
+  .library-lightbox {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .library-lightbox-card {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .library-lightbox-cover {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+  }
+}
