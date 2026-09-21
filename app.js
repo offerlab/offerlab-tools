@@ -897,7 +897,7 @@ function createBrandCard(brand, index) {
       <div class="card-actions">
         <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Create bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
-          <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
+          <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Pitch them</button>
         </div>
         <button type="button" class="btn btn--md btn--secondary btn--icon visit-btn has-tooltip" data-url="${fullUrl}" aria-label="Visit ${escapeHtml(brand.name)}">
           ${icon('square-arrow-top-right-2')}
