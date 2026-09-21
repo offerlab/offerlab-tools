@@ -704,6 +704,9 @@ async function createDraft(name) {
     const draft = await offerlab.createDraftBundle({
       name: name || draftName(),
       picks,
+      // The bundle presents as whichever brand leads it, and it is being pitched to the one that
+      // was searched for, so that is the brand whose products go first.
+      presentingDomain: sellerEntry()?.domain,
       onProgress: message => setDraft('working', message)
     });
     offerlab.rememberDraft(sellerEntry()?.domain, draft);

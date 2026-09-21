@@ -23,12 +23,11 @@ const MASTER_TEAM_NAME = 'OfferLab Demo';
 // Per searched brand, so a booth conversation that ran long does not push out the draft from the
 // one before it. Enough for a show day; the store is not a record of anything that matters.
 const DRAFTS_PER_BRAND = 20;
-// A walk-up brand's catalog import. Generous: it is a whole storefront with images today, and
-// OL-3996 will cut it to the products the bundle asked for.
-const PROVISION_TIMEOUT_MS = 180000;
-const PROVISION_POLL_MS = 3000;
 const TEAM_PAGE_SIZE = 100;
-const PRODUCT_PAGE_SIZE = 100;
+// A build that has to stand a walk-up brand up. Only the bundle's own products are imported, so
+// this is the brand's team, its logo and a handful of products, not a whole storefront.
+const BUILD_TIMEOUT_MS = 300000;
+const BUILD_POLL_MS = 2000;
 
 export const state = { account: null, tools: null };
 
@@ -429,29 +428,6 @@ export async function demoBrand(domain, hostUrl, { fresh = false } = {}) {
   return brand;
 }
 
-/**
- * Stands a brand up in the demo environment and waits for it. The POST is fire and forget — the
- * run happens in a job — so readiness comes from polling the same GET the finder already reads.
- */
-async function provision(domain, externalIds, host, onProgress) {
-  const response = await fetch('/api/offerlab/provision', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-    body: JSON.stringify({ domain, external_ids: externalIds })
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new OfferLabError(data.error || `Could not start ${domain} (${response.status})`);
-
-  const deadline = Date.now() + PROVISION_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, PROVISION_POLL_MS));
-    const brand = await demoBrand(domain, host, { fresh: true });
-    if (brand?.ready) return brand;
-    onProgress(`Still importing ${brand?.name || domain}`);
-  }
-  throw new OfferLabError(`${domain} is taking longer than expected to import — try again in a moment`);
-}
-
 async function masterTeamId() {
   const cached = read(localStorage, KEY.master);
   if (cached) return cached;
@@ -466,94 +442,103 @@ async function masterTeamId() {
     }
     if (teams.length < TEAM_PAGE_SIZE) break;
   }
-  throw new OfferLabError(`No "${MASTER_TEAM_NAME}" team on this OfferLab — the demo environment has not been provisioned`);
+  throw new OfferLabError(`No "${MASTER_TEAM_NAME}" team on this OfferLab \u2014 the demo environment has not been provisioned`);
 }
 
 /**
- * Shopify product ids to OfferLab product ids, a brand at a time. The importer stores the id from
- * products.json verbatim on integrations_external_id, which is the same id the picker holds, so
- * the join needs nothing clever.
+ * Which brand the bundle presents as is not stored anywhere: OfferLab reads it off the bundle's
+ * FIRST step, so whichever product leads decides whose name and avatar the bundle carries. The
+ * searched brand leads, because the bundle is being pitched to them (OL-4009).
+ *
+ * Selection order is kept within each group, so a pick of two from the searched brand still reads
+ * in the order they were chosen.
  */
-async function productsForTeam(teamId) {
-  await callTool('set_active_team', { team_id: teamId });
-  const byExternalId = new Map();
-  for (let page = 1; page <= 20; page++) {
-    const result = await callTool('list_products', { page, per_page: PRODUCT_PAGE_SIZE });
-    const products = result?.data || [];
-    products.forEach(product => {
-      if (product.integrations_external_id) byExternalId.set(String(product.integrations_external_id), product);
-    });
-    if (products.length < PRODUCT_PAGE_SIZE) break;
-  }
-  return byExternalId;
+function presentingOrder(picks, presentingDomain) {
+  if (!presentingDomain) return picks;
+  const lead = picks.filter(pick => pick.domain === presentingDomain);
+  return lead.length ? [...lead, ...picks.filter(pick => pick.domain !== presentingDomain)] : picks;
 }
 
-/** The builder wants the obfuscated id, which is the last segment of the stack's share url. */
-function builderUrl(stack, host) {
-  const share = stack?.share_url;
-  const id = share ? share.split('/').filter(Boolean).pop() : null;
-  return id ? `${host}/account/collabs/${id}/edit` : null;
+/** The four steps the build reports, as something an operator can read over someone's shoulder. */
+const BUILD_STEP_COPY = {
+  finding_brand: brand => (brand ? `Finding ${brand}` : 'Finding the brands'),
+  importing_products: brand => (brand ? `Importing ${brand}'s products` : 'Importing the products'),
+  linking_collaboration: brand => (brand ? `Connecting ${brand}` : 'Connecting the brands'),
+  creating_bundle: () => 'Creating the bundle'
+};
+
+function stepMessage(progress) {
+  const copy = BUILD_STEP_COPY[progress?.step];
+  return copy ? copy(progress.brand) : 'Building the bundle';
+}
+
+/**
+ * Nothing is built when a product cannot be found or cannot go live, so the message names what
+ * stopped it rather than reporting a count against a bundle that does not exist.
+ */
+function buildFailure(status, result) {
+  const failures = Array.isArray(result?.failures) ? result.failures : [];
+  if (failures.length) {
+    const [first] = failures;
+    const rest = failures.length > 1 ? ` (and ${failures.length - 1} more)` : '';
+    const who = first.brand ? `${first.brand}: ` : '';
+    return `${who}${first.reason || 'could not be set up'}${rest}`;
+  }
+  return status?.error_message || 'OfferLab could not build that bundle';
+}
+
+/**
+ * The build runs in a job, so readiness comes from polling. Each poll carries the step and the
+ * brand it is on, which is what the operator is shown rather than an anonymous spinner.
+ */
+async function awaitBuild(actionId, onProgress) {
+  const deadline = Date.now() + BUILD_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, BUILD_POLL_MS));
+    const status = await callTool('get_action_status', { action_type: 'build_bundle', action_id: actionId });
+
+    if (status?.state === 'completed') return status.result || {};
+    if (status?.state === 'failed') throw new OfferLabError(buildFailure(status, status?.result));
+    onProgress(stepMessage(status?.result));
+  }
+  throw new OfferLabError('That bundle is taking longer than expected \u2014 check OfferLab in a moment');
 }
 
 /**
  * Picks in, a draft collab in the master team out, plus the link to open it.
  * `picks` are the picker's own entries: { domain, brandName, product }.
+ *
+ * One call does the whole thing. build_bundle_from_storefronts finds or creates each brand's team,
+ * imports only the products this bundle asked for, takes them live, opens them to the active team
+ * and builds the stack. The finder's job is the active team, the order, and the waiting.
  */
-export async function createDraftBundle({ name, picks, onProgress = () => {} }) {
-  const { host } = await api('config');
-  const domains = [...new Set(picks.map(pick => pick.domain))];
-
-  onProgress('Finding these brands in OfferLab');
-  const teams = new Map();
-  for (const domain of domains) {
-    let brand = await demoBrand(domain, host);
-    if (!brand?.ready) {
-      // A brand nobody pre-created, or one whose run never finished. Stand it up and wait.
-      onProgress(`Setting ${labelFor(picks, domain)} up in OfferLab`);
-      brand = await provision(
-        domain,
-        picks.filter(pick => pick.domain === domain).map(pick => pick.product.id),
-        host,
-        onProgress
-      );
-    }
-    if (!brand?.team_id) throw new OfferLabError(`${labelFor(picks, domain)} could not be set up in OfferLab`);
-    teams.set(domain, brand.team_id);
-  }
-
-  onProgress('Matching the products you picked');
-  const resolved = [];
-  for (const domain of domains) {
-    const catalog = await productsForTeam(teams.get(domain));
-    for (const pick of picks.filter(p => p.domain === domain)) {
-      const product = catalog.get(String(pick.product.id));
-      if (!product) throw new OfferLabError(`“${pick.product.title}” is not in ${labelFor(picks, domain)}'s OfferLab catalog`);
-      resolved.push(product);
-    }
-  }
-
+export async function createDraftBundle({ name, picks, presentingDomain, onProgress = () => {} }) {
+  // The bundle belongs to the master team, and it is the team every brand's products are opened
+  // to, so it has to be active before the build starts.
   const master = await masterTeamId();
   await callTool('set_active_team', { team_id: master });
 
-  onProgress('Creating the draft');
-  const stack = await callTool('create_stack', { name, product_bundle: true });
-  if (!stack?.id) throw new OfferLabError('OfferLab did not return the draft it created');
+  const ordered = presentingOrder(picks, presentingDomain);
 
-  onProgress('Adding the products');
-  for (const [index, product] of resolved.entries()) {
-    await callTool('create_stack_step', { stack_id: stack.id, product_id: product.id, sort_order: index + 1 });
-  }
+  onProgress('Starting the build');
+  const started = await callTool('build_bundle_from_storefronts', {
+    product_urls: ordered.map(pick => pick.product.url),
+    name
+  });
+  if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
 
-  const url = builderUrl(stack, host);
-  if (!url) throw new OfferLabError('The draft was created but OfferLab did not return a link to it');
+  const result = await awaitBuild(started.action_id, onProgress);
+  if (!result.builder_url) throw new OfferLabError('The bundle was built but OfferLab did not return a link to it');
+
+  const domains = [...new Set(ordered.map(pick => pick.domain))];
   return {
-    stackId: stack.id,
-    url,
-    name,
+    stackId: result.stack_id ?? null,
+    url: result.builder_url,
+    name: result.name || name,
     domains,
-    brands: domains.map(domain => labelFor(picks, domain)),
-    products: picks.map(pick => ({ title: pick.product.title, brand: labelFor(picks, pick.domain) })),
-    productCount: resolved.length
+    brands: domains.map(domain => labelFor(ordered, domain)),
+    products: ordered.map(pick => ({ title: pick.product.title, brand: labelFor(ordered, pick.domain) })),
+    productCount: ordered.length
   };
 }
 
