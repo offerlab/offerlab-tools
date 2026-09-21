@@ -11,7 +11,8 @@
     "watch:css": "npx @tailwindcss/cli -i ./src/input.css -o ./tailwind.css --watch",
     "deploy": "wrangler pages deploy . --project-name=collab-finder",
     "deploy:preview": "wrangler pages deploy . --project-name=collab-finder --branch=preview",
-    "build:icons": "node scripts/build-icons.mjs"
+    "build:icons": "node scripts/build-icons.mjs",
+    "build:library": "node scripts/build-library.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
