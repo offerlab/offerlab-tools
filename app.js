@@ -1839,7 +1839,7 @@ function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
   elements.pitchModalSubtitle.innerHTML = `
     ${duoHtml}
     <div class="modal-header-labels">
-      <h2 class="modal-title">Create pitch</h2>
+      <h2 class="modal-title">Pitch them</h2>
       <p class="modal-subtitle-text">${escapeHtml(currentPitchBrand1)} &times; ${escapeHtml(currentPitchBrand2)}</p>
     </div>
   `;
