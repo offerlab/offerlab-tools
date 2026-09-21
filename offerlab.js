@@ -20,6 +20,7 @@ const KEY = {
 };
 
 const MASTER_TEAM_NAME = 'OfferLab Demo';
+const MASTER_TEAM_DOMAIN = 'demo.offerlab.com';
 // Per searched brand, so a booth conversation that ran long does not push out the draft from the
 // one before it. Enough for a show day; the store is not a record of anything that matters.
 const DRAFTS_PER_BRAND = 20;
@@ -429,9 +430,22 @@ export async function demoBrand(domain, hostUrl, { fresh = false } = {}) {
   return brand;
 }
 
+/**
+ * The master team owns every bundle. Found by its website first, which is one call: OL-4012 sets
+ * that to the demo store and list_teams can filter on it. The scan by name is the fallback for an
+ * OfferLab where that seed has not run, and it pages, because the roster puts hundreds of brand
+ * teams in front of it.
+ */
 async function masterTeamId() {
   const cached = read(localStorage, KEY.master);
   if (cached) return cached;
+
+  const byDomain = await callTool('list_teams', { domain: MASTER_TEAM_DOMAIN }).catch(() => null);
+  const found = (byDomain?.teams || [])[0];
+  if (found?.id) {
+    write(localStorage, KEY.master, found.id);
+    return found.id;
+  }
 
   for (let page = 1; page <= 50; page++) {
     const result = await callTool('list_teams', { page, per_page: TEAM_PAGE_SIZE });
