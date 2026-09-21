@@ -7,7 +7,7 @@
  * CORS and is read here directly.
  */
 
-import { isDeveloper } from './shared/offerlab.js';
+import { isDeveloper, canBuildBundles } from './shared/offerlab.js';
 
 const KEY = {
   client: 'offerlab.client',       // the registered public client, stable for this origin
@@ -395,12 +395,13 @@ export async function loadAccount() {
 }
 
 /**
- * Creating a draft is developer-only, and the admin tools are only listed for a developer.
+ * Whether this token can actually build a bundle, which is narrower than being a developer: it
+ * asks for the tool the handoff calls rather than for the role that usually carries it.
  * Unknown until loadAccount has run, which is why this answers null rather than false: a caller
  * showing UI on it must not treat "not asked yet" as "not allowed".
  */
 export function canCreateDrafts() {
-  return state.tools === null ? null : isDeveloper(state.tools);
+  return state.tools === null ? null : canBuildBundles(state.tools);
 }
 
 /* -------------------------------------------------------------------------- */
