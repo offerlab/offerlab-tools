@@ -895,7 +895,7 @@ function createBrandCard(brand, index) {
     <div class="card-body">
       ${renderCardReason(brand)}
       <div class="card-actions">
-        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Build bundle</button>
+        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Create bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Create pitch</button>
         </div>
