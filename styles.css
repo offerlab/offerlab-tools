@@ -2570,18 +2570,21 @@ position: relative;
   --icon-rendered: 18;
 }
 
+/* Three lines and an ellipsis: the card is a header, not the brand's whole story. */
 .searched-brand-card-description {
   font-size: var(--font-size-md);
   color: var(--content-secondary);
   line-height: 1.6;
   margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
+/* A phone keeps the two columns side by side, the cover a narrow band the height of the content,
+   and gives the description two lines, so the card stays a header there too. */
 @media (max-width: 767px) {
-  .searched-brand-card {
-    flex-direction: column;
-  }
-
   /* Stretch, not start: a started item takes its max-content width, and the description and the
      thumbnail strip inside it then run past the card instead of wrapping and scrolling. */
   .searched-brand-card-content {
@@ -2590,9 +2593,13 @@ position: relative;
   }
 
   .searched-brand-card-image {
-    width: 100%;
-    min-width: 100%;
-    aspect-ratio: 16 / 9;
+    width: 30%;
+    min-width: 30%;
+    aspect-ratio: auto;
+  }
+
+  .searched-brand-card-description {
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -7026,6 +7033,12 @@ position: relative;
   pointer-events: none;
 }
 
+/* The tiles' own layer, the shelf's height and, on a desktop, as wide as the shelf. */
+.library-shelf-rail {
+  position: absolute;
+  inset: 0;
+}
+
 /* A white slab seen from just above: a top face, a hairline of light along the front edge, and a
    front face a shade cooler. */
 .library-shelf-slab {
@@ -7734,8 +7747,10 @@ position: relative;
     visibility: visible;
   }
 
+  /* Stood off the bottom rather than padded: WebKit paints a clamped line into bottom padding. */
   .library-tile-name {
-    padding: 14px 14px 12px;
+    bottom: 12px;
+    padding: 14px 14px 0;
     font-size: var(--font-size-xs);
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -7743,12 +7758,65 @@ position: relative;
     overflow: hidden;
   }
 
-  /* In flow under the board, for the same reason the results omnibar is. */
+  /* The shelves stand still and the viewport scrolls down through them; each shelf's rail scrolls
+     sideways on its own. The rail runs one air's height past its plank so a cover's shadow is
+     not cut at the shelf's edge; below it is only the next shelf's air, which holds nothing. */
+  .library-viewport {
+    overflow: hidden auto;
+    touch-action: auto;
+    cursor: auto;
+  }
+
+  .library-board {
+    position: relative;
+    width: 100%;
+    margin-bottom: var(--lib-foot);
+    will-change: auto;
+  }
+
+  .library-shelf {
+    width: 100%;
+  }
+
+  .library-shelf-rail {
+    bottom: calc(-1 * var(--lib-air));
+    overflow: auto hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .library-shelf-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The rail runs an air past the plank, so a tile stands that much higher inside it. */
+  .library-shelf-rail .library-tile {
+    bottom: calc(var(--lib-plank) + var(--lib-air));
+  }
+
+  .library-shelf-rail::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--rail-end) - 1px);
+    top: 0;
+    width: 1px;
+    height: 1px;
+  }
+
+  /* Over the bottom of the viewport, the way the results bar is over the top of the sheet: the
+     same scrim, run the other way, so the shelves dissolve into it under the pill. */
+  .library-section {
+    --lib-foot: 104px;
+  }
+
   .library-omni {
-    position: static;
-    flex: none;
-    padding: 8px 16px 24px;
-    background: var(--content-background-base);
+    padding: 24px 16px 24px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--content-background-elevated) 75%, transparent) 35%,
+      var(--content-background-elevated) 95%
+    );
   }
 
   .library-omni .search-input {

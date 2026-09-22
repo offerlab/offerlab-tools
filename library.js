@@ -26,10 +26,12 @@ const MOBILE = window.matchMedia('(max-width: 900px)');
 const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 
 // Geometry, owned here and mirrored onto the section as custom properties so the CSS cannot drift.
-// Each row is one continuous plank; odd rows sit half a column over. A phone fits 2.25 columns
-// across the viewport so the next tile is always cut off at the edge; a desktop has fixed tiles.
+// Each row is one continuous plank. A desktop's board is unbounded and pans in every direction,
+// odd rows half a column over. A phone's shelves stand still and each scrolls sideways on its
+// own: 2.25 columns across the viewport so the next tile is always cut off at the edge, a fixed
+// number of bundles per shelf, the first one a gutter in from the left.
 const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
-const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20 };
+const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20, perShelf: 8, gutter: 16 };
 const G = {};
 
 function measure() {
@@ -41,6 +43,7 @@ function measure() {
     G.plank = PHONE.plank;
     G.air = PHONE.air;
     G.radius = PHONE.radius;
+    G.inset = PHONE.gutter - G.gap / 2;
   } else {
     Object.assign(G, { tile: DESKTOP.tile, gap: DESKTOP.gap, plank: DESKTOP.plank, air: DESKTOP.air, radius: DESKTOP.radius });
     G.colW = G.tile + G.gap;
@@ -74,6 +77,7 @@ const state = {
   velocity: { x: 0, y: 0 },
   rows: new Map(),
   cells: new Map(),
+  deal: { r: 0 },
   dragging: false,
   moved: false,
   suppressClick: false,
@@ -186,17 +190,20 @@ function coverUrl(url, width) {
   }
 }
 
-function makeTile(bundle) {
+/** `lazy` for a board that is dealt whole: the covers load as they scroll into view. */
+function makeTile(bundle, lazy = false) {
   const tile = document.createElement('button');
   tile.type = 'button';
   tile.className = 'library-tile';
   tile.dataset.id = bundle.id;
   tile.setAttribute('aria-label', `${bundle.name}, ${bundle.brands.join(', ')}`);
+  const src = escape(coverUrl(bundle.cover, TILE_COVER_WIDTH));
+  const loading = lazy ? ' loading="lazy"' : '';
   tile.innerHTML = `
-    <span class="library-tile-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async"></span>
+    <span class="library-tile-cover"><img src="${src}" alt="" decoding="async"${loading}></span>
     <span class="library-tile-scrim" aria-hidden="true">
-      <img class="library-tile-scrim-soft" src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async">
-      <img class="library-tile-scrim-deep" src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async">
+      <img class="library-tile-scrim-soft" src="${src}" alt="" decoding="async"${loading}>
+      <img class="library-tile-scrim-deep" src="${src}" alt="" decoding="async"${loading}>
     </span>
     <span class="library-tile-name">${escape(bundle.name)}</span>`;
   tile.querySelector('img').addEventListener('error', () => tile.classList.add('is-bare'), { once: true });
@@ -250,8 +257,8 @@ function rowFor(r) {
   el.style.transform = `translate3d(0, ${r * G.shelfH}px, 0)`;
   // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
   el.style.zIndex = String(r + 1e6);
-  el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div>';
-  row = { el, r, furniture: [...el.children] };
+  el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div><div class="library-shelf-rail"></div>';
+  row = { el, r, furniture: [...el.children].slice(0, 3), rail: el.lastElementChild, fresh: true };
   state.rows.set(r, row);
   dom.board.appendChild(el);
   return row;
@@ -259,6 +266,7 @@ function rowFor(r) {
 
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 function render() {
+  if (MOBILE.matches) return renderShelves();
   const view = dom.viewport.getBoundingClientRect();
   const x0 = -state.pan.x - G.colW, x1 = -state.pan.x + view.width + G.colW;
   const r0 = Math.floor(-state.pan.y / G.shelfH) - 1, r1 = Math.ceil((-state.pan.y + view.height) / G.shelfH) + 1;
@@ -282,12 +290,59 @@ function render() {
       tile.style.left = `${left}px`;
       state.cells.set(key, tile);
       if (current) crossfade(current, tile, (left + state.pan.x) / view.width);
-      row.el.appendChild(tile);
+      row.rail.appendChild(tile);
     }
   }
 
   for (const [key, tile] of state.cells) if (!keep.has(key)) { tile.remove(); state.cells.delete(key); }
   for (const [r, row] of state.rows) if (r < r0 || r > r1) { row.el.remove(); state.rows.delete(r); }
+}
+
+/**
+ * A phone's board: every visible bundle dealt once, in one shuffled order, a shelf at a time.
+ * The shelves stack in the viewport, which scrolls down; each shelf's rail scrolls sideways on
+ * its own. Odd shelves open half a column along so the stagger of the desktop board survives.
+ * With nothing to show, enough shelves of glass to fill the viewport stand under the message.
+ */
+function renderShelves() {
+  const view = dom.viewport.getBoundingClientRect();
+  const n = state.visible.length;
+  const perShelf = n ? PHONE.perShelf : Math.ceil(PHONE.columns) + 1;
+  const shelves = n ? Math.ceil(n / perShelf) : Math.ceil(view.height / G.shelfH) + 1;
+  const order = n ? orderFor(state.deal) : [];
+  const keep = new Set();
+  dom.board.style.height = `${shelves * G.shelfH}px`;
+
+  for (let r = 0; r < shelves; r++) {
+    const row = rowFor(r);
+    for (const part of row.furniture) {
+      part.style.left = '0';
+      part.style.width = '100%';
+    }
+    const count = n ? Math.min(perShelf, n - r * perShelf) : perShelf;
+    for (let c = 0; c < count; c++) {
+      const key = `${r}:${c}`;
+      keep.add(key);
+      const bundle = n ? state.visible[order[r * perShelf + c]] : null;
+      const current = state.cells.get(key);
+      if (current && current.dataset.id === (bundle?.id ?? '')) continue;
+      const tile = bundle ? makeTile(bundle, true) : makeGhost();
+      const left = c * G.colW + G.gap / 2 + G.inset;
+      tile.style.left = `${left}px`;
+      state.cells.set(key, tile);
+      if (current) crossfade(current, tile, left / view.width);
+      row.rail.appendChild(tile);
+    }
+    // The rail's scroll width is its tiles' reach; the gutter past the last one is this stop.
+    row.rail.style.setProperty('--rail-end', `${count * G.colW + G.inset + G.gap / 2 + PHONE.gutter}px`);
+    if (row.fresh) {
+      row.fresh = false;
+      if (r & 1) row.rail.scrollLeft = G.colW / 2;
+    }
+  }
+
+  for (const [key, tile] of state.cells) if (!keep.has(key)) { tile.remove(); state.cells.delete(key); }
+  for (const [r, row] of state.rows) if (r >= shelves) { row.el.remove(); state.rows.delete(r); }
 }
 
 /**
@@ -317,6 +372,8 @@ function scheduleRender() {
 
 function clearBoard() {
   dom.board.replaceChildren();
+  dom.board.style.height = '';
+  dom.board.style.transform = '';
   state.rows.clear();
   state.cells.clear();
 }
@@ -357,6 +414,9 @@ function apply() {
   renderEmpty(n);
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
+
+  // A phone's shelves stand where they are; only what is on them changes.
+  if (MOBILE.matches) return render();
 
   // Row 0 opens across the middle with a tile centered; after that the pan is kept, so a filter
   // changes what is on the shelves and not where you are.
@@ -479,8 +539,9 @@ function closeFilters() {
 function bindViewport() {
   const view = dom.viewport;
 
+  // A phone scrolls its shelves natively: no drag, no wheel, no keys of the board's own.
   view.addEventListener('pointerdown', event => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || MOBILE.matches) return;
     if (event.target.closest('.library-omni, .library-lightbox')) return;
     state.dragging = true;
     state.moved = false;
@@ -549,13 +610,14 @@ function bindViewport() {
   });
 
   view.addEventListener('wheel', event => {
+    if (MOBILE.matches) return;
     event.preventDefault();
     setPan(state.pan.x - event.deltaX, state.pan.y - event.deltaY);
   }, { passive: false });
 
   view.addEventListener('keydown', event => {
     const step = { ArrowLeft: [KEY_STEP, 0], ArrowRight: [-KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[event.key];
-    if (!step) return;
+    if (!step || MOBILE.matches) return;
     event.preventDefault();
     setPan(state.pan.x + step[0], state.pan.y + step[1]);
   });
