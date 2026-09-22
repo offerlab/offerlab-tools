@@ -3321,8 +3321,9 @@ position: relative;
   .floating-tiles .tile-7 { bottom: 12%; right: 2%; }
   .floating-tiles .tile-8 { bottom: 2%; right: -3%; }
 
+  /* The bar that used to hold the results clear of the sheet's top is in the footer now. */
   .results-section {
-    padding: 0 16px var(--spacing-lg);
+    padding: 16px 16px var(--spacing-lg);
   }
 
   .view-header {
