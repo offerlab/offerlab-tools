@@ -421,8 +421,11 @@ body {
      a transparent header drawn straight onto it, and the page itself a rounded card below. */
   background-color: var(--background-dark);
   line-height: 1.5;
-  min-height: 100vh;
-  overflow-x: hidden;
+  /* The page is exactly the visible viewport (dvh follows Safari's toolbar) and never scrolls
+     itself; the sheet inside it is the scroll region. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   transition: background-color 0.25s ease;
 }
 
@@ -1165,6 +1168,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   /* The header is fixed and draws on the dark ground, so this is what holds the sheet clear of
      it. Border-box, so the padding comes out of the 100vh rather than adding to it. */
   height: 100vh;
+  height: 100dvh;
   padding-top: var(--header-h, 0px);
   /* No hold unless an exit animation asks for one: the tiles are gone the moment a section that
      is not the landing page comes up. whipOutTiles() publishes the real duration while it plays. */
@@ -2054,7 +2058,7 @@ position: absolute;
   position: relative;
   overflow: visible;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 /* Animated conic gradient glow behind loading content */
@@ -2909,7 +2913,7 @@ position: absolute;
   flex: 1;
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100%;
   padding: var(--spacing-xl);
 }
 
@@ -3286,6 +3290,7 @@ position: absolute;
   width: 560px;
   max-height: none;
   height: calc(100vh - 16px);
+  height: calc(100dvh - 16px);
   animation: pitchDrawerSlideIn 0.3s ease forwards;
 }
 
@@ -6423,6 +6428,9 @@ position: absolute;
     height: calc(
       100vh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
     );
+    height: calc(
+      100dvh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
+    );
   }
 
   /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
@@ -7323,6 +7331,7 @@ position: absolute;
   align-items: center;
   width: min(100%, 900px);
   max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
   transform-origin: 0 0;
   transform: scale(0.94) translateY(12px);
   transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
@@ -7572,6 +7581,7 @@ position: absolute;
     gap: 20px;
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     padding: 20px 16px calc(24px + 48px + 24px);
     align-content: start;
     overflow: auto;
