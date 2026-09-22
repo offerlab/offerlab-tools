@@ -15,7 +15,8 @@
     "build:library": "node scripts/build-library.mjs",
     "dev:pages": "wrangler pages dev . --port 5500",
     "db:migrate": "wrangler d1 migrations apply offerlab-tools --remote",
-    "db:migrate:local": "wrangler d1 migrations apply offerlab-tools --local"
+    "db:migrate:local": "wrangler d1 migrations apply offerlab-tools --local",
+    "crawl": "node scripts/crawl.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

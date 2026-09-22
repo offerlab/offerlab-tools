@@ -13,6 +13,7 @@ import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMc
 import { mkdirSync } from 'fs';
 import * as store from './shared/db.js';
 import { handleDataRequest } from './shared/data-api.js';
+import { handleCrawlRequest } from './shared/crawl-api.js';
 
 config(); // Load .env
 
@@ -269,6 +270,21 @@ app.all('/api/data/*', express.json({ limit: '4mb' }), async (req, res) => {
   res.set('Cache-Control', 'no-store');
   if (status === 204 || body === undefined) return res.status(status).end();
   res.status(status).json(body);
+});
+
+// The server-side crawl. Same handler as the Pages function; set CRAWL_SECRET in .env to use it,
+// and CRAWL_API_ORIGIN to search through another deployment's proxies instead of this server's.
+app.all(['/api/crawl', '/api/crawl/*'], express.json(), async (req, res) => {
+  const { status, body } = await handleCrawlRequest({
+    method: req.method,
+    path: String(req.params[0] || '').split('/').filter(Boolean).join('/'),
+    authorization: req.get('authorization') || null,
+    body: req.body && Object.keys(req.body).length ? req.body : null,
+    db,
+    env: process.env,
+    origin: `http://localhost:${PORT}`
+  });
+  res.set('Cache-Control', 'no-store').status(status).json(body);
 });
 
 /* OfferLab proxies. /api/mcp answers a preflight with no allow-origin header, so none of this is

@@ -103,6 +103,40 @@ export function matchSocial(found, raw) {
   }
 }
 
+/** The finder's registry order for social accounts: how a brand's accounts are stored and shown. */
+export const SOCIAL_DISPLAY_ORDER = ['instagram', 'tiktok', 'twitter', 'youtube', 'pinterest', 'facebook', 'snapchat', 'shopmy', 'amazon', 'ltk'];
+
+const HANDLE_SHAPE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
+// Accepts the AI's loose shape ({instagram: "@handle" | url | name}) or the stored one.
+export function normalizeSocial(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const key of SOCIAL_DISPLAY_ORDER) {
+    const value = raw[key];
+    if (!value) continue;
+    if (typeof value === 'object' && value.handle) {
+      out[key] = { handle: value.handle, url: value.url || synthesizeSocialUrl(key, value.handle) };
+      continue;
+    }
+    const text = String(value).trim();
+    if (/^https?:\/\//i.test(text)) {
+      const found = {};
+      matchSocial(found, text);
+      if (found[key]) out[key] = found[key];
+      continue;
+    }
+    const handle = text.replace(/^@/, '');
+    if (HANDLE_SHAPE.test(handle)) out[key] = { handle, url: synthesizeSocialUrl(key, handle) };
+  }
+  return out;
+}
+
+// The site's own links win; the AI only fills platforms the site did not link.
+export function mergeSocial(scraped, ai) {
+  return { ...normalizeSocial(ai), ...normalizeSocial(scraped) };
+}
+
 // OG/Twitter meta is server-rendered and often carries the canonical handle.
 export function applySocialMetadata(found, metadata) {
   if (!found.twitter) {
