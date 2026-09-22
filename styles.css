@@ -6827,8 +6827,20 @@ position: absolute;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.25),
     6px 10px 24px -6px rgba(0, 0, 0, 0.28);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, opacity 0.32s ease;
   outline: none;
+}
+
+/* A filter crossfades each cell: the new cover fades in on top while the old one fades out
+   beneath it. Both start once the new cover has decoded. */
+.library-tile.is-entering,
+.library-tile.is-leaving {
+  opacity: 0;
+}
+
+.library-tile.is-leaving {
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* The contact shadow: the cover's base darkens the plank's top face just behind it. */

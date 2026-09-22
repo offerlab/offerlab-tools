@@ -35,6 +35,9 @@ const SHELF_H = AIR + TILE + PLANK_H;
 const TILE_COVER_WIDTH = 480;
 const EYEBROW_CHIPS = 2;
 const GHOST_GRID = 8;
+const FADE_MS = 320;
+const SWEEP_MS = 200;
+const TYPING_MS = 120;
 const SEED = 0x9e3779b1;
 
 const KEY_STEP = 160;
@@ -172,6 +175,7 @@ function makeTile(bundle) {
 function makeGhost() {
   const tile = document.createElement('div');
   tile.className = 'library-tile library-tile--ghost';
+  tile.dataset.id = '';
   return tile;
 }
 
@@ -240,16 +244,39 @@ function render() {
     for (let c = c0; c <= c1; c++) {
       const key = `${r}:${c}`;
       keep.add(key);
-      if (state.cells.has(key)) continue;
-      const tile = state.visible.length ? makeTile(bundleAt(row, c)) : makeGhost();
-      tile.style.left = `${c * COL_W + rowOffset(r) + GAP / 2}px`;
+      const bundle = state.visible.length ? bundleAt(row, c) : null;
+      const current = state.cells.get(key);
+      if (current && current.dataset.id === (bundle?.id ?? '')) continue;
+      const tile = bundle ? makeTile(bundle) : makeGhost();
+      const left = c * COL_W + rowOffset(r) + GAP / 2;
+      tile.style.left = `${left}px`;
       state.cells.set(key, tile);
+      if (current) crossfade(current, tile, (left + state.pan.x) / view.width);
       row.el.appendChild(tile);
     }
   }
 
   for (const [key, tile] of state.cells) if (!keep.has(key)) { tile.remove(); state.cells.delete(key); }
   for (const [r, row] of state.rows) if (r < r0 || r > r1) { row.el.remove(); state.rows.delete(r); }
+}
+
+/**
+ * A cell whose bundle changed fades the new cover in over the old one, in a sweep from the left
+ * of the viewport to the right. Opacity only, so the compositor does the work; the new cover
+ * waits to be decoded so nothing fades in blank. The old tile leaves the cell map at once, so a
+ * filter typed over a fade simply starts the next one on top.
+ */
+function crossfade(leaving, entering, sweep) {
+  const delay = Math.round(Math.max(0, Math.min(1, sweep)) * SWEEP_MS);
+  entering.classList.add('is-entering');
+  leaving.classList.add('is-leaving');
+  leaving.style.transitionDelay = `${delay}ms`;
+  const img = entering.querySelector('img');
+  const decoded = img ? img.decode().catch(() => {}) : Promise.resolve();
+  decoded.then(() => setTimeout(() => {
+    requestAnimationFrame(() => entering.classList.remove('is-entering'));
+    setTimeout(() => leaving.remove(), FADE_MS + delay);
+  }, delay));
 }
 
 function scheduleRender() {
@@ -301,9 +328,9 @@ function apply() {
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
 
-  clearBoard();
   dom.grid.replaceChildren();
   if (MOBILE.matches) {
+    clearBoard();
     // A phone scrolls the visible bundles once each, no repeats.
     dom.grid.replaceChildren(...(n ? state.visible.map(makeTile) : Array.from({ length: GHOST_GRID }, makeGhost)));
     return;
@@ -391,7 +418,11 @@ function clearFilters() {
 
 function bindOmnibox() {
   dom.form.addEventListener('submit', event => event.preventDefault());
-  dom.input.addEventListener('input', () => { state.filters.query = dom.input.value.trim(); apply(); });
+  // A pause in typing deals once; every keystroke would deal a shelf of covers for "c", "co"...
+  dom.input.addEventListener('input', () => {
+    clearTimeout(state.typing);
+    state.typing = setTimeout(() => { state.filters.query = dom.input.value.trim(); apply(); }, TYPING_MS);
+  });
   dom.filterBtn.addEventListener('click', () => (dom.popover.classList.contains('hidden') ? openFilters() : closeFilters()));
   dom.popover.addEventListener('change', event => {
     const select = event.target.closest('select');
