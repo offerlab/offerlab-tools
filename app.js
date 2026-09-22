@@ -3408,37 +3408,47 @@ function initEventListeners() {
 
   // A tap inside the dropdown must not blur the input: on a phone the blur dismisses the
   // keyboard, the viewport reflows under the finger, and the tap's click lands on whatever moved
-  // there, so a row took two taps. Refusing the mousedown keeps the focus, and the click, where
-  // they were.
+  // there. Refusing the mousedown keeps the focus where it was.
   for (const dropdown of [elements.searchHistoryDropdown, elements.resultsSearchHistoryDropdown]) {
     dropdown?.addEventListener('mousedown', (e) => e.preventDefault());
   }
 
-  // History item click (Landing Page) - ignore remove button
-  elements.historyList.addEventListener('click', (e) => {
-    if (e.target.closest('.history-item-remove-btn')) return;
-    const item = e.target.closest('.history-item');
-    if (item) {
+  // A row is chosen on the tap itself for touch (pointerup, so a scroll that starts on a row is
+  // not a choice) and on the click for a mouse. Safari spends a touch's first click on hover
+  // states and the keyboard's reflow, so waiting for it took two taps.
+  const TAP_SLOP = 8;
+  const bindHistoryList = (list, input, dropdown) => {
+    if (!list) return;
+    let down = null;
+    let chosenAt = 0;
+    const choose = (item) => {
       const url = item.dataset.url;
-      elements.searchInput.value = url;
-      hideSearchHistory(elements.searchHistoryDropdown);
+      chosenAt = performance.now();
+      input.value = url;
+      hideSearchHistory(dropdown);
       performSearch(url);
-    }
-  });
-
-  // History item click (Results Page) - ignore remove button
-  if (elements.resultsHistoryList) {
-    elements.resultsHistoryList.addEventListener('click', (e) => {
-      if (e.target.closest('.history-item-remove-btn')) return;
-      const item = e.target.closest('.history-item');
-      if (item) {
-        const url = item.dataset.url;
-        elements.resultsSearchInput.value = url;
-        hideSearchHistory(elements.resultsSearchHistoryDropdown);
-        performSearch(url);
-      }
+    };
+    list.addEventListener('pointerdown', (e) => {
+      down = e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY, item: e.target.closest('.history-item') } : null;
     });
-  }
+    list.addEventListener('pointerup', (e) => {
+      if (!down || e.pointerType !== 'touch') return;
+      const item = e.target.closest('.history-item');
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP;
+      down = null;
+      if (!item || item !== e.target.closest('.history-item') || moved || e.target.closest('.history-item-remove-btn')) return;
+      choose(item);
+    });
+    list.addEventListener('click', (e) => {
+      if (e.target.closest('.history-item-remove-btn')) return;
+      // The click that follows a touch we already acted on.
+      if (performance.now() - chosenAt < 700) return;
+      const item = e.target.closest('.history-item');
+      if (item) choose(item);
+    });
+  };
+  bindHistoryList(elements.historyList, elements.searchInput, elements.searchHistoryDropdown);
+  bindHistoryList(elements.resultsHistoryList, elements.resultsSearchInput, elements.resultsSearchHistoryDropdown);
 
   // Remove individual history item (delegated - both lists)
   document.addEventListener('click', (e) => {

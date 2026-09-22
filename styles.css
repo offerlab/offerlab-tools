@@ -2115,8 +2115,20 @@ position: relative;
   position: relative;
 }
 
-.history-item:hover {
-  background: var(--content-background-base);
+/* Hover only where there is a pointer that hovers. A touch screen's first tap would otherwise
+   be spent applying these, and a row would take two taps. */
+@media (hover: hover) {
+  .history-item:hover {
+    background: var(--content-background-base);
+  }
+
+  .history-item:hover .history-item-remove-btn {
+    opacity: 1;
+  }
+
+  .history-item-remove-btn:hover {
+    background: var(--content-background-overlay);
+  }
 }
 
 .history-item-remove-btn {
@@ -2136,12 +2148,11 @@ position: relative;
   opacity: 0;
 }
 
-.history-item:hover .history-item-remove-btn {
-  opacity: 1;
-}
-
-.history-item-remove-btn:hover {
-  background: var(--content-background-overlay);
+/* No hover to reveal it with, so the clear control is always there. */
+@media (hover: none) {
+  .history-item-remove-btn {
+    opacity: 1;
+  }
 }
 
 .history-item-remove-icon {
