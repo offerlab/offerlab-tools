@@ -40,9 +40,6 @@ const CONFIG = {
 let currentSearchId = null;
 let currentResults = null;
 function getResults() { return currentResults; }
-// The searched brand of the search in flight: results are only stored once every catalog is in,
-// and the cards need its catalog before that.
-let liveSearchedBrand = null;
 let searchAbortController = null;
 let isSearchCancelled = false;
 
@@ -810,20 +807,11 @@ function renderCatalogChinstrap(catalog, radius = 32) {
   </div>`;
 }
 
-/**
- * A bundle starts from the searched brand's own catalog, so a partner is only buildable while the
- * searched brand is. Unknown counts as yes: the button would flicker if it waited on every fetch.
- */
-function sellerCanBuild() {
-  const seller = getResults()?.searchedBrand || liveSearchedBrand;
-  return !seller?.catalog || canBuildWith(seller);
-}
-
-/** The searched card's chinstrap when it has no public catalog: why every Create bundle is gone. */
+/** The searched card's chinstrap when it has no public catalog: the picker leads with a partner. */
 function renderNoCatalogChinstrap(radius = 36) {
   return `<div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--none" style="--tuck-radius: ${radius}px">
     <span class="card-chinstrap-source">${icon('cross-large', { size: 12 })} No public catalog</span>
-    <span class="card-chinstrap-count">Bundles start from a brand that has one</span>
+    <span class="card-chinstrap-count">Bundles start from the partner you pick</span>
     <div class="tuck-banner__notch tuck-banner__notch--left"></div>
     <div class="tuck-banner__notch tuck-banner__notch--right"></div>
   </div>`;
@@ -844,17 +832,14 @@ function updateCardCatalog(domain, catalog) {
       linkSlot.innerHTML = renderSearchedBrandLink(catalog);
       coverFromCatalog(group, catalog);
       group.querySelector('.card-chinstrap')?.remove();
-      if (catalog && !hasProducts) {
-        group.insertAdjacentHTML('beforeend', renderNoCatalogChinstrap());
-        document.querySelectorAll('.result-card').forEach(card => setCardBuildable(card, false));
-      }
+      if (catalog && !hasProducts) group.insertAdjacentHTML('beforeend', renderNoCatalogChinstrap());
       return;
     }
     group.querySelector('.card-chinstrap')?.remove();
     const chinstrap = renderCatalogChinstrap(catalog);
     if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
     const card = group.querySelector('.result-card');
-    if (card) setCardBuildable(card, hasProducts && sellerCanBuild());
+    if (card) setCardBuildable(card, hasProducts);
   });
 }
 
@@ -998,7 +983,7 @@ function createBrandCard(brand, index) {
   card.dataset.url = fullUrl;
   card.dataset.domain = domain;
   card.dataset.social = JSON.stringify(brand.social || {});
-  if (canBuildWith(brand) && sellerCanBuild()) card.dataset.buildable = 'true';
+  if (canBuildWith(brand)) card.dataset.buildable = 'true';
 
   const showMenu = hasAnySocialLink(brand.social);
   card.innerHTML = `
@@ -1023,7 +1008,7 @@ function createBrandCard(brand, index) {
     <div class="card-body">
       ${renderCardReason(brand)}
       <div class="card-actions">
-        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) && sellerCanBuild() ? '' : ' hidden'}">Create bundle</button>
+        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Create bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Pitch them</button>
         </div>
@@ -3189,7 +3174,6 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         if (isSearchCancelled) return;
         console.log(`[performSearch] onBrandsReady callback: ${brands.length} brands received`);
         brandsData = { searchedBrand, brands };
-        liveSearchedBrand = searchedBrand;
         
         if (brands.length === 0) {
           // No brands found, wait for products before deciding
