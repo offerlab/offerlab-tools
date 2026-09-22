@@ -1123,14 +1123,22 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   transition: height var(--pill-ease);
 }
 
+.view-header .photo-button {
+  width: var(--pill-btn);
+  height: var(--pill-btn);
+}
+
 .view-header .submit-button-wrapper {
-  width: var(--pill-row);
   height: var(--pill-row);
   padding: calc((var(--pill-row) - var(--pill-btn)) / 2);
   transition: width var(--pill-ease), height var(--pill-ease), padding var(--pill-ease);
 }
 
 /* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
+.view-header .search-input {
+  padding-right: calc(2 * var(--pill-btn) + 2 * var(--pill-pad) + 6px);
+}
+
 .view-header .search-input,
 .view-header .search-display {
   font-size: var(--pill-font);
@@ -1694,7 +1702,7 @@ body.showing-results .main-content {
   font-size: var(--font-size-lg);
   color: var(--content-primary);
   background: transparent;
-  padding: 4px 48px 4px 20px;
+  padding: 4px 92px 4px 20px;
   text-align: left;
 }
 
@@ -1878,15 +1886,91 @@ position: relative;
 }
 
 .submit-button-wrapper {
-width: 48px;
-height: 48px;
-display: flex;
-z-index: 10;
-justify-content: flex-end;
-padding: 4px;
-right: 0;
-position: absolute;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  justify-content: flex-end;
+  padding: 4px;
+  right: 0;
+  position: absolute;
 }
+
+/* The camera beside the submit disc: the Showcase filter disc's neutral treatment, so the submit
+   disc stays the one thing that glows. */
+.photo-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--content-background-base);
+  color: var(--content-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.photo-button:hover {
+  background: var(--content-background-overlay);
+}
+
+.photo-button.is-working {
+  animation: photo-working 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes photo-working {
+  50% { opacity: 0.35; }
+}
+
+/* Neither disc gives up width to a long placeholder or a narrow pill. */
+.photo-button,
+.search-button {
+  flex: none;
+}
+
+/* Progress and errors for the pill, tucked under its bottom edge the way the Showcase eyebrow
+   tucks under the top: behind the pill's surface, sliding out from under it. */
+.omni-chinstrap {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: calc(100% - 2px);
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 2px 16px 0;
+  border-radius: 0 0 20px 20px;
+  background: var(--content-background-overlay);
+  color: var(--content-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateY(-100%);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.omni-chinstrap.is-open {
+  transform: none;
+}
+
+.omni-chinstrap--error {
+  background: var(--red-500);
+  color: #fff;
+  font-weight: 600;
+}
+
 
 .search-icon {
   width: 18px;
@@ -3068,9 +3152,11 @@ position: absolute;
     font-size: var(--font-size-base);
   }
 
+  /* Its own size: the wrapper is shrink-to-fit now that it holds two discs, so 100% of it is
+     nothing. */
   .search-button {
-    width: 100%;
-    height: 100%;
+    width: 40px;
+    height: 40px;
   }
 
   /* Smaller tiles - each corner has one larger, one smaller; positioned to bleed off viewport */
