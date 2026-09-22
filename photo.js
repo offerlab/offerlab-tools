@@ -25,17 +25,57 @@ brand is null.`;
  * what to do with the pill once the photo has been dealt with, whichever way.
  */
 export function initPhotoSearch({ search }) {
+  const sheet = document.getElementById('photoSheet');
+  // Out of whichever section holds it, so it shows over any view.
+  if (sheet) document.body.appendChild(sheet);
+  let pending = null;
   for (const button of document.querySelectorAll('.photo-button')) {
     const wrapper = button.closest('.search-input-wrapper');
-    const input = wrapper.querySelector('.photo-input');
+    const inputs = {
+      library: wrapper.querySelector('.photo-input--library'),
+      camera: wrapper.querySelector('.photo-input--camera')
+    };
     const field = wrapper.querySelector('.search-input');
     const ui = pillUi(wrapper, button, field);
-    button.addEventListener('click', () => { input.value = ''; input.click(); });
-    input.addEventListener('change', () => {
-      const file = input.files?.[0];
-      if (file) fromPhoto(file, ui, search);
+    // A phone asks: take one or pick one. A desktop has no camera worth offering, so it goes
+    // straight to the chooser.
+    button.addEventListener('click', () => {
+      if (PHONE.matches && sheet) { pending = inputs; openSheet(sheet); } else pick(inputs.library);
     });
+    for (const input of Object.values(inputs)) {
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (file) fromPhoto(file, ui, search);
+      });
+    }
   }
+  sheet?.addEventListener('click', event => {
+    const choice = event.target.closest('[data-photo]')?.dataset.photo;
+    if (!choice && event.target !== sheet) return;
+    closeSheet(sheet);
+    if (pending && (choice === 'camera' || choice === 'library')) pick(pending[choice]);
+    pending = null;
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sheet && !sheet.classList.contains('hidden')) { closeSheet(sheet); pending = null; }
+  });
+}
+
+const PHONE = window.matchMedia('(max-width: 900px), (pointer: coarse)');
+
+function pick(input) {
+  input.value = '';
+  input.click();
+}
+
+function openSheet(sheet) {
+  sheet.classList.remove('hidden');
+  requestAnimationFrame(() => sheet.classList.add('is-open'));
+}
+
+function closeSheet(sheet) {
+  sheet.classList.remove('is-open');
+  sheet.classList.add('hidden');
 }
 
 async function fromPhoto(file, ui, search) {
