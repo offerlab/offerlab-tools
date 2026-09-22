@@ -190,19 +190,35 @@ function cancelSearch() {
 }
 
 /* --------------------------------------------------------------------------
-   Stored results (Cloudflare D1, through store.js). A search is kept for good and re-run
-   once it is older than 72 hours, so the brands and products stay current.
+   Stored results (Cloudflare D1, through store.js). A search with results is kept for good, so
+   a domain crawled ahead of an event opens instantly; ?refresh=1 runs it again. A search that
+   found nothing is retried after 72 hours.
    -------------------------------------------------------------------------- */
 
-const CACHE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
+const EMPTY_SEARCH_EXPIRATION_MS = 72 * 60 * 60 * 1000;
+const REFRESH_PARAM = 'refresh';
+
+// Read once: dropped from the URL so the next search in the session uses the store again.
+function takeRefreshRequest() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get(REFRESH_PARAM) !== '1') return false;
+  url.searchParams.delete(REFRESH_PARAM);
+  history.replaceState(history.state, '', url.toString());
+  return true;
+}
 
 async function getCachedResults(domain) {
+  if (takeRefreshRequest()) {
+    console.log(`[Store] Refresh requested for ${domain}; searching again`);
+    return null;
+  }
+
   const cached = await store.loadSearch(domain, { products: CONFIG.CACHED_PRODUCTS_PER_BRAND });
   if (!cached) return null;
 
   if (cached.timestamp) {
     const age = Date.now() - cached.timestamp;
-    if (age > CACHE_EXPIRATION_MS) {
+    if (cached.type === 'empty' && age > EMPTY_SEARCH_EXPIRATION_MS) {
       console.log(`[Store] Stale for ${domain} (age: ${Math.round(age / 1000 / 60 / 60)}h); searching again`);
       return null;
     }
