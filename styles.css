@@ -542,6 +542,23 @@ img {
   width: auto;
 }
 
+/* The app's mark stands in for the lockup on a phone, where the bar has to hold the mode switch
+   and the account control too. */
+.header-nav-logo-mark {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .header-nav-logo-lockup {
+    display: none;
+  }
+
+  .header-nav-logo-mark {
+    display: block;
+    height: 28px;
+  }
+}
+
 .text-content-tertiary {
   color: var(--content-tertiary);
 }
@@ -6253,13 +6270,6 @@ position: absolute;
   background: var(--content-background-base);
 }
 
-/* The header is already tight on a phone, and the tray says whether it is connected anyway. */
-@media (max-width: 900px) {
-  .offerlab-account-wrap {
-    display: none;
-  }
-}
-
 /* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
    in the actions, because it qualifies what the brand is, not what the button does.
 
@@ -6278,13 +6288,6 @@ position: absolute;
   font-weight: 600;
   line-height: 1.25;
   white-space: nowrap;
-}
-
-/* The header is tight on a phone, and the tray already says whether it is connected. */
-@media (max-width: 900px) {
-  .offerlab-account-wrap {
-    display: none;
-  }
 }
 
 /* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
@@ -6714,15 +6717,8 @@ position: absolute;
   opacity: 1;
 }
 
-/* Below 900px the account control is hidden, so the right side of the bar is free; the switch
-   docks there rather than collide with the lockup in the middle of a phone. */
+/* Centered on a phone too; the lockup gives way to the mark so there is room. */
 @media (max-width: 900px) {
-  .mode-switch {
-    left: auto;
-    right: 16px;
-    transform: translateY(-50%);
-  }
-
   .mode-switch-btn {
     padding: 0 12px;
   }
