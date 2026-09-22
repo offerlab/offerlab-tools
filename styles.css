@@ -7397,7 +7397,7 @@ position: absolute;
 .library-lightbox-collab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   font-family: 'Fragment Mono', ui-monospace, monospace;
   font-size: 12px;
@@ -7433,7 +7433,7 @@ position: absolute;
 }
 
 .library-lightbox-avatar + .library-lightbox-avatar {
-  margin-left: -9px;
+  margin-left: -12px;
 }
 
 .library-lightbox-avatar:nth-child(1) { z-index: 6; }
