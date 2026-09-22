@@ -1151,6 +1151,15 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   max-width: calc(100% - 2 * var(--pill-btn) - 2 * var(--pill-pad) - 26px);
 }
 
+/* While a search runs the disc is the stop control; the camera steps out until it is done. */
+.view-header--loading .photo-button {
+  display: none;
+}
+
+.view-header--loading .search-input {
+  padding-right: calc(var(--pill-btn) + 2 * var(--pill-pad));
+}
+
 .view-header .search-input,
 .view-header .search-display {
   font-size: var(--pill-font);
