@@ -35,7 +35,10 @@ const CONFIG = {
 // State
 let currentSearchId = null;
 let currentResults = null;
-function getResults() { return currentResults; }
+// The search in flight, from the moment its brands are on screen: results are only stored once
+// every catalog is in, and a card's button pressed before then must still find its brand.
+let liveResults = null;
+function getResults() { return currentResults || liveResults; }
 let searchAbortController = null;
 let isSearchCancelled = false;
 
@@ -809,7 +812,7 @@ function coverFromCatalog(group, catalog) {
 }
 
 function brandForCard(card) {
-  return currentResults?.brands?.find(b => extractDomain(b.url || '') === card.dataset.domain) || null;
+  return getResults()?.brands?.find(b => extractDomain(b.url || '') === card.dataset.domain) || null;
 }
 
 async function fetchCatalog(domain) {
@@ -3137,6 +3140,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
 
   // Track state for the decoupled flow
   let brandsData = null;
+  liveResults = null;
   let brandsShown = false;
 
   try {
@@ -3150,6 +3154,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         if (isSearchCancelled) return;
         console.log(`[performSearch] onBrandsReady callback: ${brands.length} brands received`);
         brandsData = { searchedBrand, brands };
+        liveResults = brandsData;
         
         if (brands.length === 0) {
           // No brands found, wait for products before deciding
@@ -3462,6 +3467,31 @@ function initEventListeners() {
       renderSearchHistory();
     }
   });
+
+  // On touch, a card's action buttons act on the tap itself (pointerup, with a slop so a scroll
+  // that starts on one is not a press); the click Safari may or may not send afterwards is
+  // ignored. Safari spends a touch's first click on the card's hover states, so waiting for it
+  // took two taps.
+  const ACTION_BUTTONS = '.build-bundle-btn, .generate-pitch-btn, .visit-btn, .card-menu-btn';
+  let actionDown = null;
+  let actionTappedAt = 0;
+  document.addEventListener('pointerdown', (e) => {
+    const button = e.pointerType === 'touch' ? e.target.closest(ACTION_BUTTONS) : null;
+    actionDown = button ? { button, x: e.clientX, y: e.clientY } : null;
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (!actionDown || e.pointerType !== 'touch') return;
+    const { button, x, y } = actionDown;
+    actionDown = null;
+    if (e.target.closest(ACTION_BUTTONS) !== button || Math.hypot(e.clientX - x, e.clientY - y) > 8) return;
+    actionTappedAt = performance.now();
+    button.click();
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.isTrusted || performance.now() - actionTappedAt > 700 || !e.target.closest(ACTION_BUTTONS)) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }, true);
 
   // Result card clicks
   document.addEventListener('click', (e) => {
