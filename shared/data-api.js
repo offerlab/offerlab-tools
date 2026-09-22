@@ -106,17 +106,25 @@ async function route({ method, segments, query, body, db }) {
   throw new HttpError(404, 'No such data route');
 }
 
+const WRITES = ['POST', 'PUT', 'PATCH'];
+
 /**
  * @param {object} req
  * @param {string} req.method
  * @param {string[]} req.segments  path after /api/data/, split on "/"
  * @param {Record<string,string>} req.query
+ * @param {string} [req.contentType] the request's Content-Type header
  * @param {unknown} req.body       parsed JSON, or null
  * @param {object|null} req.db     the D1 binding; null when none is bound
  * @returns {Promise<{status:number, body?:unknown}>}
  */
 export async function handleDataRequest(req) {
   if (!req.db) return { status: 503, body: { error: 'No database bound: the finder is running without persistence' } };
+  // A write is JSON from the finder's own page. Without an allow-origin header the browser only lets
+  // another site send a request that needs no preflight, and a JSON body is not one of those.
+  if (WRITES.includes(req.method) && !/^application\/json\b/i.test(req.contentType || '')) {
+    return { status: 415, body: { error: 'Writes take application/json' } };
+  }
   try {
     return await route(req);
   } catch (err) {

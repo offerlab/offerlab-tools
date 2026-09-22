@@ -7,6 +7,7 @@
  *
  * Schema: migrations/0001_init.sql.
  */
+import { normalizeDomain } from './catalog.js';
 
 /** How many products a stored search hands back per brand unless the caller asks for more. */
 export const DEFAULT_PRODUCTS_PER_BRAND = 24;
@@ -19,15 +20,7 @@ export const DRAFTS_PER_BRAND = 20;
 
 /** "https://www.Graza.co/pages/x" -> "graza.co": the key every table shares. */
 export function canonicalDomain(input) {
-  const raw = String(input || '').trim().toLowerCase();
-  if (!raw) return '';
-  let host;
-  try {
-    host = new URL(raw.startsWith('http') ? raw : `https://${raw}`).hostname;
-  } catch {
-    host = raw.replace(/^(https?:\/\/)?/, '').split(/[/?#]/)[0];
-  }
-  return host.replace(/^www\./, '');
+  return normalizeDomain(input).replace(/^www\./, '');
 }
 
 function parse(json, fallback = null) {
@@ -62,8 +55,12 @@ export async function getCatalog(db, domain) {
 export async function putCatalog(db, domain, catalog, now = Date.now()) {
   const key = canonicalDomain(domain);
   if (!key || !catalog || catalog.status === 'error') return false;
-  const { fetchedAt, cached, truncated, ...record } = catalog;
+  const { fetchedAt, cached, stale, truncated, ...record } = catalog;
   const products = Array.isArray(record.products) ? record.products : [];
+  if (!products.length) {
+    const existing = await db.prepare('SELECT status, count FROM catalogs WHERE domain = ?').bind(key).first();
+    if (keepStoredSerp(existing, record)) return false;
+  }
   const payload = JSON.stringify({ ...record, count: record.count || products.length, products });
   await db.prepare(
     `INSERT INTO catalogs (domain, status, count, payload, fetched_at) VALUES (?, ?, ?, ?, ?)
@@ -84,7 +81,7 @@ export async function getSocials(db, domain) {
 export async function putSocials(db, domain, result, now = Date.now()) {
   const key = canonicalDomain(domain);
   if (!key || !result || result.status === 'error') return false;
-  const { fetchedAt, cached, ...record } = result;
+  const { fetchedAt, cached, stale, ...record } = result;
   await db.prepare(
     `INSERT INTO socials (domain, status, payload, fetched_at) VALUES (?, ?, ?, ?)
      ON CONFLICT(domain) DO UPDATE SET status = excluded.status, payload = excluded.payload, fetched_at = excluded.fetched_at`
@@ -96,9 +93,10 @@ export async function putSocials(db, domain, result, now = Date.now()) {
 /* Searches: the searched brand, its recommendations, and their catalogs        */
 /* -------------------------------------------------------------------------- */
 
+// `limit` null or undefined is the whole list; 0 is none of it.
 function trimProducts(catalog, limit) {
   const products = Array.isArray(catalog.products) ? catalog.products : [];
-  if (!limit || products.length <= limit) return { ...catalog, truncated: false };
+  if (limit == null || limit < 0 || products.length <= limit) return { ...catalog, products, truncated: false };
   return { ...catalog, products: products.slice(0, limit), truncated: true };
 }
 
@@ -312,4 +310,38 @@ export function isFresh(stored, ttls, now = Date.now()) {
   if (!stored || typeof stored.fetchedAt !== 'number') return false;
   const ttl = ttls[stored.status];
   return typeof ttl === 'number' && now - stored.fetchedAt < ttl;
+}
+
+/**
+ * Google Shopping found products the storefront does not publish, so a crawl that finds none is
+ * not news: the stored catalog stays, marked stale, until a search refreshes it through SERP.
+ */
+export function keepStoredSerp(stored, crawled) {
+  return stored?.status === 'serp' && stored.count > 0 && !(crawled?.products?.length);
+}
+
+/**
+ * The crawl proxies' one pattern: serve the stored copy while it is fresh, otherwise crawl and
+ * store the result. `defer` (Pages' waitUntil) lets the write happen after the response; without
+ * it the write is awaited. `keep(stored, crawled)` says when a crawl should not replace the row,
+ * in which case the stored copy is served with `stale` set. Without a db it just crawls.
+ */
+export async function readThrough({ db, domain, get, put, ttl, crawl, refresh = false, keep = null, defer = null }) {
+  let stored = null;
+  if (db && !refresh) {
+    stored = await get(db, domain).catch(err => {
+      console.warn(`[Store] read failed for ${domain}: ${err.message}`);
+      return null;
+    });
+    if (isFresh(stored, ttl)) return { ...stored, cached: true };
+  }
+
+  const crawled = await crawl(domain);
+  if (stored && keep && keep(stored, crawled)) return { ...stored, cached: true, stale: true };
+
+  if (db) {
+    const write = put(db, domain, crawled).catch(err => console.warn(`[Store] write failed for ${domain}: ${err.message}`));
+    if (defer) defer(write); else await write;
+  }
+  return crawled;
 }

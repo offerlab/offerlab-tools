@@ -1,18 +1,16 @@
 /**
  * Cloudflare Pages Function: the finder's data store, on D1.
  * Every /api/data/* route lands here; shared/data-api.js says which is which.
+ *
+ * Same-origin only, unlike the read proxies: these routes write a store the whole team reads, so
+ * no allow-origin header goes out and another site's browser cannot send them anything but a
+ * preflight-free request, which the handler refuses.
  */
 import { handleDataRequest } from '../../../shared/data-api.js';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
 export async function onRequest(context) {
   const { request, env, params } = context;
-  if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
 
   const url = new URL(request.url);
   const segments = Array.isArray(params.path) ? params.path : String(params.path || '').split('/').filter(Boolean);
@@ -25,13 +23,14 @@ export async function onRequest(context) {
     method: request.method,
     segments,
     query: Object.fromEntries(url.searchParams),
+    contentType: request.headers.get('content-type') || '',
     body,
     db: env.DB || null
   });
 
-  if (status === 204 || payload === undefined) return new Response(null, { status, headers: CORS });
+  if (status === 204 || payload === undefined) return new Response(null, { status });
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
 }
