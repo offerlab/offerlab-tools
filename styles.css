@@ -1141,6 +1141,23 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 /* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
 .view-header .search-input {
   padding-right: calc(2 * var(--pill-btn) + 2 * var(--pill-pad) + 6px);
+  text-align: left;
+}
+
+/* The domain reads from the left, where the caret is, now that two discs take the right. */
+.view-header .search-display {
+  left: 20px;
+  transform: translateY(-50%);
+  max-width: calc(100% - 2 * var(--pill-btn) - 2 * var(--pill-pad) - 26px);
+}
+
+/* While a search runs the disc is the stop control; the camera steps out until it is done. */
+.view-header--loading .photo-button {
+  display: none;
+}
+
+.view-header--loading .search-input {
+  padding-right: calc(var(--pill-btn) + 2 * var(--pill-pad));
 }
 
 .view-header .search-input,
@@ -1376,8 +1393,16 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   background: var(--content-background-base);
   border-radius: 28px 28px 0 0;
 
-  /* The sheet is the scroll region, not a box inside it, so the rounded top holds its place under
-     the header rather than scrolling away with what it contains. */
+  overflow: hidden;
+}
+
+/* The scroll region, inside the sheet rather than the sheet itself, so the rounded top holds its
+   place under the header and a footer can sit below it in flow. */
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden auto;
 }
 
@@ -2371,6 +2396,19 @@ position: relative;
   gap: 16px;
 }
 
+/* A grid item's automatic minimum is its min-content width, and the thumbnail strip's min-content
+   is every tile side by side even though the strip scrolls; on a phone that pushed every card
+   past the sheet. Zero it so the column, not the content, sets the width. */
+.results-grid > *,
+.result-card,
+.card-catalog-thumbs {
+  min-width: 0;
+}
+
+.result-card {
+  max-width: 100%;
+}
+
 /* --------------------------------------------------------------------------
    Searched Brand Card (top of results)
    -------------------------------------------------------------------------- */
@@ -3218,39 +3256,60 @@ position: relative;
   .floating-tiles .tile-8 { bottom: 2%; right: -3%; }
 
   .results-section {
-    padding-top: 0;
-    padding-bottom: var(--spacing-lg);
+    padding: 0 16px var(--spacing-lg);
   }
 
   .view-header {
     padding-inline: 16px;
   }
 
-  /* Mobile results: search box in sticky footer at bottom of viewport. It keeps the collapsed
-     size it has in the desktop bar, and opens the same way on focus. Narrower than the desktop
-     360 so the collapsed pill reads as a control sitting over the results, not a second footer. */
-  .view-header .header-nav-search {
-    --pill-max: 300px;
-    position: fixed;
+  /* Mobile results: the omnibar is a footer under the scroll region, in flow (app.js moves it
+     here from the bar). Not fixed: the browser chrome collapsing on scroll made a fixed pill
+     stutter. It keeps the collapsed size it has in the desktop bar and opens the same way on
+     focus; narrower than the desktop 360 so it reads as a control, not a second footer. */
+  .omni-footer {
+    position: relative;
+    top: auto;
+    flex: none;
     display: flex;
-    flex-direction: column;
-    width: 100%;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: linear-gradient(to top, rgb(255, 255, 255) 5%, rgba(255, 255, 255, 0.75) 65%, transparent);
-    padding-bottom: var(--search-footer-gutter);
-    padding-left: 24px;
-    padding-right: 24px;
+    justify-content: center;
+    padding: 8px 16px 24px;
+    background: var(--content-background-elevated);
   }
 
-  body.showing-results .results-section {
-    padding-bottom: 140px;
+  /* Loading, the bar holds nothing on a phone (the back control hides, the pill is in the footer). */
+  .view-header--loading:not(.omni-footer) {
+    display: none;
+  }
+
+  .omni-footer .header-nav-search {
+    --pill-max: 300px;
+    flex: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .results-grid {
     grid-template-columns: 1fr;
+  }
+
+  .searched-brand-card-content {
+    padding: 16px;
+  }
+
+  /* The app's md is the touch size on a phone. */
+  .result-card .btn--md,
+  .searched-brand-card .btn--md {
+    height: 40px;
+    padding: 0 16px;
+  }
+
+  .result-card .btn--md.btn--icon,
+  .searched-brand-card .btn--md.btn--icon {
+    width: 40px;
+    padding: 0;
   }
 
   .feedback-btn {
@@ -6574,7 +6633,7 @@ position: relative;
        is in the padding too or the last row of products can never be scrolled out from under it. */
     --picker-bottom-gap: 16px;
     padding-top: 20px;
-    padding-bottom: calc(var(--search-footer-h) + var(--picker-bottom-gap));
+    padding-bottom: var(--picker-bottom-gap);
   }
 
   /* A screenful less the two bars that float over it, so a panel's own bottom edge lands above the
@@ -7678,7 +7737,6 @@ position: relative;
     touch-action: auto;
     user-select: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px;
   }
 
   .library-board {
@@ -7714,9 +7772,16 @@ position: relative;
     visibility: visible;
   }
 
+  /* In flow under the grid, for the same reason the results omnibar is. */
   .library-omni {
-    position: fixed;
-    padding: 0 16px 16px;
+    position: static;
+    flex: none;
+    padding: 8px 16px 24px;
+    background: var(--content-background-base);
+  }
+
+  .library-omni .search-input {
+    padding-left: 16px;
   }
 
   .library-filters {
