@@ -138,13 +138,19 @@ export function openPicker(partner, { skipUrlUpdate = false } = {}) {
   return openPickerWith([partner], { skipUrlUpdate });
 }
 
+/**
+ * The first column presents the bundle. That is the searched brand when it has a public catalog;
+ * when it has none (a headless storefront, no products.json) the partner clicked leads instead,
+ * and the searched brand is simply not on the rail, so a build never dead-ends on it.
+ */
 async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
   const seller = getResults()?.searchedBrand;
+  const lead = seller && canBuildWith(seller) ? [seller] : [];
   const usable = partners.filter(canBuildWith);
-  if (!seller || !canBuildWith(seller) || usable.length === 0) return false;
+  if (usable.length === 0) return false;
 
   resetState();
-  state.brands = [seller, ...usable].map(brand => ({ domain: extractDomain(brand.url || ''), brand }));
+  state.brands = [...lead, ...usable].map(brand => ({ domain: extractDomain(brand.url || ''), brand }));
   if (!skipUrlUpdate) pushPickUrl();
 
   renderAll();
@@ -200,9 +206,12 @@ export function restorePickerFromUrl() {
   }
 }
 
+// Every brand on the rail but the searched one, which the search itself names; when a partner
+// leads instead, it is in here too, so the rail comes back the same from the URL.
 function pushPickUrl() {
+  const searched = extractDomain(getResults()?.searchedBrand?.url || '');
   const url = new URL(window.location.href);
-  url.searchParams.set(PICK_PARAM, state.brands.slice(1).map(e => e.domain).join(','));
+  url.searchParams.set(PICK_PARAM, state.brands.filter(e => e.domain !== searched).map(e => e.domain).join(','));
   history.pushState(null, '', url.toString());
 }
 
@@ -430,7 +439,7 @@ function fallbackCopy() {
   const names = brandNames();
   return {
     headline: `${names.join(' x ')}, bundled`,
-    subtitle: 'AI picks the pairs. You pick the winner.'
+    subtitle: names.length > 1 ? 'AI picks the pairs. You pick the winner.' : 'Add a partner brand to pair with.'
   };
 }
 
@@ -490,8 +499,14 @@ async function refreshConceptsCopy() {
   const key = brandSetKey();
   if (!key || state.copyKey === key) return;
   if (state.copyAbort) state.copyAbort.abort();
-  state.copyAbort = new AbortController();
   state.copyKey = key;
+  // One brand has nothing to pair with yet; asked anyway, the model invents a partner.
+  if (state.brands.length < 2) {
+    state.copy = null;
+    renderConcepts();
+    return;
+  }
+  state.copyAbort = new AbortController();
 
   try {
     const response = await fetch(`${CONFIG.GEMINI_PROXY}?model=${encodeURIComponent(CONCEPT_MODEL)}`, {
