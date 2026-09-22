@@ -559,8 +559,10 @@ img {
     display: none;
   }
 
-  .header-nav-logo-mark {
+  /* Outranks the lockup's 24px `img` rule. */
+  .header-nav-logo .header-nav-logo-mark {
     display: block;
+    width: 28px;
     height: 28px;
   }
 }
@@ -6958,7 +6960,7 @@ position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #cdcdcd;
+  background: var(--content-background-elevated);
 }
 
 .library-viewport {
@@ -6970,7 +6972,7 @@ position: relative;
   touch-action: none;
   user-select: none;
   outline: none;
-  background: linear-gradient(180deg, #d4d4d4, #c3c3c3);
+  background: var(--content-background-elevated);
 }
 
 .library-viewport:focus-visible {

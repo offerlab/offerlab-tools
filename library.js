@@ -29,7 +29,7 @@ const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 // Each row is one continuous plank; odd rows sit half a column over. A phone fits 2.25 columns
 // across the viewport so the next tile is always cut off at the edge; a desktop has fixed tiles.
 const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
-const PHONE = { columns: 2.25, gap: 16, plank: 14, air: 44, radius: 20 };
+const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20 };
 const G = {};
 
 function measure() {
@@ -369,20 +369,19 @@ function apply() {
   render();
 }
 
-/** What narrowed the shelves, in the order the chips show. */
+/** The popover's filters, in the order the chips show. A typed query stays in the box, not here. */
 function narrowedBy() {
-  const { query, category, brand, store } = state.filters;
+  const { category, brand, store } = state.filters;
   return [
     category && { key: 'category', label: label(category) },
     brand && { key: 'brand', label: brand },
-    store && { key: 'store', label: store },
-    query && { key: 'query', label: `“${query}”` }
+    store && { key: 'store', label: store }
   ].filter(Boolean);
 }
 
 /**
- * Only while something narrows the shelves: the count, a chip per filter with its own remove,
- * the rest folded into "+n more" that opens the popover, and Clear on the far right.
+ * Only while a popover filter narrows the shelves: the count, a chip per filter with its own
+ * remove, the rest folded into "+n more" that opens the popover, and Clear on the far right.
  */
 function renderEyebrow(n) {
   const applied = narrowedBy();
@@ -405,8 +404,7 @@ function renderEmpty(n) {
 
 function removeFilter(key) {
   state.filters[key] = '';
-  if (key === 'query') dom.input.value = '';
-  else dom.popover.querySelector(`[data-filter="${key}"]`).value = '';
+  dom.popover.querySelector(`[data-filter="${key}"]`).value = '';
   apply();
 }
 
