@@ -7309,10 +7309,11 @@ position: absolute;
   transition-delay: 0s;
 }
 
+/* Anchored to the viewport, not the card. */
 .library-lightbox-close {
-  position: absolute;
-  top: 0;
-  right: 0;
+  position: fixed;
+  top: 20px;
+  right: var(--page-gutter);
   z-index: 2;
   width: 40px;
   height: 40px;
@@ -7327,7 +7328,7 @@ position: absolute;
 
 .library-lightbox-cover {
   aspect-ratio: 1;
-  border-radius: 28px;
+  border-radius: 36px;
   overflow: hidden;
   background: var(--content-background-base);
   box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
@@ -7513,12 +7514,14 @@ position: absolute;
     align-items: flex-end;
   }
 
+  /* The card scrolls under a fixed row of Open and Close along the bottom, so its own bottom
+     padding is that row's height plus its 24px stand-off, plus room to breathe. */
   .library-lightbox-card {
     grid-template-columns: 1fr;
     gap: 20px;
     width: 100%;
-    max-height: 92vh;
-    padding: 20px 20px 28px;
+    max-height: 100vh;
+    padding: 20px 16px calc(24px + 48px + 24px);
     overflow: auto;
     opacity: 0;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
@@ -7529,8 +7532,21 @@ position: absolute;
   }
 
   .library-lightbox-close {
-    top: 12px;
-    right: 12px;
+    top: auto;
+    bottom: 24px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .library-lightbox-open {
+    position: fixed;
+    left: 16px;
+    right: calc(16px + 48px + 8px);
+    bottom: 24px;
+    z-index: 2;
+    justify-content: center;
+    margin: 0;
   }
 
   .library-lightbox.is-open .library-lightbox-card {
@@ -7538,6 +7554,7 @@ position: absolute;
   }
 
   .library-lightbox-cover {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 1;
+    border-radius: 28px;
   }
 }

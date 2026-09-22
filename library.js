@@ -88,6 +88,8 @@ export async function initLibrary() {
   dom.empty = document.getElementById('libraryEmpty');
   dom.emptyTitle = document.getElementById('libraryEmptyTitle');
   dom.lightbox = document.getElementById('libraryLightbox');
+  // Out of the section, whose stacking context would keep it under the fixed header.
+  document.body.appendChild(dom.lightbox);
 
   const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, air: AIR, shelf: SHELF_H };
   for (const [name, value] of Object.entries(geometry)) dom.section.style.setProperty(`--lib-${name}`, `${value}px`);
