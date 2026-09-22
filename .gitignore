@@ -5,7 +5,7 @@
 .dev.vars
 
 # Local config with API keys (NEVER commit)
-config.js
+/config.js
 
 # Dependencies
 node_modules/
