@@ -633,7 +633,7 @@ function openLightbox(id, tile) {
     <div class="library-lightbox-body">
       <p class="library-lightbox-collab">
         <span class="library-lightbox-stack" aria-hidden="true">${bundle.brands.map(brandMark).join('')}</span>
-        ${bundle.brands.map(escape).join('<span class="library-lightbox-x" aria-hidden="true">×</span>')}
+        <span class="library-lightbox-names">${bundle.brands.map(escape).join(' x ')}</span>
       </p>
       <h2 class="library-lightbox-title" id="libraryLightboxTitle">${escape(bundle.name)}</h2>
       <ul class="library-lightbox-chips"><li>${escape(label(bundle.category))}</li></ul>

@@ -7396,9 +7396,8 @@ position: absolute;
 /* The collaboration: each brand's avatar and name, in the marketing site's mono. */
 .library-lightbox-collab {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
+  gap: 6px;
   margin: 0;
   font-family: 'Fragment Mono', ui-monospace, monospace;
   font-size: 12px;
@@ -7410,8 +7409,8 @@ position: absolute;
 
 /* The brands' avatars, stacked and slightly offset, the first on top. */
 .library-lightbox-stack {
+  flex: none;
   display: inline-flex;
-  margin-right: 6px;
 }
 
 .library-lightbox-avatar {
@@ -7451,9 +7450,6 @@ position: absolute;
   object-fit: cover;
 }
 
-.library-lightbox-x {
-  color: rgba(255, 255, 255, 0.45);
-}
 
 .library-lightbox-title {
   margin: 0;
@@ -7568,9 +7564,10 @@ position: absolute;
     grid-template-columns: 1fr;
   }
 
+  /* The cover and details start at the top of the view; Open and Close are pinned to the bottom. */
   .library-lightbox {
     padding: 0;
-    align-items: flex-end;
+    align-items: flex-start;
   }
 
   /* The card scrolls under a fixed row of Open and Close along the bottom, so its own bottom
@@ -7579,8 +7576,9 @@ position: absolute;
     grid-template-columns: 1fr;
     gap: 20px;
     width: 100%;
-    max-height: 100vh;
+    height: 100vh;
     padding: 20px 16px calc(24px + 48px + 24px);
+    align-content: start;
     overflow: auto;
     opacity: 0;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
