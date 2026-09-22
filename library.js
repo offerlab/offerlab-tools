@@ -1,19 +1,35 @@
 /**
- * The collabs library: every published demo bundle on a draggable shelf, from library/snapshot.json
- * and nothing else (OL-3832, OL-4032). No OfferLab calls, no account; a guest at a booth gets it.
+ * The collabs library: every published demo bundle on shelves that run forever in every direction,
+ * from library/snapshot.json and nothing else (OL-3832, OL-4032). No OfferLab calls, no account.
+ *
+ * The board is virtual. A cell (row, column) maps to a bundle through a stable hash, so the grid
+ * is unbounded, a bundle recurs across it, and a shared link lays out the same way twice. Only the
+ * cells near the viewport exist in the DOM; panning creates and drops them.
  */
 import { icon } from './icons.js';
 
 const SNAPSHOT_URL = 'library/snapshot.json';
-const SHELVES = 4;
+const MOBILE = window.matchMedia('(max-width: 900px)');
+const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
+
+// Geometry, owned here and mirrored onto the section as custom properties so the CSS cannot drift.
+// A shelf is a run of planks; each plank carries PER_PLANK tiles; odd rows sit half a plank over.
+const TILE = 220;
+const GAP = 32;
+const PER_PLANK = 5;
+const OVERHANG = 56;
+const PLANK_GAP = 160;
+const PLANK_H = 18;
+const AIR = 64;
+const PLANK_W = PER_PLANK * TILE + (PER_PLANK - 1) * GAP + 2 * OVERHANG;
+const SEG_W = PLANK_W + PLANK_GAP;
+const SHELF_H = AIR + TILE + PLANK_H;
+const TILE_COVER_WIDTH = 480;
+const SEED = 0x9e3779b1;
+
 const KEY_STEP = 160;
 const FRICTION = 0.92;
 const DRAG_THRESHOLD = 6;
-const MOBILE = window.matchMedia('(max-width: 900px)');
-
-const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
-const TILE_COVER_WIDTH = 480;
-const COVER_MARGIN = 600;
 
 const state = {
   bundles: [],
@@ -21,12 +37,18 @@ const state = {
   filters: { query: '', category: '', brand: '', store: '' },
   visible: [],
   pan: { x: 0, y: 0 },
-  bounds: { minX: 0, maxX: 0, minY: 0, maxY: 0 },
   velocity: { x: 0, y: 0 },
+  rows: new Map(),
+  cells: new Map(),
+  planks: new Map(),
   dragging: false,
   moved: false,
+  suppressClick: false,
+  pointerId: null,
+  renderQueued: false,
   lastTile: null,
-  loaded: false
+  loaded: false,
+  placed: false
 };
 
 const dom = {};
@@ -36,7 +58,7 @@ export async function initLibrary() {
   if (!dom.section) return;
   dom.viewport = document.getElementById('libraryViewport');
   dom.board = document.getElementById('libraryBoard');
-  dom.shelves = [...dom.board.querySelectorAll('.library-shelf-row')];
+  dom.grid = document.getElementById('libraryGrid');
   dom.form = document.getElementById('libraryForm');
   dom.input = document.getElementById('libraryInput');
   dom.filterBtn = document.getElementById('libraryFilterBtn');
@@ -45,11 +67,14 @@ export async function initLibrary() {
   dom.empty = document.getElementById('libraryEmpty');
   dom.lightbox = document.getElementById('libraryLightbox');
 
+  const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, 'plank-w': PLANK_W, overhang: OVERHANG, air: AIR, shelf: SHELF_H };
+  for (const [name, value] of Object.entries(geometry)) dom.section.style.setProperty(`--lib-${name}`, `${value}px`);
+
   bindViewport();
   bindOmnibox();
   bindLightbox();
-  dom.viewport.addEventListener('scroll', scheduleReveal, { passive: true });
-  window.addEventListener('resize', () => { if (state.loaded) layout(); });
+  window.addEventListener('resize', () => { if (state.loaded) render(); });
+  MOBILE.addEventListener('change', () => { if (state.loaded) apply(); });
 }
 
 /** Called by app.js when the mode switches in; loads on first use. */
@@ -85,7 +110,6 @@ async function load() {
   }));
   state.categories = snapshot.categories.filter(c => state.bundles.some(b => b.category === c));
   renderFilterOptions();
-  renderTiles();
   state.loaded = true;
 }
 
@@ -107,23 +131,8 @@ function fillSelect(id, options, allLabel) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Tiles and shelves                                                           */
+/* Tiles                                                                       */
 /* -------------------------------------------------------------------------- */
-
-function renderTiles() {
-  state.bundles.forEach(bundle => {
-    const tile = document.createElement('button');
-    tile.type = 'button';
-    tile.className = 'library-tile';
-    tile.dataset.id = bundle.id;
-    tile.setAttribute('aria-label', `${bundle.name}, ${bundle.brands.join(', ')}`);
-    tile.innerHTML = `
-      <span class="library-tile-cover"><img data-src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async"></span>
-      <span class="library-tile-name">${escape(bundle.name)}</span>`;
-    tile.querySelector('img').addEventListener('error', () => tile.classList.add('is-bare'), { once: true });
-    bundle.tile = tile;
-  });
-}
 
 /** The Shopify CDN sizes on request; a tile never needs the full hero the lightbox shows. */
 function coverUrl(url, width) {
@@ -136,35 +145,115 @@ function coverUrl(url, width) {
   }
 }
 
-/** Visible bundles dealt across the shelves in turn, so a filter leaves the board balanced. */
-function placeTiles() {
-  dom.shelves.forEach(row => row.replaceChildren());
-  state.visible.forEach((bundle, index) => dom.shelves[index % SHELVES].appendChild(bundle.tile));
-  dom.board.querySelectorAll('.library-shelf').forEach((shelf, i) => {
-    shelf.hidden = !dom.shelves[i].childElementCount;
-  });
+function makeTile(bundle) {
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'library-tile';
+  tile.dataset.id = bundle.id;
+  tile.setAttribute('aria-label', `${bundle.name}, ${bundle.brands.join(', ')}`);
+  tile.innerHTML = `
+    <span class="library-tile-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async"></span>
+    <span class="library-tile-name">${escape(bundle.name)}</span>`;
+  tile.querySelector('img').addEventListener('error', () => tile.classList.add('is-bare'), { once: true });
+  return tile;
 }
 
-/* A cover loads the first time its tile comes within COVER_MARGIN of the viewport. Measured
-   directly: the board is a transformed layer in a clipped viewport that never scrolls on desktop,
-   which neither native lazy loading nor an observer reported reliably. */
-function revealCovers() {
-  state.revealQueued = false;
+/* -------------------------------------------------------------------------- */
+/* The virtual board                                                           */
+/* -------------------------------------------------------------------------- */
+
+function mix(row, col) {
+  let h = (Math.imul(row, 73856093) ^ Math.imul(col, 19349663) ^ SEED) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+/**
+ * Which bundle a cell holds. A hash rather than a shuffle so that any cell, however far out, has
+ * an answer without a table, and the same answer on the next visit. A cell that would repeat its
+ * left or upper neighbor takes the next bundle instead.
+ */
+function bundleAt(row, col) {
+  const n = state.visible.length;
+  let i = mix(row, col) % n;
+  if (n > 2 && (i === mix(row, col - 1) % n || i === mix(row - 1, col) % n)) i = (i + 1) % n;
+  return state.visible[i];
+}
+
+const rowOffset = r => (r & 1 ? SEG_W / 2 : 0);
+const tileX = i => OVERHANG + i * (TILE + GAP);
+
+function rowFor(r) {
+  let row = state.rows.get(r);
+  if (row) return row;
+  const el = document.createElement('div');
+  el.className = 'library-shelf';
+  el.style.transform = `translate3d(0, ${r * SHELF_H}px, 0)`;
+  // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
+  el.style.zIndex = String(r + 1e6);
+  row = { el, r };
+  state.rows.set(r, row);
+  dom.board.appendChild(el);
+  return row;
+}
+
+function plankFor(row, s) {
+  const key = `${row.r}:${s}`;
+  let plank = state.planks.get(key);
+  if (plank) return plank;
+  plank = document.createElement('div');
+  plank.className = 'library-plank';
+  plank.style.left = `${s * SEG_W + rowOffset(row.r)}px`;
+  plank.innerHTML = '<div class="library-plank-glow"></div><div class="library-plank-shadow"></div><div class="library-plank-slab"></div>';
+  state.planks.set(key, plank);
+  row.el.appendChild(plank);
+  return plank;
+}
+
+/** Creates what the viewport can see plus one cell of margin, drops the rest. */
+function render() {
+  if (MOBILE.matches || !state.visible.length) return;
   const view = dom.viewport.getBoundingClientRect();
-  const left = view.left - COVER_MARGIN, right = view.right + COVER_MARGIN;
-  const top = view.top - COVER_MARGIN, bottom = view.bottom + COVER_MARGIN;
-  for (const bundle of state.visible) {
-    const img = bundle.tile.querySelector('img');
-    if (img.src) continue;
-    const r = bundle.tile.getBoundingClientRect();
-    if (r.right > left && r.left < right && r.bottom > top && r.top < bottom) img.src = img.dataset.src;
+  const x0 = -state.pan.x - SEG_W, x1 = -state.pan.x + view.width + SEG_W;
+  const r0 = Math.floor(-state.pan.y / SHELF_H) - 1, r1 = Math.ceil((-state.pan.y + view.height) / SHELF_H) + 1;
+  const keepCells = new Set(), keepPlanks = new Set();
+
+  for (let r = r0; r <= r1; r++) {
+    const row = rowFor(r);
+    const s0 = Math.floor((x0 - rowOffset(r)) / SEG_W), s1 = Math.floor((x1 - rowOffset(r)) / SEG_W);
+    for (let s = s0; s <= s1; s++) {
+      keepPlanks.add(`${r}:${s}`);
+      const plank = plankFor(row, s);
+      for (let i = 0; i < PER_PLANK; i++) {
+        const c = s * PER_PLANK + i;
+        const key = `${r}:${c}`;
+        keepCells.add(key);
+        if (state.cells.has(key)) continue;
+        const tile = makeTile(bundleAt(r, c));
+        tile.style.left = `${tileX(i)}px`;
+        state.cells.set(key, tile);
+        plank.appendChild(tile);
+      }
+    }
   }
+
+  for (const [key, tile] of state.cells) if (!keepCells.has(key)) { tile.remove(); state.cells.delete(key); }
+  for (const [key, plank] of state.planks) if (!keepPlanks.has(key)) { plank.remove(); state.planks.delete(key); }
+  for (const [r, row] of state.rows) if (r < r0 || r > r1) { row.el.remove(); state.rows.delete(r); }
 }
 
-function scheduleReveal() {
-  if (state.revealQueued) return;
-  state.revealQueued = true;
-  requestAnimationFrame(revealCovers);
+function scheduleRender() {
+  if (state.renderQueued) return;
+  state.renderQueued = true;
+  requestAnimationFrame(() => { state.renderQueued = false; render(); });
+}
+
+function clearBoard() {
+  dom.board.replaceChildren();
+  state.rows.clear();
+  state.cells.clear();
+  state.planks.clear();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -185,14 +274,29 @@ function matches(bundle) {
 
 function apply() {
   state.visible = state.bundles.filter(matches);
-  placeTiles();
   const n = state.visible.length;
   dom.count.textContent = n === state.bundles.length ? `${n} bundles` : `${n} of ${state.bundles.length}`;
   dom.empty.classList.toggle('hidden', n > 0);
-  dom.board.classList.toggle('hidden', n === 0);
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
-  layout({ recentre: true });
+
+  clearBoard();
+  dom.grid.replaceChildren();
+  if (!n) return;
+  if (MOBILE.matches) {
+    // A phone scrolls the visible bundles once each, no repeats.
+    dom.grid.replaceChildren(...state.visible.map(makeTile));
+    return;
+  }
+  // The first plank of row 0 opens centered; after that the pan is kept, so a filter changes what
+  // is on the shelves and not where you are.
+  if (!state.placed) {
+    const view = dom.viewport.getBoundingClientRect();
+    state.pan = { x: Math.round((view.width - PLANK_W) / 2), y: Math.round(view.height / 2 - AIR - TILE / 2) };
+    state.placed = true;
+  }
+  setPan(state.pan.x, state.pan.y);
+  render();
 }
 
 function readFiltersFromUrl() {
@@ -254,7 +358,7 @@ function closeFilters() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* The board: drag, wheel, keys, bounds                                        */
+/* Panning: drag, wheel, keys                                                  */
 /* -------------------------------------------------------------------------- */
 
 function bindViewport() {
@@ -279,6 +383,8 @@ function bindViewport() {
     state.origin.lastX = event.clientX; state.origin.lastY = event.clientY; state.origin.t = now;
     const x = event.clientX - state.origin.x;
     const y = event.clientY - state.origin.y;
+    // Capturing on pointerdown would retarget the click to the viewport instead of the tile, so
+    // the capture waits for a real drag.
     if (!state.moved && Math.hypot(x - state.pan.x, y - state.pan.y) > DRAG_THRESHOLD) {
       state.moved = true;
       view.setPointerCapture(state.pointerId);
@@ -300,7 +406,6 @@ function bindViewport() {
   view.addEventListener('pointerup', release);
   view.addEventListener('pointercancel', release);
 
-  // A drag that moved is not a click on whatever it ended over.
   view.addEventListener('click', event => {
     if (state.suppressClick) { event.stopPropagation(); event.preventDefault(); state.suppressClick = false; return; }
     const tile = event.target.closest('.library-tile');
@@ -334,31 +439,12 @@ function glide() {
   requestAnimationFrame(tick);
 }
 
+/** Unbounded: the board has no edge to meet. */
 function setPan(x, y) {
-  const { minX, maxX, minY, maxY } = state.bounds;
-  state.pan.x = Math.min(maxX, Math.max(minX, x));
-  state.pan.y = Math.min(maxY, Math.max(minY, y));
-  dom.board.style.transform = `translate3d(${Math.round(state.pan.x)}px, ${Math.round(state.pan.y)}px, 0)`;
-  scheduleReveal();
-}
-
-/**
- * The board may be dragged until its far edge meets the viewport's, and no further. Smaller than
- * the viewport on an axis, it sits centred and does not move on that axis.
- */
-function layout({ recentre = false } = {}) {
-  if (MOBILE.matches) { dom.board.style.transform = ''; revealCovers(); return; }
-  const view = dom.viewport.getBoundingClientRect();
-  const board = { w: dom.board.scrollWidth, h: dom.board.scrollHeight };
-  const slackX = view.width - board.w;
-  const slackY = view.height - board.h;
-  state.bounds = {
-    minX: Math.min(0, slackX), maxX: Math.max(0, slackX),
-    minY: Math.min(0, slackY), maxY: Math.max(0, slackY)
-  };
-  if (recentre) setPan(slackX / 2, slackY / 2);
-  else setPan(state.pan.x, state.pan.y);
-  revealCovers();
+  state.pan.x = x;
+  state.pan.y = y;
+  dom.board.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
+  scheduleRender();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -373,6 +459,10 @@ function bindLightbox() {
     if (dom.lightbox.classList.contains('hidden')) return;
     if (event.key === 'Escape') { event.preventDefault(); closeLightbox(); return; }
     if (event.key === 'Tab') trapFocus(event);
+  });
+  dom.grid.addEventListener('click', event => {
+    const tile = event.target.closest('.library-tile');
+    if (tile) openLightbox(tile.dataset.id, tile);
   });
 }
 
@@ -401,7 +491,8 @@ function closeLightbox() {
   if (dom.lightbox.classList.contains('hidden')) return;
   dom.lightbox.classList.remove('is-open');
   dom.lightbox.classList.add('hidden');
-  state.lastTile?.focus();
+  // The tile may have been dropped out of the window while the lightbox was open.
+  (state.lastTile?.isConnected ? state.lastTile : dom.viewport).focus();
 }
 
 function trapFocus(event) {
