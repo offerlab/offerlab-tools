@@ -63,7 +63,8 @@ export async function initLibrary() {
   dom.input = document.getElementById('libraryInput');
   dom.filterBtn = document.getElementById('libraryFilterBtn');
   dom.popover = document.getElementById('libraryFilters');
-  dom.count = document.getElementById('libraryCount');
+  dom.eyebrow = document.getElementById('libraryEyebrow');
+  dom.eyebrowText = document.getElementById('libraryEyebrowText');
   dom.empty = document.getElementById('libraryEmpty');
   dom.lightbox = document.getElementById('libraryLightbox');
 
@@ -275,7 +276,7 @@ function matches(bundle) {
 function apply() {
   state.visible = state.bundles.filter(matches);
   const n = state.visible.length;
-  dom.count.textContent = n === state.bundles.length ? `${n} bundles` : `${n} of ${state.bundles.length}`;
+  renderEyebrow(n);
   dom.empty.classList.toggle('hidden', n > 0);
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
@@ -297,6 +298,14 @@ function apply() {
   }
   setPan(state.pan.x, state.pan.y);
   render();
+}
+
+/** Only while something narrows the shelves: the count, then each filter, then Clear. */
+function renderEyebrow(n) {
+  const { query, category, brand, store } = state.filters;
+  const parts = [category && label(category), brand, store, query && `“${query}”`].filter(Boolean);
+  dom.eyebrow.classList.toggle('hidden', !parts.length);
+  dom.eyebrowText.textContent = [`${n} of ${state.bundles.length}`, ...parts].join(' · ');
 }
 
 function readFiltersFromUrl() {

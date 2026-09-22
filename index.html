@@ -330,14 +330,18 @@
             <form class="search-form" id="libraryForm" role="search">
               <div class="search-input-wrapper">
                 <input type="search" class="search-input" id="libraryInput" placeholder="Find a bundle by brand, product or category" autocomplete="off" spellcheck="false" aria-label="Search the library">
-                <span class="library-count" id="libraryCount" aria-live="polite"></span>
                 <div class="submit-button-wrapper">
                   <button type="button" class="search-button library-filter-btn" id="libraryFilterBtn" aria-label="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="libraryFilters">
-                    <span data-icon="chevron-bottom" data-icon-size="16"></span>
+                    <span data-icon="settings-slider-filter" data-icon-size="16"></span>
                   </button>
                 </div>
               </div>
             </form>
+            <!-- What narrowed the shelves, tucked under the pill's top edge; the whole thing clears. -->
+            <button type="button" class="library-eyebrow hidden" id="libraryEyebrow" data-action="library-clear" aria-live="polite">
+              <span class="library-eyebrow-text" id="libraryEyebrowText"></span>
+              <span class="library-eyebrow-clear">Clear</span>
+            </button>
             <div class="library-filters hidden" id="libraryFilters">
               <label class="library-filter-field">
                 <span>Category</span>

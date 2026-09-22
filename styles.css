@@ -6988,21 +6988,56 @@ position: absolute;
   line-height: 1.5;
   letter-spacing: -0.0125em;
   text-align: left;
-  padding-right: 148px;
+  padding-right: 60px;
 }
 
-.library-count {
+/* Tucked under the pill's top edge, the way the picker tray's Clear is: out of flow, behind the
+   pill's surface (the container isolates, so z-index -1 lands under the pill and not the page),
+   with 2px of its bottom hidden under the pill. */
+.library-eyebrow {
   position: absolute;
-  right: 60px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--content-tertiary);
+  left: 20px;
+  right: 20px;
+  bottom: calc(100% - 2px);
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px 2px;
+  border: none;
+  border-radius: 20px 20px 0 0;
+  background: var(--content-background-base);
+  color: var(--content-secondary);
+  font-family: var(--font-family);
   font-size: var(--font-size-xs);
-  white-space: nowrap;
-  pointer-events: none;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
-/* The filter trigger is the pill's own submit disc, wearing a chevron and neutral colours. */
+.library-eyebrow:hover {
+  background: var(--content-background-elevated);
+}
+
+.library-eyebrow-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-eyebrow-clear {
+  flex: none;
+  color: var(--content-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The filter trigger is the pill's own submit disc, wearing the filter icon and neutral colors. */
 .library-filter-btn {
   background: var(--content-background-base);
   color: var(--content-primary);
@@ -7017,10 +7052,6 @@ position: absolute;
   background: var(--content-primary);
   color: var(--content-primary-inverse);
   box-shadow: none;
-}
-
-.library-filter-btn[aria-expanded="true"] svg {
-  transform: rotate(180deg);
 }
 
 /* The structured filters, a popover rising off the pill. Same surface as the brand card popover. */
@@ -7248,14 +7279,6 @@ position: absolute;
 
   .library-filters {
     grid-template-columns: 1fr;
-  }
-
-  .library-count {
-    display: none;
-  }
-
-  .library-omni .search-input {
-    padding-right: 60px;
   }
 
   .library-lightbox {
