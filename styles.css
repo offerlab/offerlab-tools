@@ -1927,8 +1927,48 @@ position: relative;
   50% { opacity: 0.35; }
 }
 
-.search-input-wrapper.is-photo-working .typing-placeholder {
-  display: none;
+/* Neither disc gives up width to a long placeholder or a narrow pill. */
+.photo-button,
+.search-button {
+  flex: none;
+}
+
+/* Progress and errors for the pill, tucked under its bottom edge the way the Showcase eyebrow
+   tucks under the top: behind the pill's surface, sliding out from under it. */
+.omni-chinstrap {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: calc(100% - 2px);
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 2px 16px 0;
+  border-radius: 0 0 20px 20px;
+  background: var(--content-background-overlay);
+  color: var(--content-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateY(-100%);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.omni-chinstrap.is-open {
+  transform: none;
+}
+
+.omni-chinstrap--error {
+  background: var(--red-500);
+  color: #fff;
+  font-weight: 600;
 }
 
 
@@ -3071,9 +3111,11 @@ position: relative;
     font-size: var(--font-size-base);
   }
 
+  /* Its own size: the wrapper is shrink-to-fit now that it holds two discs, so 100% of it is
+     nothing. */
   .search-button {
-    width: 100%;
-    height: 100%;
+    width: 40px;
+    height: 40px;
   }
 
   /* Smaller tiles - each corner has one larger, one smaller; positioned to bleed off viewport */

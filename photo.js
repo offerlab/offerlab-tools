@@ -55,7 +55,7 @@ async function fromPhoto(file, ui, search) {
     search(domain);
   } catch (err) {
     console.warn('[photo] search failed:', err);
-    ui.fail("Couldn't read that photo. Type the URL instead");
+    ui.fail(/Gemini|SerpAPI/.test(err.message) ? "Couldn't reach the search right now. Try again" : "Couldn't read that photo. Type the URL instead");
   }
 }
 
@@ -63,31 +63,47 @@ async function fromPhoto(file, ui, search) {
 /* The pill while it works                                                     */
 /* -------------------------------------------------------------------------- */
 
+const ERROR_MS = 6000;
+
+/**
+ * Progress and errors ride a chinstrap tucked under the pill's bottom edge, the mirror of the
+ * Showcase eyebrow; the field itself is never written to. Typing dismisses it.
+ */
 function pillUi(wrapper, button, field) {
-  const restingPlaceholder = field.placeholder;
-  const reset = () => {
-    wrapper.classList.remove('is-photo-working');
+  const container = wrapper.closest('.omni-ai-box-container') || wrapper.parentElement;
+  const strap = document.createElement('div');
+  strap.className = 'omni-chinstrap';
+  strap.setAttribute('role', 'status');
+  container.appendChild(strap);
+  let hideTimer = 0;
+
+  const show = (message, error = false) => {
+    clearTimeout(hideTimer);
+    strap.textContent = message;
+    strap.classList.toggle('omni-chinstrap--error', error);
+    strap.classList.add('is-open');
+  };
+  const hide = () => { clearTimeout(hideTimer); strap.classList.remove('is-open'); };
+  const settle = () => {
     button.classList.remove('is-working');
     button.disabled = false;
   };
-  const say = message => { field.value = ''; field.placeholder = message; };
-  // A typed character takes the pill back to its usual placeholder.
-  field.addEventListener('input', () => { if (field.value) field.placeholder = restingPlaceholder; }, { once: false });
+  field.addEventListener('input', hide);
+
   return {
     working(message) {
-      wrapper.classList.add('is-photo-working');
       button.classList.add('is-working');
       button.disabled = true;
-      say(message);
+      show(message);
     },
-    // No focus here: the field's own focus handler puts its resting placeholder back.
     fail(message) {
-      reset();
-      say(message);
+      settle();
+      show(message, true);
+      hideTimer = setTimeout(hide, ERROR_MS);
     },
     done() {
-      reset();
-      field.placeholder = restingPlaceholder;
+      settle();
+      hide();
     }
   };
 }
@@ -96,9 +112,17 @@ function pillUi(wrapper, button, field) {
 /* Reading the pack                                                            */
 /* -------------------------------------------------------------------------- */
 
-/** A phone photo is 3 to 12 MB; the model needs a fraction of that to read a logo. */
+/**
+ * A phone photo is 3 to 12 MB; the model needs a fraction of that to read a logo. A browser that
+ * cannot decode the file (Chromium with an iPhone's HEIC) sends it whole: the model reads HEIC.
+ */
 async function shrink(file) {
-  const bitmap = await decode(file);
+  let bitmap;
+  try {
+    bitmap = await decode(file);
+  } catch {
+    return { mimeType: file.type || 'image/heic', data: await base64Of(file) };
+  }
   const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale);
@@ -124,6 +148,15 @@ async function decode(file) {
       URL.revokeObjectURL(url);
     }
   }
+}
+
+function base64Of(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).slice(String(reader.result).indexOf(',') + 1));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 async function readPack(image) {
