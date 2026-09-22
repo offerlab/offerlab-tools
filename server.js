@@ -10,6 +10,10 @@ import { config } from 'dotenv';
 import { fetchShopifyCatalog } from './shared/catalog.js';
 import { fetchSocials } from './shared/socials.js';
 import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp } from './shared/offerlab.js';
+import { mkdirSync } from 'fs';
+import * as store from './shared/db.js';
+import { openLocalD1, applyMigrations } from './shared/sqlite-d1.js';
+import { handleDataRequest } from './shared/data-api.js';
 
 config(); // Load .env
 
@@ -17,6 +21,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 5500;
 const SERPAPI_TIMEOUT_MS = 15000;
+
+// The data store: the D1 schema in a SQLite file, so shared/db.js runs here unchanged.
+const DATA_DIR = join(__dirname, '.data');
+mkdirSync(DATA_DIR, { recursive: true });
+const db = openLocalD1(join(DATA_DIR, 'collab-finder.sqlite'));
+const migrated = await applyMigrations(db, join(__dirname, 'migrations'));
+if (migrated.length) console.log(`[Data] Applied migrations: ${migrated.join(', ')}`);
 
 // OpenGraph proxy - API key stays server-side
 /**
@@ -190,19 +201,29 @@ app.post('/api/gemini', express.json({ limit: '12mb' }), async (req, res) => {
   }
 });
 
-// Shopify public catalog proxy - storefronts send no CORS headers on /products.json
+// Shopify public catalog proxy - storefronts send no CORS headers on /products.json.
+// Every crawl lands in the data store; a fresh enough stored catalog is served instead
+// (?refresh=1 forces the crawl).
 app.get('/api/catalog', async (req, res) => {
   const domain = req.query.domain;
   if (!domain || typeof domain !== 'string' || !domain.trim()) {
     return res.status(400).json({ error: 'Missing or invalid domain parameter' });
   }
   try {
+    if (req.query.refresh !== '1') {
+      const stored = await store.getCatalog(db, domain);
+      if (store.isFresh(stored, store.CATALOG_TTL_MS)) {
+        console.log(`[Catalog Proxy] ${domain}: ${stored.status} (${stored.count} products, stored)`);
+        return res.json({ ...stored, cached: true });
+      }
+    }
     const catalog = await fetchShopifyCatalog(domain);
     console.log(`[Catalog Proxy] ${domain}: ${catalog.status} (${catalog.count} products)`);
     res.json(catalog);
+    await store.putCatalog(db, domain, catalog);
   } catch (err) {
     console.error('[Catalog Proxy] Error:', err);
-    res.status(500).json({ error: 'Failed to fetch catalog' });
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to fetch catalog' });
   }
 });
 
@@ -213,13 +234,35 @@ app.get('/api/socials', async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid domain parameter' });
   }
   try {
+    if (req.query.refresh !== '1') {
+      const stored = await store.getSocials(db, domain);
+      if (store.isFresh(stored, store.SOCIALS_TTL_MS)) {
+        console.log(`[Socials Proxy] ${domain}: ${stored.status} (stored)`);
+        return res.json({ ...stored, cached: true });
+      }
+    }
     const result = await fetchSocials(domain);
     console.log(`[Socials Proxy] ${domain}: ${result.status} (${Object.keys(result.socials).join(', ') || 'none'})`);
     res.json(result);
+    await store.putSocials(db, domain, result);
   } catch (err) {
     console.error('[Socials Proxy] Error:', err);
-    res.status(500).json({ error: 'Failed to fetch socials' });
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to fetch socials' });
   }
+});
+
+// The data store: searches, history, feedback and drafts. Same handler as the Pages function.
+app.all('/api/data/*', express.json({ limit: '4mb' }), async (req, res) => {
+  const { status, body } = await handleDataRequest({
+    method: req.method,
+    segments: String(req.params[0] || '').split('/').filter(Boolean),
+    query: req.query,
+    body: req.body && Object.keys(req.body).length ? req.body : null,
+    db
+  });
+  res.set('Cache-Control', 'no-store');
+  if (status === 204 || body === undefined) return res.status(status).end();
+  res.status(status).json(body);
 });
 
 /* OfferLab proxies. /api/mcp answers a preflight with no allow-origin header, so none of this is

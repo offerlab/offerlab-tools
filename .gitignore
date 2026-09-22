@@ -10,6 +10,9 @@
 # Dependencies
 node_modules/
 
+# Local data store (the Express dev server's SQLite file)
+/.data/
+
 # Build outputs
 dist/
 .wrangler/

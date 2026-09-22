@@ -153,7 +153,7 @@ async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
   showSection('picker');
   window.scrollTo({ top: 0 });
 
-  // Cached catalogs are trimmed for localStorage; the picker wants the whole thing.
+  // A stored search carries a trimmed catalog per brand; the picker wants the whole thing.
   await Promise.all(state.brands.map(entry => ensureFullCatalog(entry.brand).then(() => renderColumn(entry.domain))));
   return true;
 }

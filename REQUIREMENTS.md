@@ -109,7 +109,7 @@ When user focuses on the search input (before typing/searching):
 │    allbirds.com                        │
 └────────────────────────────────────────┘
 ```
-- Store in localStorage
+- Store in Cloudflare D1, shared by everyone on the team
 - Show last 5-10 searches
 - Click to auto-fill and search
 - Clear history option
@@ -240,7 +240,7 @@ After results load, show feedback prompt:
 - **CSS3** - Modern animations, flexbox/grid, custom properties
 - **Vanilla JavaScript** - No framework dependencies for simplicity
 - **Fetch API** - For AI service calls
-- **LocalStorage** - Search history & feedback persistence
+- **Cloudflare D1** - Searches, crawled catalogs, search history & feedback persistence
 
 ### AI Integration
 
@@ -270,7 +270,7 @@ User Input URL
      ↓
 Validate & Normalize URL
      ↓
-Add to Search History (localStorage)
+Add to Search History (D1)
      ↓
 Send to Gemini API with Search Grounding
      ↓
@@ -291,7 +291,7 @@ brand-collab-finder/
 ├── app.js                  # Application logic
 ├── modules/
 │   ├── ai-service.js       # AI API integration
-│   ├── search-history.js   # localStorage management
+│   ├── search-history.js   # D1-backed history
 │   ├── feedback.js         # Feedback collection & learning
 │   └── social-links.js     # Social media URL discovery
 ├── assets/
@@ -454,7 +454,7 @@ function buildFeedbackContext() {
    - ··· menu popover toggle
 
 5. **Search history module**
-   - localStorage read/write
+   - D1 read/write through store.js
    - Dropdown population
    - Click to search
    - Clear history
@@ -474,7 +474,7 @@ function buildFeedbackContext() {
 
 8. **Feedback system**
    - 👍/👎 click handlers
-   - localStorage persistence
+   - D1 persistence
    - Feedback summary builder
    - Inject into AI prompt context
    - Thank you animation
