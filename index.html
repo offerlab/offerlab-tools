@@ -122,8 +122,7 @@
                 data-placeholder-focus="www.yourbrand.com"
               >
               <div class="submit-button-wrapper">
-                <input type="file" class="photo-input photo-input--library" id="photoInput-results" accept="image/*" hidden>
-                <input type="file" class="photo-input photo-input--camera" id="photoCamera-results" accept="image/*" capture="environment" hidden>
+                <input type="file" class="photo-input" id="photoInput-results" accept="image/*" hidden>
                 <button type="button" class="photo-button" id="photoButton-results" aria-label="Search by photo of a product" title="Search by photo">
                   <span data-icon="camera-1" data-icon-size="20"></span>
                 </button>
@@ -176,8 +175,7 @@
                   data-placeholder-focus="www.yourbrand.com"
                 >
                 <div class="submit-button-wrapper">
-                <input type="file" class="photo-input photo-input--library" id="photoInput-landing" accept="image/*" hidden>
-                <input type="file" class="photo-input photo-input--camera" id="photoCamera-landing" accept="image/*" capture="environment" hidden>
+                <input type="file" class="photo-input" id="photoInput-landing" accept="image/*" hidden>
                 <button type="button" class="photo-button" id="photoButton-landing" aria-label="Search by photo of a product" title="Search by photo">
                   <span data-icon="camera-1" data-icon-size="20"></span>
                 </button>
@@ -371,22 +369,6 @@
               </label>
               <button type="button" class="btn btn--md btn--ghost library-filters-clear" data-action="library-clear">Clear</button>
             </div>
-          </div>
-        </div>
-
-        <!-- Photo search on a phone: take one or pick one. A desktop goes straight to the file chooser. -->
-        <div class="photo-sheet hidden" id="photoSheet" role="dialog" aria-modal="true" aria-label="Search by photo">
-          <div class="photo-sheet-card">
-            <p class="photo-sheet-title">Search by photo</p>
-            <button type="button" class="photo-sheet-option" data-photo="camera">
-              <span class="photo-sheet-icon" data-icon="camera-1" data-icon-size="20"></span>
-              <span>Take a photo</span>
-            </button>
-            <button type="button" class="photo-sheet-option" data-photo="library">
-              <span class="photo-sheet-icon" data-icon="image" data-icon-size="20"></span>
-              <span>Choose from your photos</span>
-            </button>
-            <button type="button" class="btn btn--lg btn--secondary photo-sheet-cancel" data-photo="cancel">Cancel</button>
           </div>
         </div>
 
