@@ -7983,10 +7983,11 @@ position: relative;
   /* The shelves stand still and the viewport scrolls down through them; each shelf's rail scrolls
      sideways on its own. The rail runs one air's height past its plank so a cover's shadow is
      not cut at the shelf's edge; below it is only the next shelf's air, which holds nothing. */
-  /* Isolated, so the shelves' own stacking never rises over the footer. */
+  /* Isolated, so the shelves' own stacking never rises over the footer. Pans only, so a pinch
+     is the board's to zoom rather than the browser's. */
   .library-viewport {
     overflow: hidden auto;
-    touch-action: auto;
+    touch-action: pan-x pan-y;
     cursor: auto;
     isolation: isolate;
   }
@@ -8007,6 +8008,7 @@ position: relative;
     overflow: auto hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
   }
 
   .library-shelf-rail::-webkit-scrollbar {
