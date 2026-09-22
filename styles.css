@@ -604,7 +604,7 @@ img {
 .icon-button:active svg,
 .picker-rail-btn:hover svg,
 .picker-rail-btn:active svg,
-.picker-product:hover .picker-product-add svg,
+.picker-product:active .picker-product-add svg,
 .picker-add-column:hover .picker-add-btn svg,
 .picker-column-action:hover svg,
 .picker-column-action:active svg,
@@ -942,16 +942,28 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   transition: opacity 150ms, visibility 150ms;
 }
 
-.has-tooltip:hover .tooltip,
+/* Hover only where a pointer hovers: Safari spends a touch's first tap applying a hover that
+   changes what is shown, and the tap's click never comes. */
+@media (hover: hover) {
+  .has-tooltip:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+    /* Held back so passing the cursor over a control does not flash a label */
+    transition-delay: 200ms;
+  }
+
+  /* The card clips overflow by default; while a tooltip shows, let it overhang (the group lifts it above neighbors) */
+  .result-card:has(.has-tooltip:hover) {
+    overflow: visible;
+  }
+}
+
 .has-tooltip:focus-visible .tooltip {
   opacity: 1;
   visibility: visible;
-  /* Held back so passing the cursor over a control does not flash a label */
   transition-delay: 200ms;
 }
 
-/* The card clips overflow by default; while a tooltip shows, let it overhang (the group lifts it above neighbors) */
-.result-card:has(.has-tooltip:hover),
 .result-card:has(.has-tooltip:focus-visible) {
   overflow: visible;
 }
@@ -2502,9 +2514,14 @@ position: relative;
 
 /* A popover or tooltip inside the card has to clear the neighboring groups */
 .result-card-group:has(.popover-open),
-.result-card-group:has(.has-tooltip:hover),
 .result-card-group:has(.has-tooltip:focus-visible) {
   z-index: var(--z-popover-overlay);
+}
+
+@media (hover: hover) {
+  .result-card-group:has(.has-tooltip:hover) {
+    z-index: var(--z-popover-overlay);
+  }
 }
 
 .searched-brand-card-image {
@@ -3015,13 +3032,25 @@ position: relative;
   opacity: 0;
 }
 
-.result-card:hover .card-menu-btn,
 .result-card.popover-open .card-menu-btn {
   opacity: 1;
 }
 
-.card-menu-btn:hover {
-  background: var(--content-background-overlay);
+@media (hover: hover) {
+  .result-card:hover .card-menu-btn {
+    opacity: 1;
+  }
+
+  .card-menu-btn:hover {
+    background: var(--content-background-overlay);
+  }
+}
+
+/* No hover to reveal it with, so the menu control is always there. */
+@media (hover: none) {
+  .card-menu-btn {
+    opacity: 1;
+  }
 }
 
 .card-menu-icon {
@@ -5953,8 +5982,11 @@ position: relative;
   --icon-rendered: 20;
 }
 
-.picker-product:hover .picker-product-add {
-  background: var(--content-background-base);
+/* Hover only where a pointer hovers: on touch, Safari would spend the first tap on this. */
+@media (hover: hover) {
+  .picker-product:hover .picker-product-add {
+    background: var(--content-background-base);
+  }
 }
 
 .picker-product.is-selected .picker-product-add,
