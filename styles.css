@@ -1411,8 +1411,10 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   overflow: hidden auto;
 }
 
+/* The sheet and what shows past it (the band behind Safari's toolbar) change color together. */
+body.showing-results,
 body.showing-results .main-content {
-  background: var(--content-background-elevated);
+  background-color: var(--content-background-elevated);
 }
 
 /* --------------------------------------------------------------------------
@@ -1629,11 +1631,12 @@ body.showing-results .main-content {
   letter-spacing: -.02em;
   font-weight: normal;
 }
+/* Where the typed text starts, and no wider than the room before the discs. */
 .typing-placeholder {
   position: absolute;
-  left: 50%;
+  left: 20px;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1642,7 +1645,7 @@ body.showing-results .main-content {
   pointer-events: none;
   white-space: nowrap;
   overflow: hidden;
-  max-width: calc(100% - 80px);
+  max-width: calc(100% - 20px - 102px);
   transition: opacity 0.3s ease-out;
 }
 
@@ -3253,8 +3256,10 @@ position: relative;
   }
 
   .typing-placeholder {
-  font-size: var(--font-size-base);
-}
+    left: 16px;
+    max-width: calc(100% - 16px - 102px);
+    font-size: var(--font-size-base);
+  }
 
   .logo {
     font-size: var(--font-size-2xl);
