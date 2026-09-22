@@ -6994,10 +6994,6 @@ position: relative;
   will-change: transform;
 }
 
-.library-grid {
-  display: none;
-}
-
 /* A shelf row is one continuous plank: the tiles standing on it, the glow on the wall behind them
    and the shadow the row throws down the wall. library.js positions all of it and stretches the
    plank, glow and shadow across whatever the viewport can see. */
@@ -7048,7 +7044,7 @@ position: relative;
   padding: 0;
   border: none;
   background: var(--content-background-elevated);
-  border-radius: 28px;
+  border-radius: var(--lib-radius, 28px);
   cursor: pointer;
   z-index: 1;
   transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--scale, 1));
@@ -7107,7 +7103,7 @@ position: relative;
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 28px;
+  border-radius: var(--lib-radius, 28px);
   overflow: hidden;
   background: var(--content-background-base);
 }
@@ -7144,7 +7140,7 @@ position: relative;
 .library-tile-scrim {
   position: absolute;
   inset: 0;
-  border-radius: 28px;
+  border-radius: var(--lib-radius, 28px);
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
@@ -7724,55 +7720,26 @@ position: relative;
   background: var(--content-background-base);
 }
 
-/* On a phone the board is a grid you scroll, not a picture you drag. Same tiles, same omnibox. */
+/* On a phone the board is the same board, dealt smaller (library.js measures 2.25 columns across).
+   Only the omnibar, the filters and the lightbox lay out differently. */
 @media (max-width: 900px) {
-  .library-section,
-  .library-viewport {
-    background: var(--content-background-base);
-  }
-
-  .library-viewport {
-    overflow: auto;
-    cursor: default;
-    touch-action: auto;
-    user-select: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .library-board {
-    display: none;
-  }
-
-  .library-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    padding: 20px 16px 0;
-  }
-
-  .library-tile {
-    position: relative;
-    bottom: auto;
-    width: auto;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 10px 22px -12px rgba(0, 0, 0, 0.3);
-  }
-
-  .library-tile::after {
-    display: none;
-  }
-
-  .library-tile:hover,
-  .library-tile:focus-visible {
-    transform: none;
-  }
-
+  /* No hover on a touch screen: the name always shows, two lines at most on a tile this size. */
   .library-tile-name,
   .library-tile-scrim {
     opacity: 1;
     visibility: visible;
   }
 
-  /* In flow under the grid, for the same reason the results omnibar is. */
+  .library-tile-name {
+    padding: 14px 14px 12px;
+    font-size: var(--font-size-xs);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* In flow under the board, for the same reason the results omnibar is. */
   .library-omni {
     position: static;
     flex: none;
