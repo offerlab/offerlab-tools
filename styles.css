@@ -1136,7 +1136,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 /* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
 .view-header .search-input {
-  padding-right: calc(2 * var(--pill-btn) + 3 * var(--pill-pad));
+  padding-right: calc(2 * var(--pill-btn) + 2 * var(--pill-pad) + 6px);
 }
 
 .view-header .search-input,
@@ -1889,7 +1889,7 @@ position: relative;
   height: 48px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   z-index: 10;
   justify-content: flex-end;
   padding: 4px;
