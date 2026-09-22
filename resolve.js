@@ -81,8 +81,8 @@ export async function resolveBrand(text, { history = () => [] } = {}) {
  * arrow keys and Enter over them, and `resolve()` for the form's submit.
  */
 export function attachBrandSuggestions({ input, dropdown, list, history, showHistory, favicon }) {
-  const header = dropdown.querySelector('.history-header span');
-  const restingHeader = header?.textContent || 'Search history';
+  // History has a header; suggestions have none, and with none to show the dropdown is not there.
+  const header = dropdown.querySelector('.history-header');
   let timer = null;
   let shownFor = '';   // the query the list currently shows suggestions for
 
@@ -106,9 +106,14 @@ export function attachBrandSuggestions({ input, dropdown, list, history, showHis
   function showHistoryAgain() {
     if (!list.classList.contains('is-suggesting')) return;
     shownFor = '';
-    if (header) header.textContent = restingHeader;
+    if (header) header.hidden = false;
     list.classList.remove('is-suggesting');
     showHistory?.();
+  }
+
+  function openDropdown(open) {
+    dropdown.classList.toggle('visible', open);
+    dropdown.closest('.search-form')?.classList.toggle('dropdown-open', open);
   }
 
   // `pending` is the instant pass before the network answers: history matches show at once,
@@ -116,21 +121,19 @@ export function attachBrandSuggestions({ input, dropdown, list, history, showHis
   function render(query, found, { pending = false } = {}) {
     shownFor = query;
     const rows = merge(historyMatches(query, history()), found);
-    if (header) header.textContent = 'Brands';
+    if (header) header.hidden = true;
     const wasSuggesting = list.classList.contains('is-suggesting');
     list.classList.add('is-suggesting');
     if (pending && !rows.length) {
-      if (!wasSuggesting) list.innerHTML = '';
+      if (!wasSuggesting) { list.innerHTML = ''; openDropdown(false); }
       return;
     }
     list.innerHTML = '';
     if (!rows.length) {
-      const empty = document.createElement('li');
-      empty.className = 'history-empty';
-      empty.textContent = 'Nothing yet. Press Enter to look it up.';
-      list.append(empty);
+      openDropdown(false);
       return;
     }
+    openDropdown(true);
     for (const row of rows) {
       const item = document.createElement('li');
       item.className = 'history-item suggestion-item';
@@ -155,15 +158,14 @@ export function attachBrandSuggestions({ input, dropdown, list, history, showHis
   }
 
   function showMiss(query) {
-    if (header) header.textContent = 'Brands';
+    if (header) header.hidden = true;
     list.classList.add('is-suggesting');
     list.innerHTML = '';
     const miss = document.createElement('li');
     miss.className = 'history-empty';
     miss.textContent = `No site found for “${query}”. Try its web address.`;
     list.append(miss);
-    dropdown.classList.add('visible');
-    dropdown.closest('.search-form')?.classList.add('dropdown-open');
+    openDropdown(true);
   }
 
   async function refresh() {
