@@ -914,6 +914,8 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 .card-actions {
   display: flex;
+  /* Three buttons with nowrap labels; on the narrowest phones they no longer fit one row. */
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -2754,6 +2756,10 @@ position: relative;
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  /* The tiles do not shrink, so the strip's minimum width is all of them; it must never be what
+     sizes the card around it. */
+  min-width: 0;
+  contain: inline-size;
   scrollbar-width: none;
   margin: 0 -16px;
   padding: 0 16px;
@@ -2890,6 +2896,15 @@ position: relative;
 .searched-brand-card .card-catalog-thumbs {
   margin: 0;
   padding: 0;
+}
+
+/* Stacked, the strip bleeds through the body's 32px padding to the card's edge, the way the
+   result cards' strips do, so the last visible tile is cut by the card rather than by the text. */
+@media (max-width: 767px) {
+  .searched-brand-card .card-catalog-thumbs {
+    margin: 0 -32px;
+    padding: 0 32px;
+  }
 }
 
 @keyframes cardFadeIn {
@@ -3550,8 +3565,11 @@ button.social-link:disabled {
     display: none;
   }
 
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track's minimum is its content, so one card with a
+     long brand name (nowrap, ellipsized only once it is allowed to shrink) widened the track past
+     the screen. Pinned at 0 the track is the sheet's width and the card's text truncates. */
   .results-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .searched-brand-card-content {
