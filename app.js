@@ -49,6 +49,7 @@ const elements = {
   siteHeader: document.getElementById('siteHeader'),
   siteHeaderLogo: document.getElementById('siteHeaderLogo'),
   viewHeader: document.getElementById('viewHeader'),
+  omniFooter: document.getElementById('omniFooter'),
   librarySection: document.getElementById('librarySection'),
   modeSwitch: document.getElementById('modeSwitch'),
   modeSwitchIndicator: document.getElementById('modeSwitchIndicator'),
@@ -3663,9 +3664,41 @@ function trackHeaderHeight() {
   else window.addEventListener('resize', publish);
 }
 
+/* --------------------------------------------------------------------------
+   The results omnibar: in the bar on a desktop, a footer in flow on a phone
+   -------------------------------------------------------------------------- */
+const PHONE_FOOTER = window.matchMedia('(max-width: 900px)');
+
+function placeOmnibar() {
+  const search = document.querySelector('#viewHeader .header-nav-search, #omniFooter .header-nav-search');
+  const { viewHeader, omniFooter } = elements;
+  if (!search || !viewHeader || !omniFooter) return;
+  if (PHONE_FOOTER.matches) {
+    if (search.parentElement !== omniFooter) omniFooter.appendChild(search);
+  } else if (search.parentElement !== viewHeader) {
+    viewHeader.insertBefore(search, viewHeader.querySelector('.header-nav-back-wrapper')?.nextSibling || null);
+  }
+  syncOmniFooter();
+}
+
+// The footer shows and loads with the bar; the bar's classes are its only source of truth.
+function syncOmniFooter() {
+  const { viewHeader, omniFooter } = elements;
+  if (!viewHeader || !omniFooter) return;
+  omniFooter.classList.toggle('hidden', !PHONE_FOOTER.matches || viewHeader.classList.contains('hidden'));
+  omniFooter.classList.toggle('view-header--loading', viewHeader.classList.contains('view-header--loading'));
+}
+
+function initOmniFooter() {
+  placeOmnibar();
+  PHONE_FOOTER.addEventListener('change', placeOmnibar);
+  if (elements.viewHeader) new MutationObserver(syncOmniFooter).observe(elements.viewHeader, { attributes: true, attributeFilter: ['class'] });
+}
+
 function init() {
   hydrateIcons();
   trackHeaderHeight();
+  initOmniFooter();
   initPicker();
   console.log('[init] Starting...');
   console.log('[init] elements.searchInput:', elements.searchInput);

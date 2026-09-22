@@ -62,6 +62,8 @@
   </header>
   <div class="app-container">
     <main class="main-content">
+    <!-- The scroll region. The sheet itself stays put so a footer can sit under it in flow. -->
+    <div class="sheet-scroll" id="sheetScroll">
     <!-- Floating Brand Tiles Background -->
     <div class="floating-tiles" id="floatingTiles">
       <!-- Top-left corner -->
@@ -380,6 +382,11 @@
           <div class="library-lightbox-card"></div>
         </div>
       </section>
+    </div>
+    <!-- On a phone the results omnibar moves in here from the view header: a footer in flow, not a
+         fixed element for the browser chrome to fight with. Carries the view-header class so the
+         pill keeps every rule it has in the bar. -->
+    <div class="view-header omni-footer hidden" id="omniFooter"></div>
     </main>
   </div>
 
