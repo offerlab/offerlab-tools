@@ -409,6 +409,10 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* No double-tap-to-zoom. iOS Safari reads a quick second tap on a control (submit, then stop) as
+     a request to magnify that block, and stays zoomed in on the top-left of the page afterwards,
+     which is how the loading view came to be cut off on a phone. Pan and pinch-zoom still work. */
+  touch-action: manipulation;
 }
 
 body {
@@ -2097,7 +2101,11 @@ position: absolute;
   display: flex;
   align-items: center;
   position: relative;
+  /* The glow below is 640px wide, wider than a phone's sheet. clip (not hidden, which would make
+     this a second scroll container) keeps it from giving the sheet sideways scroll room that iOS
+     can otherwise pan into. Browsers without clip fall back to visible and the sheet still clips. */
   overflow: visible;
+  overflow: clip;
   justify-content: center;
   min-height: 100%;
 }
@@ -2142,6 +2150,12 @@ position: absolute;
   text-align: center;
   position: relative;
   z-index: 1;
+  /* Sized to the sheet, never past it: a long status line wraps inside the page gutter on a phone
+     rather than running under the edge. */
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 var(--page-gutter);
 }
 
 /* Loading favicon: matches tile styling with floating animation */
@@ -2183,6 +2197,8 @@ position: absolute;
   color: var(--content-primary);
   overflow: visible;
   padding-bottom: 4px;
+  /* Two even lines rather than a full line and an orphan when a message has to wrap. */
+  text-wrap: balance;
 }
 
 .loading-text-shimmer {
@@ -2207,6 +2223,18 @@ position: absolute;
 .loading-subtext {
   font-size: var(--font-size-base);
   color: var(--content-secondary);
+  /* A domain has no spaces to break at; let it wrap anywhere rather than overflow a narrow sheet. */
+  overflow-wrap: anywhere;
+}
+
+/* Sixteen is the size below which iOS Safari zooms the page in when a field takes focus, and it
+   does not zoom back out on blur. Every text input already sits at 16px or more; the filter selects
+   are the one control below it, so on a touch screen they come up to the line. */
+@media (pointer: coarse) {
+  .library-filter-field select,
+  .pitch-model-select {
+    font-size: var(--font-size-base);
+  }
 }
 
 /* --------------------------------------------------------------------------
