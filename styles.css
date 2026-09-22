@@ -421,9 +421,9 @@ body {
   /* Aktiv Grotesk's proportional lining figures (pnum + lnum), as in the main app */
   font-variant-numeric: proportional-nums lining-nums;
   color: var(--content-primary);
-  /* The ground the content sheet is laid on. Ported from the app's mobile builder: a dark field,
-     a transparent header drawn straight onto it, and the page itself a rounded card below. */
-  background-color: var(--background-dark);
+  /* What shows past the page: the band behind Safari's toolbar and the overscroll take the
+     sheet's own color, so the page never reads as ending above the browser's chrome. */
+  background-color: var(--content-background-base);
   line-height: 1.5;
   /* The page is exactly the visible viewport (dvh follows Safari's toolbar) and never scrolls
      itself; the sheet inside it is the scroll region. */
@@ -1196,8 +1196,11 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
    App Container
    -------------------------------------------------------------------------- */
 .app-container {
-  /* The header is fixed and draws on the dark ground, so this is what holds the sheet clear of
-     it. Border-box, so the padding comes out of the 100vh rather than adding to it. */
+  /* The ground the content sheet is laid on. Ported from the app's mobile builder: a dark field,
+     a transparent header drawn straight onto it, and the page itself a rounded card below. The
+     header is fixed, so the padding is what holds the sheet clear of it; border-box, so the
+     padding comes out of the 100vh rather than adding to it. */
+  background-color: var(--background-dark);
   height: 100vh;
   height: 100dvh;
   padding-top: var(--header-h, 0px);
