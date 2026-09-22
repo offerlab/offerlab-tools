@@ -32,20 +32,24 @@ const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 // number of bundles per shelf, the first one a gutter in from the left.
 const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
 const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20, perShelf: 8, gutter: 16 };
+// The board zooms like a map: the gesture scales what is there, and when it settles the board is
+// dealt again at the new size around the point under the pointer or between the fingers.
+const ZOOM = { min: 0.5, max: 2.4, key: 1.25, wheel: 0.01, notch: 25, settle: 140 };
 const G = {};
 
 function measure() {
   const width = dom.viewport.getBoundingClientRect().width || window.innerWidth;
+  const z = state.zoom;
   if (MOBILE.matches) {
-    G.colW = Math.round(width / PHONE.columns);
+    G.colW = Math.round(width / (PHONE.columns / z));
     G.gap = PHONE.gap;
     G.tile = G.colW - G.gap;
-    G.plank = PHONE.plank;
-    G.air = PHONE.air;
-    G.radius = PHONE.radius;
+    G.plank = Math.round(PHONE.plank * z);
+    G.air = Math.round(PHONE.air * z);
+    G.radius = Math.round(PHONE.radius * z);
     G.inset = PHONE.gutter - G.gap / 2;
   } else {
-    Object.assign(G, { tile: DESKTOP.tile, gap: DESKTOP.gap, plank: DESKTOP.plank, air: DESKTOP.air, radius: DESKTOP.radius });
+    for (const key of ['tile', 'gap', 'plank', 'air', 'radius']) G[key] = Math.round(DESKTOP[key] * z);
     G.colW = G.tile + G.gap;
   }
   G.shelfH = G.air + G.tile + G.plank;
@@ -78,6 +82,8 @@ const state = {
   rows: new Map(),
   cells: new Map(),
   deal: { r: 0 },
+  zoom: 1,
+  zooming: null,
   dragging: false,
   moved: false,
   suppressClick: false,
@@ -609,18 +615,125 @@ function bindViewport() {
     if (state.tilt && event.target.closest('.library-tile') === state.tilt.tile && !state.tilt.tile.contains(event.relatedTarget)) untilt();
   });
 
+  // A pinch on a trackpad arrives as a wheel with ctrlKey, as does ctrl and the wheel; either
+  // zooms about the pointer. A plain wheel pans.
   view.addEventListener('wheel', event => {
     if (MOBILE.matches) return;
     event.preventDefault();
+    if (event.ctrlKey || event.metaKey) {
+      const rect = view.getBoundingClientRect();
+      // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once and is held to a step.
+      const delta = Math.max(-ZOOM.notch, Math.min(ZOOM.notch, event.deltaY));
+      zoomBy(Math.exp(-delta * ZOOM.wheel), { x: event.clientX - rect.left, y: event.clientY - rect.top });
+      return;
+    }
     setPan(state.pan.x - event.deltaX, state.pan.y - event.deltaY);
   }, { passive: false });
 
   view.addEventListener('keydown', event => {
+    if (event.key === '=' || event.key === '+' || event.key === '-' || event.key === '_') {
+      event.preventDefault();
+      const rect = view.getBoundingClientRect();
+      zoomBy(event.key === '-' || event.key === '_' ? 1 / ZOOM.key : ZOOM.key, { x: rect.width / 2, y: rect.height / 2 }, { settle: 0 });
+      return;
+    }
     const step = { ArrowLeft: [KEY_STEP, 0], ArrowRight: [-KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[event.key];
     if (!step || MOBILE.matches) return;
     event.preventDefault();
     setPan(state.pan.x + step[0], state.pan.y + step[1]);
   });
+
+  bindPinch(view);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Zoom                                                                        */
+/* -------------------------------------------------------------------------- */
+
+const clampZoom = z => Math.min(ZOOM.max, Math.max(ZOOM.min, z));
+
+/**
+ * Scales the board on screen by `factor` about `anchor` (viewport coordinates), on top of any
+ * zoom still in flight, and arranges for the board to be dealt again once the gesture rests.
+ */
+function zoomBy(factor, anchor, { settle = ZOOM.settle } = {}) {
+  const live = state.zooming || { from: state.zoom, to: state.zoom, anchor, timer: 0, scroll: null };
+  live.to = clampZoom(live.to * factor);
+  live.anchor = anchor;
+  if (!live.scroll && MOBILE.matches) {
+    // What the viewport and each rail were scrolled to when the pinch began, so the commit can
+    // put the same point back under the fingers.
+    live.scroll = { top: dom.viewport.scrollTop, rails: [...state.rows].map(([r, row]) => [r, row.rail.scrollLeft]) };
+  }
+  state.zooming = live;
+  const k = live.to / live.from;
+  if (MOBILE.matches) {
+    const board = dom.board.getBoundingClientRect();
+    const view = dom.viewport.getBoundingClientRect();
+    dom.board.style.transformOrigin = `${anchor.x + view.left - board.left}px ${anchor.y + view.top - board.top}px`;
+    dom.board.style.transform = `scale(${k})`;
+  } else {
+    dom.board.style.transformOrigin = '0 0';
+    dom.board.style.transform = `translate3d(${Math.round(anchor.x - (anchor.x - state.pan.x) * k)}px, ${Math.round(anchor.y - (anchor.y - state.pan.y) * k)}px, 0) scale(${k})`;
+  }
+  clearTimeout(live.timer);
+  if (settle) live.timer = setTimeout(commitZoom, settle);
+  else commitZoom();
+}
+
+/** The gesture has rested: the board takes the new size for real, about the same anchor. */
+function commitZoom() {
+  const live = state.zooming;
+  if (!live) return;
+  state.zooming = null;
+  clearTimeout(live.timer);
+  const k = live.to / live.from;
+  state.zoom = live.to;
+  dom.board.style.transformOrigin = '';
+  dom.board.style.transform = '';
+  measure();
+  clearBoard();
+  if (MOBILE.matches) {
+    render();
+    const { anchor, scroll } = live;
+    dom.viewport.scrollTop = (scroll.top + anchor.y) * k - anchor.y;
+    for (const [r, left] of scroll.rails) {
+      const row = state.rows.get(r);
+      if (row) row.rail.scrollLeft = (left + anchor.x) * k - anchor.x;
+    }
+  } else {
+    setPan(live.anchor.x - (live.anchor.x - state.pan.x) * k, live.anchor.y - (live.anchor.y - state.pan.y) * k);
+    render();
+  }
+}
+
+/** Two fingers on a phone: the board scales between them, and is dealt again when they lift. */
+function bindPinch(view) {
+  let pinch = null;
+  const span = touches => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+  const middle = touches => {
+    const rect = view.getBoundingClientRect();
+    return { x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left, y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top };
+  };
+  view.addEventListener('touchstart', event => {
+    if (event.touches.length !== 2) return;
+    pinch = { span: span(event.touches) };
+  }, { passive: true });
+  view.addEventListener('touchmove', event => {
+    if (!pinch || event.touches.length !== 2) return;
+    event.preventDefault();
+    const now = span(event.touches);
+    const factor = now / pinch.span;
+    pinch.span = now;
+    zoomBy(factor, middle(event.touches), { settle: 400 });
+  }, { passive: false });
+  const end = event => {
+    if (!pinch || event.touches.length >= 2) return;
+    pinch = null;
+    commitZoom();
+  };
+  view.addEventListener('touchend', end);
+  view.addEventListener('touchcancel', end);
 }
 
 function tiltFrame() {
