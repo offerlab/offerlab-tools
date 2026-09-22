@@ -3388,6 +3388,14 @@ function initEventListeners() {
     }, 200);
   });
 
+  // A tap inside the dropdown must not blur the input: on a phone the blur dismisses the
+  // keyboard, the viewport reflows under the finger, and the tap's click lands on whatever moved
+  // there, so a row took two taps. Refusing the mousedown keeps the focus, and the click, where
+  // they were.
+  for (const dropdown of [elements.searchHistoryDropdown, elements.resultsSearchHistoryDropdown]) {
+    dropdown?.addEventListener('mousedown', (e) => e.preventDefault());
+  }
+
   // History item click (Landing Page) - ignore remove button
   elements.historyList.addEventListener('click', (e) => {
     if (e.target.closest('.history-item-remove-btn')) return;

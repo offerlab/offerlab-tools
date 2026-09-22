@@ -2094,16 +2094,14 @@ position: relative;
   font-size: var(--font-size-base);
 }
 
-.history-list {
-  max-height: 240px;
+/* The dropdown is the scroller, so its header scrolls away with the rows rather than staying put. */
+.search-history-dropdown.visible {
   overflow-y: auto;
-  /* Hide scrollbar but keep scroll functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
 }
 
-.history-list::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+.search-history-dropdown::-webkit-scrollbar {
+  display: none;
 }
 
 .history-item {
