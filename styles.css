@@ -2005,6 +2005,37 @@ position: relative;
   transform: none;
 }
 
+/* The photo being read, a small print tilted beside the message; the strap grows to hold it. */
+.omni-chinstrap-thumb {
+  flex: none;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  border: 1.5px solid #fff;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
+  transform: rotate(-4deg);
+}
+
+.omni-chinstrap:has(.omni-chinstrap-thumb:not([hidden])) {
+  height: 44px;
+}
+
+.omni-chinstrap-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The app's ink shimmer in the strap's own colors, sweeping while the photo is read. */
+.omni-chinstrap .text-shimmer-ink {
+  --shimmer-peak: var(--content-primary);
+  --shimmer-edge: transparent;
+  color: color-mix(in srgb, var(--content-secondary) 55%, transparent);
+}
+
 .omni-chinstrap--error {
   background: var(--red-500);
   color: #fff;

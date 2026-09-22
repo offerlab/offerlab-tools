@@ -36,7 +36,7 @@ export function initPhotoSearch({ search }) {
 }
 
 async function fromPhoto(file, ui, search) {
-  ui.working('Reading the photo…');
+  ui.working('Reading the photo…', file);
   try {
     const image = await shrink(file);
     const read = await readPack(image);
@@ -63,23 +63,39 @@ const ERROR_MS = 6000;
 
 /**
  * Progress and errors ride a chinstrap tucked under the pill's bottom edge, the mirror of the
- * Showcase eyebrow; the field itself is never written to. Typing dismisses it.
+ * Showcase eyebrow; the field itself is never written to. Typing dismisses it. While the photo
+ * is being read, a thumbnail of it stands beside the message, which shimmers until it is done.
  */
 function pillUi(wrapper, button, field) {
   const container = wrapper.closest('.omni-ai-box-container') || wrapper.parentElement;
   const strap = document.createElement('div');
   strap.className = 'omni-chinstrap';
   strap.setAttribute('role', 'status');
+  const thumb = document.createElement('img');
+  thumb.className = 'omni-chinstrap-thumb';
+  thumb.alt = '';
+  thumb.hidden = true;
+  const text = document.createElement('span');
+  text.className = 'omni-chinstrap-text';
+  strap.append(thumb, text);
   container.appendChild(strap);
   let hideTimer = 0;
+  let thumbUrl = null;
 
-  const show = (message, error = false) => {
+  const show = (message, { error = false, shimmer = false } = {}) => {
     clearTimeout(hideTimer);
-    strap.textContent = message;
+    text.textContent = message;
+    text.classList.toggle('text-shimmer-ink', shimmer);
     strap.classList.toggle('omni-chinstrap--error', error);
     strap.classList.add('is-open');
   };
-  const hide = () => { clearTimeout(hideTimer); strap.classList.remove('is-open'); };
+  const dropThumb = () => {
+    thumb.hidden = true;
+    thumb.removeAttribute('src');
+    if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+    thumbUrl = null;
+  };
+  const hide = () => { clearTimeout(hideTimer); strap.classList.remove('is-open'); dropThumb(); };
   const settle = () => {
     button.classList.remove('is-working');
     button.disabled = false;
@@ -87,14 +103,23 @@ function pillUi(wrapper, button, field) {
   field.addEventListener('input', hide);
 
   return {
-    working(message) {
+    working(message, file) {
       button.classList.add('is-working');
       button.disabled = true;
-      show(message);
+      // The browser can show a HEIC it cannot decode as nothing; the strap reads fine without it.
+      if (file) {
+        dropThumb();
+        thumbUrl = URL.createObjectURL(file);
+        thumb.src = thumbUrl;
+        thumb.hidden = false;
+        thumb.onerror = dropThumb;
+      }
+      show(message, { shimmer: true });
     },
     fail(message) {
       settle();
-      show(message, true);
+      dropThumb();
+      show(message, { error: true });
       hideTimer = setTimeout(hide, ERROR_MS);
     },
     done() {
