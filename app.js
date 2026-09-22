@@ -2122,6 +2122,17 @@ async function buildFeedbackContext() {
   return context;
 }
 
+// Brands whose own search recommended this one. The pairing already made sense from their side,
+// so the recommender weighs it from this one, and each search grows the next one's starting graph.
+function buildKnownPartnersContext(partners) {
+  if (!partners?.length) return '';
+  const lines = partners.map(p => {
+    const idea = p.bundleIdea ? ` Bundle idea then: ${p.bundleIdea}` : '';
+    return `- ${p.name} (${p.url}).${idea}`;
+  });
+  return `\n\nKNOWN PARTNERS FROM PAST SEARCHES (each of these brands was matched with this one when it was searched):\n${lines.join('\n')}\nInclude the ones that still fit this brand, after verifying they are active; they count toward the 12-15. Leave out any that do not fit.\n`;
+}
+
 // ============================================
 // LOADING MESSAGES
 // ============================================
@@ -2140,7 +2151,7 @@ const LOADING_MESSAGES = [
 async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog } = {}) {
   const domain = extractDomain(url);
   const brandName = extractBrandName(domain);
-  const feedbackContext = await buildFeedbackContext();
+  const [feedbackContext, knownPartners] = await Promise.all([buildFeedbackContext(), store.loadKnownPartners(domain)]);
 
   const updateProgress = (index) => {
     if (onProgress && typeof onProgress === 'function') {
@@ -2166,7 +2177,7 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onC
     // ========================================
     updateProgress(2); // "Finding complementary brands..."
 
-    const recommendations = await getRecommendations(resolvedBrandProfile, brandName, domain, feedbackContext);
+    const recommendations = await getRecommendations(resolvedBrandProfile, brandName, domain, feedbackContext + buildKnownPartnersContext(knownPartners));
 
     // Augment brands with grounding metadata
     const augmentedResults = augmentWithGroundingMetadata(recommendations, null);

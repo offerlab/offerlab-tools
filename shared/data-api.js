@@ -6,6 +6,7 @@
  *
  *   GET    searches/:domain?products=N   the stored search, brands' catalogs trimmed to N
  *   PUT    searches/:domain              store a finished search (results, empty or error)
+ *   GET    partners/:domain?limit=N      brands whose search recommended this domain
  *   GET    history?limit=N               recent searches, newest first
  *   POST   history        { domain }     a search just ran for this domain
  *   DELETE history/:domain               drop one; DELETE history drops them all
@@ -53,6 +54,13 @@ async function route({ method, segments, query, body, db }) {
         return search ? { status: 200, body: search } : { status: 404, body: { error: 'No search stored for this domain' } };
       }
       if (method === 'PUT') return { status: 200, body: await store.putSearch(db, domain, needBody(body)) };
+      break;
+    }
+
+    case 'partners': {
+      if (method === 'GET' && first && !second) {
+        return { status: 200, body: await store.listKnownPartners(db, needDomain(first), intParam(query.limit, store.DEFAULT_KNOWN_PARTNERS, { max: 50 })) };
+      }
       break;
     }
 

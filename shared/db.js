@@ -15,6 +15,8 @@ export const DEFAULT_PRODUCTS_PER_BRAND = 24;
 export const DEFAULT_HISTORY_LIMIT = 10;
 /** How much of the feedback corpus the recommender reads back. */
 export const DEFAULT_FEEDBACK_LIMIT = 100;
+/** Brands from past searches handed to the recommender as known partners. */
+export const DEFAULT_KNOWN_PARTNERS = 8;
 /** Drafts kept per searched brand, newest first. */
 export const DRAFTS_PER_BRAND = 20;
 
@@ -182,6 +184,33 @@ export async function putSearch(db, domain, record, now = Date.now()) {
     await putCatalog(db, brand.url || brand.catalog.domain, brand.catalog, now);
   }
   return { domain: key, searchId, timestamp: now };
+}
+
+/**
+ * The brands whose own search recommended this domain, newest first, with the reasons and
+ * bundle idea given then: `[{ domain, name, url, reasons, bundleIdea }]`. The recommender reads
+ * these back, so every search grows the graph the next one starts from.
+ */
+export async function listKnownPartners(db, domain, limit = DEFAULT_KNOWN_PARTNERS) {
+  const key = canonicalDomain(domain);
+  if (!key) return [];
+  const { results } = await db.prepare(
+    `SELECT s.domain AS domain, s.searched_brand AS searched_brand, sb.brand AS brand
+       FROM search_brands sb JOIN searches s ON s.domain = sb.search_domain
+      WHERE sb.domain = ? AND sb.search_domain != ? AND s.status = 'results'
+      ORDER BY s.updated_at DESC LIMIT ?`
+  ).bind(key, key, limit).all();
+  return results.map(row => {
+    const searched = parse(row.searched_brand, {}) || {};
+    const recommendation = parse(row.brand, {}) || {};
+    return {
+      domain: row.domain,
+      name: searched.name || row.domain,
+      url: searched.url || `https://${row.domain}`,
+      reasons: Array.isArray(recommendation.reasons) ? recommendation.reasons : [],
+      bundleIdea: recommendation.bundleIdea || null
+    };
+  });
 }
 
 function withoutCatalog(brand) {
