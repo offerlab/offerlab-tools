@@ -175,7 +175,10 @@ export function attachBrandSuggestions({ input, dropdown, list, history, showHis
     if (input.value.trim() === query) render(query, found);
   }
 
-  input.addEventListener('input', () => {
+  input.addEventListener('input', event => {
+    // The app dispatches its own input events when it writes the searched domain into the
+    // field; only keystrokes ask for suggestions.
+    if (!event.isTrusted) return;
     if (timer) clearTimeout(timer);
     const query = input.value.trim();
     if (query.length < MIN_QUERY) {
@@ -244,8 +247,9 @@ function merge(first, second) {
 /* Slow tier: Google, through the finder's own proxy                           */
 /* -------------------------------------------------------------------------- */
 
-async function findSite(name) {
-  const params = new URLSearchParams({ q: `${name} official site`, engine: 'google' });
+/** Google's best guess at a brand's own site, or null. Photo search can share it for a pack with no URL. */
+export async function findSite(name, product = '') {
+  const params = new URLSearchParams({ q: `${name} ${product} official site`.replace(/\s+/g, ' ').trim(), engine: 'google' });
   const response = await fetch(`/api/serpapi?${params}`, { signal: AbortSignal.timeout(SERP_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`SerpAPI ${response.status}`);
   const data = await response.json();
@@ -256,7 +260,8 @@ async function findSite(name) {
   return hosts.find(h => key && secondLevel(h).replace(/[^a-z0-9]/g, '').includes(key.slice(0, Math.max(4, key.length)))) || hosts[0] || null;
 }
 
-function hostOf(url) {
+/** The bare host of a URL or domain, or null when it is not one. */
+export function hostOf(url) {
   if (!url) return null;
   try {
     const host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.toLowerCase();
