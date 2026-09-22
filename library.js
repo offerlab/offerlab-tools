@@ -9,6 +9,7 @@
 import { icon } from './icons.js';
 
 const SNAPSHOT_URL = 'library/snapshot.json';
+const BRANDS_URL = 'library/brands.json';
 
 // Words a booth visitor types around the thing they mean, and the words they use for ours.
 const STOPWORDS = new Set(('a an and or for with of to in on my me our some something that this is are i want need looking ' +
@@ -38,7 +39,9 @@ const GHOST_GRID = 8;
 const FADE_MS = 320;
 const SWEEP_MS = 200;
 const TYPING_MS = 120;
-const TILT_DEG = 10;
+// The earn-back card's feel: peak tilt at the edges, and the lift on engage.
+const MAX_TILT = 9;
+const HOVER_SCALE = 1.04;
 const FLIP_MS = 650;
 const LIGHTBOX_COVER_WIDTH = 1200;
 const SEED = 0x9e3779b1;
@@ -62,6 +65,8 @@ const state = {
   pointerId: null,
   renderQueued: false,
   lastTile: null,
+  logos: {},
+  tilt: null,
   loaded: false,
   placed: false
 };
@@ -117,8 +122,11 @@ export function libraryFilterParams() {
 /* -------------------------------------------------------------------------- */
 
 async function load() {
-  const response = await fetch(SNAPSHOT_URL);
-  const snapshot = await response.json();
+  const [snapshot, logos] = await Promise.all([
+    fetch(SNAPSHOT_URL).then(r => r.json()),
+    fetch(BRANDS_URL).then(r => (r.ok ? r.json() : {})).catch(() => ({}))
+  ]);
+  state.logos = logos;
   state.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
     // Every word of the bundle, stemmed once, so a query is a set lookup per term.
@@ -509,23 +517,25 @@ function bindViewport() {
     if (tile) openLightbox(tile.dataset.id, tile);
   }, true);
 
-  // The hovered cover tilts toward the pointer and catches the light under it.
-  view.addEventListener('pointermove', event => {
-    if (state.dragging || MOBILE.matches) return;
+  // The earn-back card's tilt and glare, delegated: the tile under the pointer tilts toward it and
+  // catches the light under it. The rect is cached per interaction and the vars are written once
+  // per frame, so the hot path is compositor transforms and one gradient.
+  view.addEventListener('pointerover', event => {
+    if (MOBILE.matches || event.pointerType === 'touch') return;
     const tile = event.target.closest('.library-tile');
-    if (!tile || tile.classList.contains('library-tile--ghost')) return;
-    const r = tile.getBoundingClientRect();
-    const x = (event.clientX - r.left) / r.width, y = (event.clientY - r.top) / r.height;
-    tile.style.setProperty('--tilt-x', `${((x - 0.5) * 2 * TILT_DEG).toFixed(1)}deg`);
-    tile.style.setProperty('--tilt-y', `${((0.5 - y) * 2 * TILT_DEG).toFixed(1)}deg`);
-    tile.style.setProperty('--sheen-x', `${(x * 100).toFixed(1)}%`);
-    tile.style.setProperty('--sheen-y', `${(y * 100).toFixed(1)}%`);
+    if (!tile || tile === state.tilt?.tile || tile.classList.contains('library-tile--ghost')) return;
+    untilt();
+    state.tilt = { tile, rect: tile.getBoundingClientRect(), frame: 0, event };
+    tile.classList.add('is-tilting');
+    tiltFrame();
+  });
+  view.addEventListener('pointermove', event => {
+    if (!state.tilt || state.dragging) { if (state.dragging) untilt(); return; }
+    state.tilt.event = event;
+    if (!state.tilt.frame) state.tilt.frame = requestAnimationFrame(tiltFrame);
   });
   view.addEventListener('pointerout', event => {
-    const tile = event.target.closest('.library-tile');
-    if (tile && !tile.contains(event.relatedTarget)) {
-      for (const name of ['--tilt-x', '--tilt-y', '--sheen-x', '--sheen-y']) tile.style.removeProperty(name);
-    }
+    if (state.tilt && event.target.closest('.library-tile') === state.tilt.tile && !state.tilt.tile.contains(event.relatedTarget)) untilt();
   });
 
   view.addEventListener('wheel', event => {
@@ -541,6 +551,30 @@ function bindViewport() {
     event.preventDefault();
     setPan(state.pan.x + step[0], state.pan.y + step[1]);
   });
+}
+
+function tiltFrame() {
+  const t = state.tilt;
+  if (!t) return;
+  t.frame = 0;
+  const x = Math.min(1, Math.max(0, (t.event.clientX - t.rect.left) / t.rect.width));
+  const y = Math.min(1, Math.max(0, (t.event.clientY - t.rect.top) / t.rect.height));
+  const style = t.tile.style;
+  style.setProperty('--ry', `${((x - 0.5) * 2 * MAX_TILT).toFixed(2)}deg`);
+  style.setProperty('--rx', `${((0.5 - y) * 2 * MAX_TILT).toFixed(2)}deg`);
+  style.setProperty('--scale', String(HOVER_SCALE));
+  style.setProperty('--glare-x', `${(x * 100).toFixed(1)}%`);
+  style.setProperty('--glare-y', `${(y * 100).toFixed(1)}%`);
+  style.setProperty('--glare', '1');
+}
+
+function untilt() {
+  const t = state.tilt;
+  if (!t) return;
+  state.tilt = null;
+  if (t.frame) cancelAnimationFrame(t.frame);
+  t.tile.classList.remove('is-tilting');
+  for (const name of ['--rx', '--ry', '--scale', '--glare-x', '--glare-y', '--glare']) t.tile.style.removeProperty(name);
 }
 
 function glide() {
@@ -591,11 +625,11 @@ function openLightbox(id, tile) {
     <button type="button" class="icon-button library-lightbox-close" data-action="library-close" aria-label="Close">${icon('cross-large', { size: 16 })}</button>
     <div class="library-lightbox-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt=""></div>
     <div class="library-lightbox-body">
-      <p class="library-lightbox-eyebrow">${escape(label(bundle.category))} · ${escape(bundle.store)}</p>
+      <p class="library-lightbox-collab">${bundle.brands.map(brandMark).join('<span class="library-lightbox-x" aria-hidden="true">×</span>')}</p>
       <h2 class="library-lightbox-title" id="libraryLightboxTitle">${escape(bundle.name)}</h2>
-      <ul class="library-lightbox-brands">${bundle.brands.map(b => `<li>${escape(b)}</li>`).join('')}</ul>
+      <ul class="library-lightbox-chips"><li>${escape(label(bundle.category))}</li></ul>
       ${bundle.products.length ? `<p class="library-lightbox-products">${escape(bundle.products.join(', '))}</p>` : ''}
-      <a class="btn btn--lg btn--primary library-lightbox-open" href="${escape(bundle.pdpUrl)}" target="_blank" rel="noopener">
+      <a class="btn btn--lg btn--elevated library-lightbox-open" href="${escape(bundle.pdpUrl)}" target="_blank" rel="noopener">
         Open the bundle ${icon('arrow-up-right', { size: 16 })}
       </a>
     </div>`;
@@ -619,6 +653,15 @@ function openLightbox(id, tile) {
     card.style.transform = '';
   });
   dom.lightbox.querySelector('.library-lightbox-open').focus();
+}
+
+/** A brand's avatar from the team database, or its initial where the team has none. */
+function brandMark(name) {
+  const logo = state.logos[name.toLowerCase()];
+  const avatar = logo
+    ? `<span class="library-lightbox-avatar"><img src="library/${escape(logo)}" alt=""></span>`
+    : `<span class="library-lightbox-avatar">${escape(name.trim().charAt(0).toUpperCase())}</span>`;
+  return `<span class="library-lightbox-brand">${avatar}${escape(name)}</span>`;
 }
 
 /** The transform that puts the card's cover over the tile, turned 30° away, or null on a phone. */

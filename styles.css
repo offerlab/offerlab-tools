@@ -9,6 +9,14 @@
 
 /* Aktiv Grotesk */
 @font-face {
+  font-family: 'Fragment Mono';
+  src: url('fonts/FragmentMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Aktiv Grotesk';
   src: url('fonts/AktivGrotesk_W_Th.woff2') format('woff2'), url('fonts/AktivGrotesk_W_Th.woff') format('woff');
   font-weight: 100;
@@ -6796,8 +6804,8 @@ position: absolute;
 .library-shelf-shadow {
   position: absolute;
   top: var(--lib-shelf);
-  height: 220px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.36) 18%, rgba(0, 0, 0, 0.14) 55%, rgba(0, 0, 0, 0));
+  height: 260px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.44), rgba(0, 0, 0, 0.3) 14%, rgba(0, 0, 0, 0.2) 28%, rgba(0, 0, 0, 0.11) 45%, rgba(0, 0, 0, 0.05) 65%, rgba(0, 0, 0, 0));
   pointer-events: none;
 }
 
@@ -6812,7 +6820,9 @@ position: absolute;
 }
 
 /* Each cover stands on the top face. Its own shadow is the short one it throws onto the plank
-   and the wall right behind it; the long fall down the wall belongs to the row. */
+   and the wall right behind it; the long fall down the wall belongs to the row. The transform is
+   the earn-back card's: library.js writes --rx/--ry/--scale from the pointer, and the rest state
+   eases back over 0.6s. */
 .library-tile {
   position: absolute;
   bottom: var(--lib-plank);
@@ -6824,50 +6834,39 @@ position: absolute;
   border-radius: 28px;
   cursor: pointer;
   z-index: 1;
+  transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--scale, 1));
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    6px 10px 24px -6px rgba(0, 0, 0, 0.28);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, opacity 0.32s ease;
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 16px 36px -16px rgba(0, 0, 0, 0.18);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, opacity 0.32s ease;
   outline: none;
 }
 
-/* A filter crossfades each cell: the new cover fades in on top while the old one fades out
-   beneath it. Both start once the new cover has decoded. */
-.library-tile.is-entering,
-.library-tile.is-leaving {
-  opacity: 0;
-}
-
-.library-tile.is-leaving {
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* The contact shadow: the cover's base darkens the plank's top face just behind it. */
+/* The contact shadow: the cover's base darkens the plank's top face just behind it, fading out
+   to the sides as well as forward so it has no edge of its own. */
 .library-tile::after {
   content: "";
   position: absolute;
-  left: 14px;
-  right: 14px;
+  left: 0;
+  right: 0;
   top: 100%;
-  height: calc(var(--lib-plank) / 2);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0));
+  height: var(--lib-plank);
+  background: radial-gradient(48% 100% at 50% 0%, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
   pointer-events: none;
 }
 
-/* Hover: the cover lifts, tilts toward the pointer and catches the light where the pointer is.
-   library.js sets the tilt and sheen from the pointer's place on the tile. */
 .library-tile:hover,
 .library-tile:focus-visible {
-  transform: perspective(900px) translateY(-8px) scale(1.03) rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg));
   box-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.22),
-    8px 22px 36px -8px rgba(0, 0, 0, 0.4);
+    0 2px 3px rgba(0, 0, 0, 0.16),
+    0 24px 44px -16px rgba(0, 0, 0, 0.32);
   z-index: 2;
 }
 
-.library-tile:hover {
-  transition-duration: 0.12s, 0.25s, 0.32s;
+/* While the pointer is on it, follow with only a hair of smoothing, on its own layer. */
+.library-tile.is-tilting {
+  transition: transform 0.15s ease-out, box-shadow 0.25s ease, opacity 0.32s ease;
+  will-change: transform;
 }
 
 .library-tile.is-lifted {
@@ -6896,21 +6895,19 @@ position: absolute;
   background: var(--content-background-base);
 }
 
-/* A glossy streak across the cover plus a hot spot under the pointer, both following it. */
+/* The earn-back card's glare: a soft white radial under the pointer, soft-light so it reads as
+   light catching the print rather than a white blob. */
 .library-tile-cover::after {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(40% 40% at var(--sheen-x, 50%) var(--sheen-y, 50%), rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 70%),
-    linear-gradient(115deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) calc(var(--sheen-x, 50%) - 22%), rgba(255, 255, 255, 0.45) calc(var(--sheen-x, 50%) - 4%), rgba(255, 255, 255, 0.14) calc(var(--sheen-x, 50%) + 4%), rgba(255, 255, 255, 0) calc(var(--sheen-x, 50%) + 22%));
-  mix-blend-mode: screen;
-  opacity: 0;
-  transition: opacity 0.25s ease;
+  background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.35) 18%, rgba(255, 255, 255, 0) 55%);
+  mix-blend-mode: soft-light;
+  opacity: var(--glare, 0);
+  transition: opacity 0.4s ease;
   pointer-events: none;
 }
 
-.library-tile:hover .library-tile-cover::after,
 .library-tile:focus-visible .library-tile-cover::after {
   opacity: 1;
 }
@@ -6922,24 +6919,28 @@ position: absolute;
   object-fit: cover;
 }
 
-/* The name rides along the bottom of the cover on hover; a cover that failed to load shows it
-   always, on a plain surface, rather than a broken image. */
+/* The name rides along the bottom of the cover on hover, on a strip that is the cover's own colors
+   blurred and darkened, so it belongs to the image rather than sitting on it. A cover that failed to
+   load shows it always, on a plain surface, rather than a broken image. */
 .library-tile-name {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 28px 12px 10px;
+  padding: 18px 20px 18px;
   color: var(--content-primary-inverse);
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.62));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.16));
+  backdrop-filter: blur(24px) saturate(1.5) brightness(0.62);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   border-radius: 0 0 28px 28px;
   font-size: var(--font-size-sm);
-  line-height: 1.3;
+  line-height: 1.35;
   font-weight: 600;
   letter-spacing: -0.014em;
   text-align: left;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
   pointer-events: none;
 }
 
@@ -6955,9 +6956,12 @@ position: absolute;
 
 .library-tile.is-bare .library-tile-name {
   top: 0;
-  padding-top: 12px;
+  padding-top: 16px;
   color: var(--content-primary);
   background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 /* Empty result: the shelves stay up, dealt with glass placeholders, and the message sits on a
@@ -7261,7 +7265,7 @@ position: absolute;
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(36, 32, 27, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   opacity: 0;
@@ -7275,13 +7279,11 @@ position: absolute;
 .library-lightbox-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(280px, 460px) minmax(280px, 380px);
-  width: min(100%, 860px);
+  grid-template-columns: minmax(280px, 460px) minmax(280px, 400px);
+  gap: 40px;
+  align-items: center;
+  width: min(100%, 900px);
   max-height: calc(100vh - 48px);
-  border-radius: 28px;
-  overflow: hidden;
-  background: var(--content-background-elevated);
-  box-shadow: var(--shadow-lg);
   transform-origin: 0 0;
   transform: scale(0.94) translateY(12px);
   transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
@@ -7309,17 +7311,26 @@ position: absolute;
 
 .library-lightbox-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 0;
+  right: 0;
   z-index: 2;
   width: 40px;
   height: 40px;
   padding: 0;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.library-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .library-lightbox-cover {
+  aspect-ratio: 1;
+  border-radius: 28px;
+  overflow: hidden;
   background: var(--content-background-base);
-  min-height: 320px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
 }
 
 .library-lightbox-cover img {
@@ -7332,18 +7343,58 @@ position: absolute;
 .library-lightbox-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 32px 28px 28px;
-  overflow: auto;
+  gap: 14px;
+  padding: 8px 48px 8px 0;
+  color: #fff;
 }
 
-.library-lightbox-eyebrow {
+/* The collaboration: each brand's avatar and name, in the marketing site's mono. */
+.library-lightbox-collab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
   margin: 0;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: 'Fragment Mono', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--content-tertiary);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.library-lightbox-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.library-lightbox-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--rounded-full);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.library-lightbox-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-lightbox-x {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .library-lightbox-title {
@@ -7352,11 +7403,11 @@ position: absolute;
   line-height: 1.15;
   letter-spacing: -0.02em;
   font-weight: 600;
-  color: var(--content-primary);
+  color: #fff;
   overflow-wrap: anywhere;
 }
 
-.library-lightbox-brands {
+.library-lightbox-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -7365,11 +7416,12 @@ position: absolute;
   list-style: none;
 }
 
-.library-lightbox-brands li {
-  padding: 4px 10px;
+.library-lightbox-chips li {
+  padding: 5px 11px;
   border-radius: var(--rounded-full);
-  background: var(--content-background-overlay);
-  color: var(--content-primary);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  color: #fff;
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 1.25;
@@ -7377,15 +7429,27 @@ position: absolute;
 
 .library-lightbox-products {
   margin: 0;
-  color: var(--content-secondary);
+  color: rgba(255, 255, 255, 0.72);
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
 
 .library-lightbox-open {
-  margin-top: auto;
+  margin-top: 10px;
   gap: 8px;
   align-self: flex-start;
+}
+
+/* The white elevated button: the app's surface with its shadow, for standing on the scrim. */
+.btn--elevated {
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.32);
+}
+
+.btn--elevated:hover {
+  background: var(--content-background-base);
 }
 
 /* On a phone the board is a grid you scroll, not a picture you drag. Same tiles, same omnibox. */
@@ -7451,11 +7515,22 @@ position: absolute;
 
   .library-lightbox-card {
     grid-template-columns: 1fr;
+    gap: 20px;
     width: 100%;
     max-height: 92vh;
-    border-radius: 24px 24px 0 0;
+    padding: 20px 20px 28px;
+    overflow: auto;
     opacity: 0;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+  }
+
+  .library-lightbox-body {
+    padding: 0;
+  }
+
+  .library-lightbox-close {
+    top: 12px;
+    right: 12px;
   }
 
   .library-lightbox.is-open .library-lightbox-card {
@@ -7463,7 +7538,6 @@ position: absolute;
   }
 
   .library-lightbox-cover {
-    min-height: 0;
     aspect-ratio: 4 / 3;
   }
 }
