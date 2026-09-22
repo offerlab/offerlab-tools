@@ -13,16 +13,12 @@ const MOBILE = window.matchMedia('(max-width: 900px)');
 const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 
 // Geometry, owned here and mirrored onto the section as custom properties so the CSS cannot drift.
-// A shelf is a run of planks; each plank carries PER_PLANK tiles; odd rows sit half a plank over.
+// Each row is one continuous plank; odd rows sit half a column over.
 const TILE = 220;
 const GAP = 32;
-const PER_PLANK = 5;
-const OVERHANG = 56;
-const PLANK_GAP = 160;
+const COL_W = TILE + GAP;
 const PLANK_H = 18;
 const AIR = 64;
-const PLANK_W = PER_PLANK * TILE + (PER_PLANK - 1) * GAP + 2 * OVERHANG;
-const SEG_W = PLANK_W + PLANK_GAP;
 const SHELF_H = AIR + TILE + PLANK_H;
 const TILE_COVER_WIDTH = 480;
 const SEED = 0x9e3779b1;
@@ -40,7 +36,6 @@ const state = {
   velocity: { x: 0, y: 0 },
   rows: new Map(),
   cells: new Map(),
-  planks: new Map(),
   dragging: false,
   moved: false,
   suppressClick: false,
@@ -68,7 +63,7 @@ export async function initLibrary() {
   dom.empty = document.getElementById('libraryEmpty');
   dom.lightbox = document.getElementById('libraryLightbox');
 
-  const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, 'plank-w': PLANK_W, overhang: OVERHANG, air: AIR, shelf: SHELF_H };
+  const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, air: AIR, shelf: SHELF_H };
   for (const [name, value] of Object.entries(geometry)) dom.section.style.setProperty(`--lib-${name}`, `${value}px`);
 
   bindViewport();
@@ -103,7 +98,7 @@ export function libraryFilterParams() {
 async function load() {
   const response = await fetch(SNAPSHOT_URL);
   const snapshot = await response.json();
-  state.bundles = snapshot.bundles.map(bundle => ({
+  state.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
     // One lowercased haystack per bundle, built once, so typing filters without re-joining.
     haystack: [bundle.name, bundle.anchorBrand, ...bundle.brands, ...bundle.products, bundle.category.replace(/-/g, ' ')]
@@ -182,8 +177,7 @@ function bundleAt(row, col) {
   return state.visible[i];
 }
 
-const rowOffset = r => (r & 1 ? SEG_W / 2 : 0);
-const tileX = i => OVERHANG + i * (TILE + GAP);
+const rowOffset = r => (r & 1 ? COL_W / 2 : 0);
 
 function rowFor(r) {
   let row = state.rows.get(r);
@@ -193,54 +187,40 @@ function rowFor(r) {
   el.style.transform = `translate3d(0, ${r * SHELF_H}px, 0)`;
   // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
   el.style.zIndex = String(r + 1e6);
-  row = { el, r };
+  el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div>';
+  row = { el, r, furniture: [...el.children] };
   state.rows.set(r, row);
   dom.board.appendChild(el);
   return row;
-}
-
-function plankFor(row, s) {
-  const key = `${row.r}:${s}`;
-  let plank = state.planks.get(key);
-  if (plank) return plank;
-  plank = document.createElement('div');
-  plank.className = 'library-plank';
-  plank.style.left = `${s * SEG_W + rowOffset(row.r)}px`;
-  plank.innerHTML = '<div class="library-plank-glow"></div><div class="library-plank-shadow"></div><div class="library-plank-slab"></div>';
-  state.planks.set(key, plank);
-  row.el.appendChild(plank);
-  return plank;
 }
 
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 function render() {
   if (MOBILE.matches || !state.visible.length) return;
   const view = dom.viewport.getBoundingClientRect();
-  const x0 = -state.pan.x - SEG_W, x1 = -state.pan.x + view.width + SEG_W;
+  const x0 = -state.pan.x - COL_W, x1 = -state.pan.x + view.width + COL_W;
   const r0 = Math.floor(-state.pan.y / SHELF_H) - 1, r1 = Math.ceil((-state.pan.y + view.height) / SHELF_H) + 1;
-  const keepCells = new Set(), keepPlanks = new Set();
+  const keep = new Set();
 
   for (let r = r0; r <= r1; r++) {
     const row = rowFor(r);
-    const s0 = Math.floor((x0 - rowOffset(r)) / SEG_W), s1 = Math.floor((x1 - rowOffset(r)) / SEG_W);
-    for (let s = s0; s <= s1; s++) {
-      keepPlanks.add(`${r}:${s}`);
-      const plank = plankFor(row, s);
-      for (let i = 0; i < PER_PLANK; i++) {
-        const c = s * PER_PLANK + i;
-        const key = `${r}:${c}`;
-        keepCells.add(key);
-        if (state.cells.has(key)) continue;
-        const tile = makeTile(bundleAt(r, c));
-        tile.style.left = `${tileX(i)}px`;
-        state.cells.set(key, tile);
-        plank.appendChild(tile);
-      }
+    for (const part of row.furniture) {
+      part.style.left = `${x0}px`;
+      part.style.width = `${x1 - x0}px`;
+    }
+    const c0 = Math.floor((x0 - rowOffset(r)) / COL_W), c1 = Math.floor((x1 - rowOffset(r)) / COL_W);
+    for (let c = c0; c <= c1; c++) {
+      const key = `${r}:${c}`;
+      keep.add(key);
+      if (state.cells.has(key)) continue;
+      const tile = makeTile(bundleAt(r, c));
+      tile.style.left = `${c * COL_W + rowOffset(r) + GAP / 2}px`;
+      state.cells.set(key, tile);
+      row.el.appendChild(tile);
     }
   }
 
-  for (const [key, tile] of state.cells) if (!keepCells.has(key)) { tile.remove(); state.cells.delete(key); }
-  for (const [key, plank] of state.planks) if (!keepPlanks.has(key)) { plank.remove(); state.planks.delete(key); }
+  for (const [key, tile] of state.cells) if (!keep.has(key)) { tile.remove(); state.cells.delete(key); }
   for (const [r, row] of state.rows) if (r < r0 || r > r1) { row.el.remove(); state.rows.delete(r); }
 }
 
@@ -254,7 +234,6 @@ function clearBoard() {
   dom.board.replaceChildren();
   state.rows.clear();
   state.cells.clear();
-  state.planks.clear();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -289,11 +268,11 @@ function apply() {
     dom.grid.replaceChildren(...state.visible.map(makeTile));
     return;
   }
-  // The first plank of row 0 opens centered; after that the pan is kept, so a filter changes what
-  // is on the shelves and not where you are.
+  // Row 0 opens across the middle with a tile centered; after that the pan is kept, so a filter
+  // changes what is on the shelves and not where you are.
   if (!state.placed) {
     const view = dom.viewport.getBoundingClientRect();
-    state.pan = { x: Math.round((view.width - PLANK_W) / 2), y: Math.round(view.height / 2 - AIR - TILE / 2) };
+    state.pan = { x: Math.round((view.width - COL_W) / 2), y: Math.round(view.height / 2 - AIR - TILE / 2) };
     state.placed = true;
   }
   setPan(state.pan.x, state.pan.y);

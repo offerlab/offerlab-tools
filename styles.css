@@ -6773,8 +6773,9 @@ position: absolute;
   display: none;
 }
 
-/* A shelf row is a line of planks; each plank owns the tiles standing on it, the glow on the wall
-   behind them and the shadow the row throws down the wall. All of it is positioned by library.js. */
+/* A shelf row is one continuous plank: the tiles standing on it, the glow on the wall behind them
+   and the shadow the row throws down the wall. library.js positions all of it and stretches the
+   plank, glow and shadow across whatever the viewport can see. */
 .library-shelf {
   position: absolute;
   top: 0;
@@ -6783,46 +6784,29 @@ position: absolute;
   height: var(--lib-shelf);
 }
 
-.library-plank {
+.library-shelf-glow {
   position: absolute;
-  top: 0;
-  width: var(--lib-plank-w);
-  height: var(--lib-shelf);
-}
-
-.library-plank-glow {
-  position: absolute;
-  left: -80px;
-  right: -80px;
   top: 0;
   bottom: var(--lib-plank);
-  background: radial-gradient(58% 75% at 50% 68%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28) 50%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5) 55%, rgba(255, 255, 255, 0.62) 100%);
   pointer-events: none;
 }
 
-/* The row's shadow on the wall below: hard at the plank's underside, gone by the next shelf.
-   Masked to the run of tiles so a plank's bare ends throw nothing, as on Editions. */
-.library-plank-shadow {
+/* The row's shadow on the wall below: hard at the plank's underside, gone by the next shelf. */
+.library-shelf-shadow {
   position: absolute;
-  left: var(--lib-overhang);
-  right: var(--lib-overhang);
   top: var(--lib-shelf);
   height: 220px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.36) 18%, rgba(0, 0, 0, 0.14) 55%, rgba(0, 0, 0, 0));
-  mask-image: linear-gradient(90deg, transparent, #000 90px, #000 calc(100% - 90px), transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 90px, #000 calc(100% - 90px), transparent);
   pointer-events: none;
 }
 
 /* A white slab seen from just above: a top face, a hairline of light along the front edge, and a
    front face a shade cooler. */
-.library-plank-slab {
+.library-shelf-slab {
   position: absolute;
-  left: 0;
-  right: 0;
   bottom: 0;
   height: var(--lib-plank);
-  border-radius: 2px;
   background: linear-gradient(180deg, #f1f1f1 0, #f6f6f6 50%, #fbfbfb calc(50% + 1px), #ebebeb calc(50% + 2px), #e6e6e6 100%);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
 }
