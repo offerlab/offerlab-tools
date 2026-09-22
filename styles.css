@@ -838,11 +838,17 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   transition: transform 0.3s ease-out;
 }
 
-.card-catalog-thumb:hover .media-zoom,
-.picker-product:hover .media-zoom,
-.picker-product:active .media-zoom,
-.picker-concept:hover .media-zoom {
+.picker-product:active .media-zoom {
   transform: scale(1.05);
+}
+
+/* Hover only where a pointer hovers; touch has the press above. */
+@media (hover: hover) {
+  .card-catalog-thumb:hover .media-zoom,
+  .picker-product:hover .media-zoom,
+  .picker-concept:hover .media-zoom {
+    transform: scale(1.05);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -5959,7 +5965,11 @@ position: relative;
 /* The app's elevated icon button: 40px circle, white, hairline ring, 20px glyph */
 .picker-product-add {
   position: absolute;
-  z-index: 1;
+  /* Above the veil and the hairline (both 1), and on a layer of its own from the start: while
+     the glyph morphs, WebKit would otherwise promote it mid-animation and paint it under the
+     artwork for a frame. */
+  z-index: 2;
+  transform: translateZ(0);
   right: 10px;
   bottom: 10px;
   width: 40px;
