@@ -7119,19 +7119,18 @@ position: absolute;
   background: var(--content-background-base);
 }
 
-.library-eyebrow-clear {
-  flex: none;
-  height: 24px;
-  padding: 0 8px;
-  border: none;
-  background: none;
-  color: var(--content-primary);
-  font-family: var(--font-family);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.library-chip--clear {
+  gap: 4px;
+  padding: 0 6px 0 10px;
   cursor: pointer;
+}
+
+.library-chip--clear:hover {
+  background: var(--content-background-base);
+}
+
+.library-chip--clear svg {
+  color: var(--content-secondary);
 }
 
 /* The filter trigger is the pill's own submit disc, wearing the filter icon and neutral colors. */
