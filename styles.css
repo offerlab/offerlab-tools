@@ -6820,7 +6820,7 @@ position: absolute;
   padding: 0;
   border: none;
   background: var(--content-background-elevated);
-  border-radius: 2px;
+  border-radius: 28px;
   cursor: pointer;
   z-index: 1;
   box-shadow:
@@ -6834,8 +6834,8 @@ position: absolute;
 .library-tile::after {
   content: "";
   position: absolute;
-  left: -2px;
-  right: -2px;
+  left: 14px;
+  right: 14px;
   top: 100%;
   height: calc(var(--lib-plank) / 2);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0));
@@ -6867,7 +6867,7 @@ position: absolute;
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 2px;
+  border-radius: 28px;
   overflow: hidden;
   background: var(--content-background-base);
 }
@@ -6889,7 +6889,7 @@ position: absolute;
   padding: 28px 12px 10px;
   color: var(--content-primary-inverse);
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.62));
-  border-radius: 0 0 2px 2px;
+  border-radius: 0 0 28px 28px;
   font-size: var(--font-size-sm);
   line-height: 1.3;
   font-weight: 600;
