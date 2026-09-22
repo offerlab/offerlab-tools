@@ -319,7 +319,8 @@
           <div class="library-board" id="libraryBoard"></div>
           <div class="library-grid" id="libraryGrid"></div>
           <div class="library-empty hidden" id="libraryEmpty">
-            <div class="library-empty-card">
+            <div class="library-empty-blur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="library-empty-message">
               <p class="library-empty-title" id="libraryEmptyTitle">Nothing on the shelf for that</p>
               <p class="library-empty-copy">Try a brand, a product or a category, or start over.</p>
               <button type="button" class="btn btn--md btn--primary" data-action="library-clear">Clear search</button>
@@ -339,11 +340,11 @@
                 </div>
               </div>
             </form>
-            <!-- What narrowed the shelves, tucked under the pill's top edge; the whole thing clears. -->
-            <button type="button" class="library-eyebrow hidden" id="libraryEyebrow" data-action="library-clear" aria-live="polite">
-              <span class="library-eyebrow-text" id="libraryEyebrowText"></span>
-              <span class="library-eyebrow-clear">Clear</span>
-            </button>
+            <!-- What narrowed the shelves, as chips, tucked under the pill's top edge. -->
+            <div class="library-eyebrow hidden" id="libraryEyebrow" aria-live="polite">
+              <div class="library-eyebrow-chips" id="libraryEyebrowChips"></div>
+              <button type="button" class="library-eyebrow-clear" data-action="library-clear">Clear</button>
+            </div>
             <div class="library-filters hidden" id="libraryFilters">
               <label class="library-filter-field">
                 <span>Category</span>

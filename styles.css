@@ -6918,7 +6918,8 @@ position: absolute;
   background: none;
 }
 
-/* Empty result: a card in the middle of the viewport, the empty shelves still up behind it. */
+/* Empty result: the shelves stay up, dealt with glass placeholders, and the message sits on a
+   blur that is strongest behind it and fades out radially, so it needs no surface of its own. */
 .library-empty {
   position: absolute;
   inset: 0;
@@ -6930,19 +6931,42 @@ position: absolute;
   pointer-events: none;
 }
 
-.library-empty-card {
+.library-empty-blur {
+  position: absolute;
+  inset: 0;
+}
+
+/* Concentric ellipses of backdrop blur, each stronger and tighter than the last, read as one blur
+   that ramps up toward the middle. Ellipses rather than masks: a mask does not clip a backdrop
+   filter here, a border-radius does. */
+.library-empty-blur > i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--w);
+  height: var(--h);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+
+.library-empty-blur > i:nth-child(1) { --w: 72%; --h: 90%; --blur: 1px; }
+.library-empty-blur > i:nth-child(2) { --w: 65%; --h: 81%; --blur: 2px; }
+.library-empty-blur > i:nth-child(3) { --w: 58%; --h: 72%; --blur: 3px; }
+.library-empty-blur > i:nth-child(4) { --w: 51%; --h: 63%; --blur: 5px; }
+.library-empty-blur > i:nth-child(5) { --w: 44%; --h: 54%; --blur: 8px; }
+.library-empty-blur > i:nth-child(6) { --w: 37%; --h: 45%; --blur: 12px; }
+.library-empty-blur > i:nth-child(7) { --w: 30%; --h: 36%; --blur: 17px; }
+.library-empty-blur > i:nth-child(8) { --w: 23%; --h: 28%; --blur: 24px; }
+
+.library-empty-message {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  max-width: 400px;
-  padding: 32px 32px 28px;
-  border-radius: 28px;
-  background: var(--content-background-elevated);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    6px 10px 24px -6px rgba(0, 0, 0, 0.28);
+  max-width: 420px;
   text-align: center;
   pointer-events: auto;
 }
@@ -6961,6 +6985,23 @@ position: absolute;
   color: var(--content-secondary);
   font-size: var(--font-size-sm);
   line-height: 1.5;
+}
+
+/* The placeholder a shelf holds when nothing matches: frosted glass, the wall showing through. */
+.library-tile--ghost {
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.3));
+  backdrop-filter: blur(3px) saturate(1.2);
+  -webkit-backdrop-filter: blur(3px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    0 14px 30px -10px rgba(0, 0, 0, 0.28);
+}
+
+.library-tile--ghost::after {
+  opacity: 0.35;
 }
 
 /* The omnibox, anchored to the bottom of the viewport. The pill is the finder's own; only the
@@ -7004,11 +7045,10 @@ position: absolute;
   z-index: -1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   height: 36px;
-  padding: 0 16px 2px;
-  border: none;
+  padding: 0 8px 2px 14px;
   border-radius: 20px 20px 0 0;
   background: var(--content-background-base);
   color: var(--content-secondary);
@@ -7016,27 +7056,82 @@ position: absolute;
   font-size: var(--font-size-xs);
   font-weight: 500;
   letter-spacing: -0.01em;
-  cursor: pointer;
   pointer-events: auto;
 }
 
-.library-eyebrow:hover {
-  background: var(--content-background-elevated);
-}
-
-.library-eyebrow-text {
+.library-eyebrow-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.library-eyebrow-count {
+  flex: none;
+  margin-right: 2px;
   white-space: nowrap;
+}
+
+.library-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--content-border-neutral);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.library-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-secondary);
+  cursor: pointer;
+}
+
+.library-chip-remove:hover {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+}
+
+.library-chip--more {
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.library-chip--more:hover {
+  background: var(--content-background-base);
 }
 
 .library-eyebrow-clear {
   flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  background: none;
   color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 /* The filter trigger is the pill's own submit disc, wearing the filter icon and neutral colors. */

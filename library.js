@@ -33,6 +33,8 @@ const PLANK_H = 18;
 const AIR = 64;
 const SHELF_H = AIR + TILE + PLANK_H;
 const TILE_COVER_WIDTH = 480;
+const EYEBROW_CHIPS = 2;
+const GHOST_GRID = 8;
 const SEED = 0x9e3779b1;
 
 const KEY_STEP = 160;
@@ -71,7 +73,7 @@ export async function initLibrary() {
   dom.filterBtn = document.getElementById('libraryFilterBtn');
   dom.popover = document.getElementById('libraryFilters');
   dom.eyebrow = document.getElementById('libraryEyebrow');
-  dom.eyebrowText = document.getElementById('libraryEyebrowText');
+  dom.eyebrowChips = document.getElementById('libraryEyebrowChips');
   dom.empty = document.getElementById('libraryEmpty');
   dom.emptyTitle = document.getElementById('libraryEmptyTitle');
   dom.lightbox = document.getElementById('libraryLightbox');
@@ -167,6 +169,12 @@ function makeTile(bundle) {
   return tile;
 }
 
+function makeGhost() {
+  const tile = document.createElement('div');
+  tile.className = 'library-tile library-tile--ghost';
+  return tile;
+}
+
 /* -------------------------------------------------------------------------- */
 /* The virtual board                                                           */
 /* -------------------------------------------------------------------------- */
@@ -228,13 +236,12 @@ function render() {
       part.style.left = `${x0}px`;
       part.style.width = `${x1 - x0}px`;
     }
-    if (!state.visible.length) continue;
     const c0 = Math.floor((x0 - rowOffset(r)) / COL_W), c1 = Math.floor((x1 - rowOffset(r)) / COL_W);
     for (let c = c0; c <= c1; c++) {
       const key = `${r}:${c}`;
       keep.add(key);
       if (state.cells.has(key)) continue;
-      const tile = makeTile(bundleAt(row, c));
+      const tile = state.visible.length ? makeTile(bundleAt(row, c)) : makeGhost();
       tile.style.left = `${c * COL_W + rowOffset(r) + GAP / 2}px`;
       state.cells.set(key, tile);
       row.el.appendChild(tile);
@@ -298,7 +305,7 @@ function apply() {
   dom.grid.replaceChildren();
   if (MOBILE.matches) {
     // A phone scrolls the visible bundles once each, no repeats.
-    dom.grid.replaceChildren(...state.visible.map(makeTile));
+    dom.grid.replaceChildren(...(n ? state.visible.map(makeTile) : Array.from({ length: GHOST_GRID }, makeGhost)));
     return;
   }
   // Row 0 opens across the middle with a tile centered; after that the pan is kept, so a filter
@@ -312,23 +319,45 @@ function apply() {
   render();
 }
 
-const narrowedBy = () => {
+/** What narrowed the shelves, in the order the chips show. */
+function narrowedBy() {
   const { query, category, brand, store } = state.filters;
-  return [category && label(category), brand, store, query && `“${query}”`].filter(Boolean);
-};
-
-/** Only while something narrows the shelves: the count, then each filter, then Clear. */
-function renderEyebrow(n) {
-  const parts = narrowedBy();
-  dom.eyebrow.classList.toggle('hidden', !parts.length);
-  dom.eyebrowText.textContent = [`${n} of ${state.bundles.length}`, ...parts].join(' · ');
+  return [
+    category && { key: 'category', label: label(category) },
+    brand && { key: 'brand', label: brand },
+    store && { key: 'store', label: store },
+    query && { key: 'query', label: `“${query}”` }
+  ].filter(Boolean);
 }
 
-/** Empty shelves stay up behind it; the card names what came up empty. */
+/**
+ * Only while something narrows the shelves: the count, a chip per filter with its own remove,
+ * the rest folded into "+n more" that opens the popover, and Clear on the far right.
+ */
+function renderEyebrow(n) {
+  const applied = narrowedBy();
+  dom.eyebrow.classList.toggle('hidden', !applied.length);
+  const chips = applied.slice(0, EYEBROW_CHIPS).map(({ key, label }) => `
+    <span class="library-chip">${escape(label)}
+      <button type="button" class="library-chip-remove" data-remove="${key}" aria-label="Remove ${escape(label)}">${icon('cross-large', { size: 10 })}</button>
+    </span>`);
+  const more = applied.length - EYEBROW_CHIPS;
+  if (more > 0) chips.push(`<button type="button" class="library-chip library-chip--more" data-action="library-more">+${more} more</button>`);
+  dom.eyebrowChips.innerHTML = `<span class="library-eyebrow-count">${n} of ${state.bundles.length}</span>${chips.join('')}`;
+}
+
+/** The shelves stay up, dealt with glass placeholders; the message sits on a blur over them. */
 function renderEmpty(n) {
   dom.empty.classList.toggle('hidden', n > 0);
   if (n) return;
-  dom.emptyTitle.textContent = `Nothing on the shelf for ${narrowedBy().join(' · ')}`;
+  dom.emptyTitle.textContent = `Nothing on the shelf for ${narrowedBy().map(f => f.label).join(' · ')}`;
+}
+
+function removeFilter(key) {
+  state.filters[key] = '';
+  if (key === 'query') dom.input.value = '';
+  else dom.popover.querySelector(`[data-filter="${key}"]`).value = '';
+  apply();
 }
 
 function readFiltersFromUrl() {
@@ -372,10 +401,12 @@ function bindOmnibox() {
   });
   dom.section.addEventListener('click', event => {
     if (event.target.closest('[data-action="library-clear"]')) clearFilters();
+    else if (event.target.closest('[data-action="library-more"]')) openFilters();
+    else if (event.target.closest('[data-remove]')) removeFilter(event.target.closest('[data-remove]').dataset.remove);
   });
   document.addEventListener('click', event => {
     if (dom.popover.classList.contains('hidden')) return;
-    if (!event.target.closest('#libraryFilters') && !event.target.closest('#libraryFilterBtn')) closeFilters();
+    if (!event.target.closest('#libraryFilters, #libraryFilterBtn, [data-action="library-more"]')) closeFilters();
   });
 }
 
