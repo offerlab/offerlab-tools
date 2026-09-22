@@ -6646,23 +6646,41 @@ position: absolute;
 }
 
 /* --------------------------------------------------------------------------
-   Mode switch: Finder | Library, centred in the dark bar
+   Mode switch: Create | Shelf, centered in the dark bar
    -------------------------------------------------------------------------- */
-/* Absolutely centred rather than a third flex item, so it holds the middle whether or not the
-   account control is showing on the right. */
+/* The app's segmented control. Equal tracks (an inline grid sizes every track to the widest), and
+   the selected pill is its own layer that slides one track per index. Absolutely centered rather
+   than a third flex item, so it holds the middle whether or not the account control is showing. */
 .mode-switch {
+  --mode-switch-pad: 3px;
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  display: inline-flex;
-  padding: 3px;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: var(--mode-switch-pad);
   border-radius: var(--rounded-full);
   background: var(--content-background-overlay-inverse);
 }
 
+.mode-switch-indicator {
+  position: absolute;
+  top: var(--mode-switch-pad);
+  bottom: var(--mode-switch-pad);
+  left: var(--mode-switch-pad);
+  width: calc((100% - 2 * var(--mode-switch-pad)) / 2);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
 .mode-switch-btn {
-  height: calc(var(--nav-control-h) - 6px);
+  position: relative;
+  z-index: 1;
+  height: calc(var(--nav-control-h) - 2 * var(--mode-switch-pad));
   padding: 0 14px;
   border: none;
   border-radius: var(--rounded-full);
@@ -6676,7 +6694,7 @@ position: absolute;
   font-weight: 600;
   opacity: 0.7;
   cursor: pointer;
-  transition: background 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+  transition: opacity 0.2s ease, color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mode-switch-btn:hover {
@@ -6684,7 +6702,6 @@ position: absolute;
 }
 
 .mode-switch-btn[aria-pressed="true"] {
-  background: var(--content-background-elevated);
   color: var(--content-primary);
   opacity: 1;
 }

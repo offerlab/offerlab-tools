@@ -49,6 +49,7 @@ const elements = {
   viewHeader: document.getElementById('viewHeader'),
   librarySection: document.getElementById('librarySection'),
   modeSwitch: document.getElementById('modeSwitch'),
+  modeSwitchIndicator: document.getElementById('modeSwitchIndicator'),
   headerBackBtn: document.getElementById('headerBackBtn'),
   stopSearchButton: document.getElementById('stopSearchButton'),
   resultsSearchButton: document.getElementById('resultsSearchButton'),
@@ -504,14 +505,26 @@ function showSection(sectionName) {
 }
 
 /* --------------------------------------------------------------------------
-   Mode switch: Finder | Library
+   Mode switch: Create | Shelf
    -------------------------------------------------------------------------- */
 const MODE_PARAM = 'view';
+const MODES = ['finder', 'library'];
 
+/* The app's segmented control: equal tracks, and the selected pill is its own layer slid by
+   index, so a percentage translate is exactly one track. The first placement snaps rather
+   than slides in from the left. */
 function setMode(mode) {
   elements.modeSwitch?.querySelectorAll('.mode-switch-btn').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
   });
+  const indicator = elements.modeSwitchIndicator;
+  if (!indicator) return;
+  if (!indicator.dataset.placed) {
+    indicator.style.transition = 'none';
+    indicator.dataset.placed = 'true';
+    requestAnimationFrame(() => requestAnimationFrame(() => { indicator.style.transition = ''; }));
+  }
+  indicator.style.transform = `translateX(${MODES.indexOf(mode) * 100}%)`;
 }
 
 function modeFromUrl() {
