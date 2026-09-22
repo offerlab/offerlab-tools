@@ -3433,6 +3433,13 @@ position: relative;
     height: 104px;
   }
 
+  /* The bundle step has its own tray along the bottom and the browser's own back; the footer
+     would only take height from the products. */
+  body:has(#pickerSection:not(.hidden)) .omni-footer,
+  body:has(#pickerSection:not(.hidden)) .sheet-scroll::after {
+    display: none;
+  }
+
   .results-grid {
     grid-template-columns: 1fr;
   }
