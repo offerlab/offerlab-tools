@@ -11,6 +11,7 @@ import { initLibrary, showLibrary, hideLibrary, libraryFilterParams } from './li
 import { initPhotoSearch } from './photo.js';
 import { looksLikeDomain, attachBrandSuggestions } from './resolve.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
+import * as store from './store.js';
 
 const CONFIG = {
   // All API keys are now server-side for security
@@ -22,16 +23,11 @@ const CONFIG = {
   SOCIALS_PROXY: '/api/socials',
   CATALOG_CONCURRENCY: 6,
   SERP_FALLBACK_BRANDS: 5,
-  CACHED_PRODUCTS_PER_BRAND: 24,
+  CACHED_PRODUCTS_PER_BRAND: 24, // per brand in a stored search; the picker fetches the rest
   MAX_SEARCH_HISTORY: 10,
   BATCH_SIZE: 5,
   REQUEST_DELAY_MS: 200,
   FETCH_TIMEOUT_MS: 5000,
-  STORAGE_KEYS: {
-    SEARCH_HISTORY: 'bcf_search_history',
-    FEEDBACK: 'bcf_feedback_corpus',
-    RESULTS_CACHE: 'bcf_results_cache_v2'
-  },
   FAVICON_PRIMARY: (domain) => `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
   FAVICON_FALLBACK: (domain) => `https://icons.duckduckgo.com/ip3/${domain}.ico`
 };
@@ -194,51 +190,30 @@ function cancelSearch() {
 }
 
 /* --------------------------------------------------------------------------
-   Results Cache (localStorage - persists across sessions, 72 hour expiration)
+   Stored results (Cloudflare D1, through store.js). A search is kept for good and re-run
+   once it is older than 72 hours, so the brands and products stay current.
    -------------------------------------------------------------------------- */
 
 const CACHE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
 
-function getCacheKey(domain) {
-  return `${CONFIG.STORAGE_KEYS.RESULTS_CACHE}_${domain.toLowerCase()}`;
-}
+async function getCachedResults(domain) {
+  const cached = await store.loadSearch(domain, { products: CONFIG.CACHED_PRODUCTS_PER_BRAND });
+  if (!cached) return null;
 
-function getCachedResults(domain) {
-  try {
-    const key = getCacheKey(domain);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    
-    const cached = JSON.parse(raw);
-    
-    // Check if cache has expired
-    if (cached.timestamp) {
-      const age = Date.now() - cached.timestamp;
-      if (age > CACHE_EXPIRATION_MS) {
-        console.log(`[Cache] Expired for ${domain} (age: ${Math.round(age / 1000 / 60 / 60)}h)`);
-        localStorage.removeItem(key);
-        return null;
-      }
-      console.log(`[Cache] Valid for ${domain} (age: ${Math.round(age / 1000 / 60)}min)`);
+  if (cached.timestamp) {
+    const age = Date.now() - cached.timestamp;
+    if (age > CACHE_EXPIRATION_MS) {
+      console.log(`[Store] Stale for ${domain} (age: ${Math.round(age / 1000 / 60 / 60)}h); searching again`);
+      return null;
     }
-    
-    return cached;
-  } catch {
-    return null;
+    console.log(`[Store] Found ${domain} (age: ${Math.round(age / 1000 / 60)}min)`);
   }
+
+  return cached;
 }
 
 function setCachedResults(domain, data) {
-  try {
-    const key = getCacheKey(domain);
-    const dataWithTimestamp = {
-      ...data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
-  } catch (e) {
-    console.warn('Failed to cache results:', e);
-  }
+  return store.saveSearch(domain, data);
 }
 
 /* --------------------------------------------------------------------------
@@ -347,82 +322,56 @@ async function fetchOpenGraphData(url) {
 }
 
 /* --------------------------------------------------------------------------
-   LocalStorage Helpers
+   Search History & Feedback (Cloudflare D1, through store.js)
    -------------------------------------------------------------------------- */
 
+// The dropdown and the omnibar's suggestions read history synchronously, so the store's copy is
+// mirrored here: refreshed at start, whenever it changes, and each time the dropdown opens.
+let searchHistory = [];
+
 function getSearchHistory() {
-  try {
-    const history = localStorage.getItem(CONFIG.STORAGE_KEYS.SEARCH_HISTORY);
-    return history ? JSON.parse(history) : [];
-  } catch {
-    return [];
-  }
+  return searchHistory;
 }
 
-function saveSearchHistory(history) {
-  try {
-    localStorage.setItem(CONFIG.STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(history));
-  } catch (e) {
-    console.error('Failed to save search history:', e);
-  }
+async function refreshSearchHistory() {
+  const fresh = await store.loadHistory(CONFIG.MAX_SEARCH_HISTORY);
+  const same = fresh.length === searchHistory.length && fresh.every((item, i) => item.domain === searchHistory[i].domain);
+  if (same) return searchHistory;
+  searchHistory = fresh;
+  renderSearchHistory();
+  return searchHistory;
 }
 
 function addToSearchHistory(url) {
-  const history = getSearchHistory();
   const domain = extractDomain(url);
-
-  // Remove if already exists
-  const filtered = history.filter(item => item.domain !== domain);
-
-  // Add to beginning
-  filtered.unshift({
-    domain,
-    url: domain,
-    timestamp: Date.now()
-  });
-
-  // Keep only last N items
-  const trimmed = filtered.slice(0, CONFIG.MAX_SEARCH_HISTORY);
-
-  saveSearchHistory(trimmed);
-  return trimmed;
+  // Shown at once; the store's answer settles the order behind it.
+  searchHistory = [{ domain, url: domain, timestamp: Date.now() }, ...searchHistory.filter(item => item.domain !== domain)]
+    .slice(0, CONFIG.MAX_SEARCH_HISTORY);
+  store.addHistory(domain).then(() => refreshSearchHistory());
+  return searchHistory;
 }
 
 function clearSearchHistory() {
-  saveSearchHistory([]);
+  searchHistory = [];
+  store.clearHistory().then(() => refreshSearchHistory());
 }
 
 function removeFromSearchHistory(domain) {
-  const history = getSearchHistory().filter(item => item.domain !== domain);
-  saveSearchHistory(history);
+  searchHistory = searchHistory.filter(item => item.domain !== domain);
+  store.removeHistory(domain).then(() => refreshSearchHistory());
 }
 
 function getFeedbackHistory() {
-  try {
-    const feedback = localStorage.getItem(CONFIG.STORAGE_KEYS.FEEDBACK);
-    return feedback ? JSON.parse(feedback) : [];
-  } catch {
-    return [];
-  }
+  return store.loadFeedback();
 }
 
 function saveFeedback(searchId, inputUrl, results, rating) {
-  try {
-    const feedback = getFeedbackHistory();
-    feedback.push({
-      searchId,
-      inputUrl,
-      results: results.map(r => ({ name: r.name, url: r.url })),
-      rating,
-      timestamp: Date.now()
-    });
-
-    // Keep last 100 feedback entries
-    const trimmed = feedback.slice(-100);
-    localStorage.setItem(CONFIG.STORAGE_KEYS.FEEDBACK, JSON.stringify(trimmed));
-  } catch (e) {
-    console.error('Failed to save feedback:', e);
-  }
+  return store.addFeedback({
+    searchId,
+    inputUrl,
+    rating,
+    results: results.map(r => ({ name: r.name, url: r.url }))
+  });
 }
 
 /* --------------------------------------------------------------------------
@@ -613,6 +562,7 @@ function renderSearchHistory(targetList = null) {
 
 function showSearchHistory(dropdown = elements.searchHistoryDropdown) {
   renderSearchHistory();
+  refreshSearchHistory();
   dropdown.classList.add('visible');
   // Add class to parent form for connected styling
   const parentForm = dropdown.closest('.search-form');
@@ -885,11 +835,13 @@ async function attachCatalogs(brands, onCatalog) {
   await Promise.all(Array.from({ length: Math.min(CONFIG.CATALOG_CONCURRENCY, brands.length) }, worker));
 }
 
-// localStorage is small; the cache keeps enough of each catalog to render the card.
-function trimCatalogForCache(brand) {
-  if (!brand?.catalog?.products) return brand;
+// A Shopify catalog is already in the store from the crawl that fetched it, so only what the
+// browser assembled itself (the Google Shopping fallback) travels with the search. The store
+// trims what it hands back to CACHED_PRODUCTS_PER_BRAND; the picker fetches the rest.
+function catalogForStore(brand) {
+  if (!brand?.catalog || brand.catalog.status !== 'shopify') return brand;
   const { products, ...rest } = brand.catalog;
-  return { ...brand, catalog: { ...rest, products: products.slice(0, CONFIG.CACHED_PRODUCTS_PER_BRAND), truncated: products.length > CONFIG.CACHED_PRODUCTS_PER_BRAND } };
+  return { ...brand, catalog: { ...rest, products: [] } };
 }
 
 // Searched brand's visit control: the platform mark (when known) beside the external-link icon,
@@ -1508,6 +1460,8 @@ function renderPitchInitialState(brand1, brand2) {
 
 // The drafts on screen for the pair currently open, so the prompt and the render agree.
 let currentPitchDrafts = [];
+// The drafts come from the store; a render that lands after the modal moved on is dropped.
+let bundlesBuiltRequest = 0;
 
 /**
  * "Bundles built": what has already been made for this pair, so the outreach can point at
@@ -1517,11 +1471,15 @@ let currentPitchDrafts = [];
  * later and in the builder, not here. It needs a connection, so a disconnected operator still gets
  * the list and the builder links, just without the PDP.
  */
-function renderBundlesBuilt(searchedDomain, partnerDomain) {
+async function renderBundlesBuilt(searchedDomain, partnerDomain) {
   const container = elements.pitchBundlesBuilt;
   if (!container) return;
 
-  currentPitchDrafts = offerlab.draftsForPair(searchedDomain, partnerDomain);
+  const request = ++bundlesBuiltRequest;
+  container.innerHTML = '';
+  const drafts = await offerlab.draftsForPair(searchedDomain, partnerDomain);
+  if (request !== bundlesBuiltRequest) return;
+  currentPitchDrafts = drafts;
   if (!currentPitchDrafts.length) {
     container.innerHTML = '';
     return;
@@ -2108,8 +2066,8 @@ async function triggerPitchGeneration() {
    AI Integration - Gemini API
    -------------------------------------------------------------------------- */
 
-function buildFeedbackContext() {
-  const feedback = getFeedbackHistory();
+async function buildFeedbackContext() {
+  const feedback = await getFeedbackHistory();
   if (feedback.length === 0) return '';
 
   const positive = feedback.filter(f => f.rating === 'positive');
@@ -2150,7 +2108,7 @@ const LOADING_MESSAGES = [
 async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog } = {}) {
   const domain = extractDomain(url);
   const brandName = extractBrandName(domain);
-  const feedbackContext = buildFeedbackContext();
+  const feedbackContext = await buildFeedbackContext();
 
   const updateProgress = (index) => {
     if (onProgress && typeof onProgress === 'function') {
@@ -3077,7 +3035,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
 
   // Always check cache first (saves API tokens for repeated searches)
   console.log(`[performSearch] Checking cache for: ${domain}`);
-  const cached = getCachedResults(domain);
+  const cached = await getCachedResults(domain);
   console.log(`[performSearch] Cache result:`, cached ? `Found (type: ${cached.type}, brands: ${cached.brands?.length})` : 'Not found');
   
   if (cached) {
@@ -3245,8 +3203,8 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
     currentResults = { brands, searchedBrand };
     setCachedResults(domain, {
       type: 'results',
-      brands: brands.map(trimCatalogForCache),
-      searchedBrand: trimCatalogForCache(searchedBrand),
+      brands: brands.map(catalogForStore),
+      searchedBrand: catalogForStore(searchedBrand),
       serpApiOutOfCredits: results.serpApiOutOfCredits || false,
       searchId: currentSearchId
     });
@@ -3372,7 +3330,7 @@ function initEventListeners() {
     dropdown: elements.searchHistoryDropdown,
     list: elements.historyList,
     history: () => getSearchHistory().map(item => item.domain),
-    showHistory: () => renderSearchHistory(elements.historyList),
+    showHistory: () => { renderSearchHistory(elements.historyList); refreshSearchHistory(); },
     favicon: getFaviconUrl
   });
   suggestions.results = attachBrandSuggestions({
@@ -3380,7 +3338,7 @@ function initEventListeners() {
     dropdown: elements.resultsSearchHistoryDropdown,
     list: elements.resultsHistoryList,
     history: () => getSearchHistory().map(item => item.domain),
-    showHistory: () => renderSearchHistory(elements.resultsHistoryList),
+    showHistory: () => { renderSearchHistory(elements.resultsHistoryList); refreshSearchHistory(); },
     favicon: getFaviconUrl
   });
 
@@ -3731,6 +3689,7 @@ function init() {
   
   initTileTilt();
   renderSearchHistory();
+  refreshSearchHistory();
   console.log('[init] Render complete');
 
   initLibrary();

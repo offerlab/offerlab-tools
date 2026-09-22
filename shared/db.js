@@ -1,0 +1,315 @@
+/**
+ * The finder's data store, on Cloudflare D1.
+ *
+ * Every function takes a D1-shaped database first: `prepare(sql).bind(...).first()/all()/run()`
+ * and `batch([...])`. On Pages that is `env.DB`; the Express dev server passes the SQLite
+ * adapter from shared/sqlite-d1.js, which speaks the same subset. Runtime-neutral otherwise.
+ *
+ * Schema: migrations/0001_init.sql.
+ */
+
+/** How many products a stored search hands back per brand unless the caller asks for more. */
+export const DEFAULT_PRODUCTS_PER_BRAND = 24;
+/** The recent searches the omnibar dropdown lists. */
+export const DEFAULT_HISTORY_LIMIT = 10;
+/** How much of the feedback corpus the recommender reads back. */
+export const DEFAULT_FEEDBACK_LIMIT = 100;
+/** Drafts kept per searched brand, newest first. */
+export const DRAFTS_PER_BRAND = 20;
+
+/** "https://www.Graza.co/pages/x" -> "graza.co": the key every table shares. */
+export function canonicalDomain(input) {
+  const raw = String(input || '').trim().toLowerCase();
+  if (!raw) return '';
+  let host;
+  try {
+    host = new URL(raw.startsWith('http') ? raw : `https://${raw}`).hostname;
+  } catch {
+    host = raw.replace(/^(https?:\/\/)?/, '').split(/[/?#]/)[0];
+  }
+  return host.replace(/^www\./, '');
+}
+
+function parse(json, fallback = null) {
+  if (json == null) return fallback;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return fallback;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Catalogs and socials: one row per crawled domain                             */
+/* -------------------------------------------------------------------------- */
+
+const EMPTY_CATALOG = (domain) => ({ status: 'none', domain, storeUrl: null, count: 0, products: [] });
+
+/** The stored catalog for a domain, or null. Products are the whole list. */
+export async function getCatalog(db, domain) {
+  const key = canonicalDomain(domain);
+  if (!key) return null;
+  const row = await db.prepare('SELECT payload, fetched_at FROM catalogs WHERE domain = ?').bind(key).first();
+  if (!row) return null;
+  const catalog = parse(row.payload);
+  return catalog ? { ...catalog, fetchedAt: row.fetched_at } : null;
+}
+
+/**
+ * Stores a crawled catalog. An error is not a catalog: it is left out so the next request
+ * crawls again rather than remembering a timeout.
+ */
+export async function putCatalog(db, domain, catalog, now = Date.now()) {
+  const key = canonicalDomain(domain);
+  if (!key || !catalog || catalog.status === 'error') return false;
+  const { fetchedAt, cached, truncated, ...record } = catalog;
+  const products = Array.isArray(record.products) ? record.products : [];
+  const payload = JSON.stringify({ ...record, count: record.count || products.length, products });
+  await db.prepare(
+    `INSERT INTO catalogs (domain, status, count, payload, fetched_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(domain) DO UPDATE SET status = excluded.status, count = excluded.count, payload = excluded.payload, fetched_at = excluded.fetched_at`
+  ).bind(key, record.status, products.length, payload, now).run();
+  return true;
+}
+
+export async function getSocials(db, domain) {
+  const key = canonicalDomain(domain);
+  if (!key) return null;
+  const row = await db.prepare('SELECT payload, fetched_at FROM socials WHERE domain = ?').bind(key).first();
+  if (!row) return null;
+  const socials = parse(row.payload);
+  return socials ? { ...socials, fetchedAt: row.fetched_at } : null;
+}
+
+export async function putSocials(db, domain, result, now = Date.now()) {
+  const key = canonicalDomain(domain);
+  if (!key || !result || result.status === 'error') return false;
+  const { fetchedAt, cached, ...record } = result;
+  await db.prepare(
+    `INSERT INTO socials (domain, status, payload, fetched_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(domain) DO UPDATE SET status = excluded.status, payload = excluded.payload, fetched_at = excluded.fetched_at`
+  ).bind(key, record.status, JSON.stringify(record), now).run();
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Searches: the searched brand, its recommendations, and their catalogs        */
+/* -------------------------------------------------------------------------- */
+
+function trimProducts(catalog, limit) {
+  const products = Array.isArray(catalog.products) ? catalog.products : [];
+  if (!limit || products.length <= limit) return { ...catalog, truncated: false };
+  return { ...catalog, products: products.slice(0, limit), truncated: true };
+}
+
+/**
+ * A stored search as the app cached it: `{ type, searchId, searchedBrand, brands,
+ * serpApiOutOfCredits, errorMessage, timestamp }`, or null when the domain was never searched.
+ * Each brand carries its catalog from the catalogs table, trimmed to `products` items with
+ * `truncated` set when there are more; /api/catalog serves the whole thing.
+ */
+export async function getSearch(db, domain, { products = DEFAULT_PRODUCTS_PER_BRAND } = {}) {
+  const key = canonicalDomain(domain);
+  if (!key) return null;
+  const search = await db.prepare('SELECT * FROM searches WHERE domain = ?').bind(key).first();
+  if (!search) return null;
+
+  const { results: brandRows } = await db.prepare(
+    'SELECT position, domain, brand FROM search_brands WHERE search_domain = ? ORDER BY position'
+  ).bind(key).all();
+
+  // The searched brand's catalog was crawled under the url its profile named, which may not be
+  // the domain that was typed.
+  const searchedBrand = parse(search.searched_brand);
+  const searchedKey = canonicalDomain(searchedBrand?.url || '') || key;
+  const domains = [...new Set([key, searchedKey, ...brandRows.map(row => row.domain)])].filter(Boolean);
+  const catalogs = new Map();
+  if (domains.length) {
+    const placeholders = domains.map(() => '?').join(', ');
+    const { results } = await db.prepare(`SELECT domain, payload FROM catalogs WHERE domain IN (${placeholders})`).bind(...domains).all();
+    for (const row of results) catalogs.set(row.domain, parse(row.payload));
+  }
+  const catalogFor = (brandDomain) => trimProducts(catalogs.get(brandDomain) || EMPTY_CATALOG(brandDomain), products);
+
+  return {
+    type: search.status,
+    searchId: search.search_id,
+    errorMessage: search.error_message || undefined,
+    searchedBrand: searchedBrand ? { ...searchedBrand, catalog: catalogFor(searchedKey) } : null,
+    brands: brandRows.map(row => ({ ...parse(row.brand, {}), catalog: catalogFor(row.domain) })),
+    serpApiOutOfCredits: Boolean(search.serp_out_of_credits),
+    timestamp: search.updated_at
+  };
+}
+
+/**
+ * Stores a finished search. Brands are kept without their catalogs; a catalog that arrives with
+ * products (the Google Shopping fallback, which is only ever assembled in the browser) is
+ * written to the catalogs table, where /api/catalog already put the Shopify ones.
+ */
+export async function putSearch(db, domain, record, now = Date.now()) {
+  const key = canonicalDomain(domain);
+  if (!key) throw new Error('A search needs a domain');
+  const type = ['results', 'empty', 'error'].includes(record?.type) ? record.type : 'error';
+  const searchId = String(record?.searchId || `${now}`);
+  const brands = type === 'results' && Array.isArray(record.brands) ? record.brands : [];
+
+  const statements = [
+    db.prepare(
+      `INSERT INTO searches (domain, search_id, status, error_message, searched_brand, serp_out_of_credits, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(domain) DO UPDATE SET search_id = excluded.search_id, status = excluded.status,
+         error_message = excluded.error_message, searched_brand = excluded.searched_brand,
+         serp_out_of_credits = excluded.serp_out_of_credits, updated_at = excluded.updated_at`
+    ).bind(
+      key, searchId, type, record?.errorMessage || null,
+      record?.searchedBrand ? JSON.stringify(withoutCatalog(record.searchedBrand)) : null,
+      record?.serpApiOutOfCredits ? 1 : 0, now, now
+    ),
+    db.prepare('DELETE FROM search_brands WHERE search_domain = ?').bind(key)
+  ];
+
+  brands.forEach((brand, position) => {
+    const brandDomain = canonicalDomain(brand?.url || '');
+    statements.push(
+      db.prepare('INSERT INTO search_brands (search_domain, position, domain, brand) VALUES (?, ?, ?, ?)')
+        .bind(key, position, brandDomain, JSON.stringify(withoutCatalog(brand)))
+    );
+  });
+
+  await db.batch(statements);
+
+  const crawled = [record?.searchedBrand, ...brands].filter(brand => brand?.catalog?.products?.length);
+  for (const brand of crawled) {
+    await putCatalog(db, brand.url || brand.catalog.domain, brand.catalog, now);
+  }
+  return { domain: key, searchId, timestamp: now };
+}
+
+function withoutCatalog(brand) {
+  if (!brand || typeof brand !== 'object') return brand;
+  const { catalog, ...rest } = brand;
+  return rest;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Search history                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function listHistory(db, limit = DEFAULT_HISTORY_LIMIT) {
+  const { results } = await db.prepare(
+    'SELECT domain, searched_at FROM search_history ORDER BY searched_at DESC LIMIT ?'
+  ).bind(limit).all();
+  return results.map(row => ({ domain: row.domain, url: row.domain, timestamp: row.searched_at }));
+}
+
+export async function touchHistory(db, domain, now = Date.now()) {
+  const key = canonicalDomain(domain);
+  if (!key) return false;
+  await db.prepare(
+    'INSERT INTO search_history (domain, searched_at) VALUES (?, ?) ON CONFLICT(domain) DO UPDATE SET searched_at = excluded.searched_at'
+  ).bind(key, now).run();
+  return true;
+}
+
+export async function removeHistory(db, domain) {
+  const key = canonicalDomain(domain);
+  if (!key) return false;
+  await db.prepare('DELETE FROM search_history WHERE domain = ?').bind(key).run();
+  return true;
+}
+
+export async function clearHistory(db) {
+  await db.prepare('DELETE FROM search_history').run();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Feedback                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/** The latest `limit` entries, oldest first, as the recommender's prompt wants them. */
+export async function listFeedback(db, limit = DEFAULT_FEEDBACK_LIMIT) {
+  const { results } = await db.prepare(
+    'SELECT search_id, search_domain, rating, results, created_at FROM feedback ORDER BY created_at DESC, id DESC LIMIT ?'
+  ).bind(limit).all();
+  return results.reverse().map(row => ({
+    searchId: row.search_id,
+    inputUrl: row.search_domain,
+    rating: row.rating,
+    results: parse(row.results, []),
+    timestamp: row.created_at
+  }));
+}
+
+export async function addFeedback(db, { searchId, inputUrl, rating, results }, now = Date.now()) {
+  if (!['positive', 'negative'].includes(rating)) throw new Error('rating must be positive or negative');
+  const named = (Array.isArray(results) ? results : []).map(r => ({ name: r?.name ?? null, url: r?.url ?? null }));
+  await db.prepare(
+    'INSERT INTO feedback (search_id, search_domain, rating, results, created_at) VALUES (?, ?, ?, ?, ?)'
+  ).bind(searchId || null, canonicalDomain(inputUrl) || null, rating, JSON.stringify(named), now).run();
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* OfferLab drafts, per searched brand                                         */
+/* -------------------------------------------------------------------------- */
+
+function draftFromRow(row) {
+  const draft = parse(row.draft, {});
+  return {
+    ...draft,
+    stackId: row.stack_id,
+    publishedUrl: row.published_url || draft.publishedUrl || undefined,
+    createdAt: new Date(row.created_at).toISOString()
+  };
+}
+
+export async function listDrafts(db, searchedDomain, limit = DRAFTS_PER_BRAND) {
+  const key = canonicalDomain(searchedDomain);
+  if (!key) return [];
+  const { results } = await db.prepare(
+    'SELECT stack_id, draft, published_url, created_at FROM drafts WHERE searched_domain = ? ORDER BY created_at DESC LIMIT ?'
+  ).bind(key, limit).all();
+  return results.map(draftFromRow);
+}
+
+/** Same stack twice is a rebuild, not a second draft: the newer record replaces the older one. */
+export async function putDraft(db, searchedDomain, draft, now = Date.now()) {
+  const key = canonicalDomain(searchedDomain);
+  const stackId = String(draft?.stackId || '');
+  if (!key || !stackId) return null;
+  const { publishedUrl, createdAt, ...record } = draft;
+  await db.prepare(
+    `INSERT INTO drafts (stack_id, searched_domain, draft, published_url, created_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(stack_id) DO UPDATE SET searched_domain = excluded.searched_domain, draft = excluded.draft,
+       published_url = COALESCE(excluded.published_url, drafts.published_url), created_at = excluded.created_at`
+  ).bind(stackId, key, JSON.stringify({ ...record, stackId }), publishedUrl || null, now).run();
+  return listDrafts(db, key);
+}
+
+export async function setDraftPublishedUrl(db, stackId, publishedUrl) {
+  if (!stackId) return false;
+  await db.prepare('UPDATE drafts SET published_url = ? WHERE stack_id = ?').bind(publishedUrl || null, String(stackId)).run();
+  return true;
+}
+
+export async function deleteDrafts(db, searchedDomain) {
+  const key = canonicalDomain(searchedDomain);
+  if (key) await db.prepare('DELETE FROM drafts WHERE searched_domain = ?').bind(key).run();
+  else await db.prepare('DELETE FROM drafts').run();
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Freshness: when a stored crawl is served instead of crawling again          */
+/* -------------------------------------------------------------------------- */
+
+/** A catalog with products holds for a day; a store with no public catalog is looked at again sooner. */
+export const CATALOG_TTL_MS = { shopify: 24 * 60 * 60 * 1000, serp: 24 * 60 * 60 * 1000, none: 6 * 60 * 60 * 1000 };
+export const SOCIALS_TTL_MS = { found: 7 * 24 * 60 * 60 * 1000, none: 24 * 60 * 60 * 1000 };
+
+export function isFresh(stored, ttls, now = Date.now()) {
+  if (!stored || typeof stored.fetchedAt !== 'number') return false;
+  const ttl = ttls[stored.status];
+  return typeof ttl === 'number' && now - stored.fetchedAt < ttl;
+}

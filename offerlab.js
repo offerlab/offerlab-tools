@@ -8,21 +8,18 @@
  */
 
 import { isDeveloper, canBuildBundles } from './shared/offerlab.js';
+import * as store from './store.js';
 
 const KEY = {
   client: 'offerlab.client',       // the registered public client, stable for this origin
   token: 'offerlab.token',         // session only: gone when the tab closes
   pkce: 'offerlab.pkce',
   returnTo: 'offerlab.returnTo',
-  master: 'offerlab.masterTeam',
-  drafts: 'offerlab.drafts'
+  master: 'offerlab.masterTeam'
 };
 
 const MASTER_TEAM_NAME = 'OfferLab Demo';
 const MASTER_TEAM_DOMAIN = 'demo.offerlab.com';
-// Per searched brand, so a booth conversation that ran long does not push out the draft from the
-// one before it. Enough for a show day; the store is not a record of anything that matters.
-const DRAFTS_PER_BRAND = 20;
 const TEAM_PAGE_SIZE = 100;
 // A build that has to stand a walk-up brand up. Only the bundle's own products are imported, so
 // this is the brand's team, its logo and a handful of products, not a whole storefront.
@@ -127,42 +124,35 @@ export function disconnect() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * What the pitch step reads back (OL-3987). Local storage, not session: the operator closes the
- * tab between conversations and the links have to survive that. Keyed by the searched brand,
- * because that is the brand the pitch is for, whoever else ended up in the bundle.
+ * What the pitch step reads back (OL-3987). In the data store, not the browser: the operator
+ * closes the tab between conversations, and the next booth may be a different laptop. Keyed by
+ * the searched brand, because that is the brand the pitch is for, whoever else ended up in the
+ * bundle. Newest first, capped per brand by the store.
  */
 export function draftsFor(searchedDomain) {
-  return read(localStorage, KEY.drafts)?.[searchedDomain] || [];
+  if (!searchedDomain) return Promise.resolve([]);
+  return store.loadDrafts(searchedDomain);
 }
 
-export function rememberDraft(searchedDomain, draft) {
+/** Same stack twice is a rebuild, not a second draft: the newer record replaces the older one. */
+export async function rememberDraft(searchedDomain, draft) {
   if (!searchedDomain || !draft?.stackId) return draftsFor(searchedDomain);
-
-  const all = read(localStorage, KEY.drafts) || {};
-  // Same stack twice is a rebuild, not a second draft: the newer record replaces the older one.
-  const kept = (all[searchedDomain] || []).filter(entry => entry.stackId !== draft.stackId);
-  all[searchedDomain] = [{ ...draft, createdAt: new Date().toISOString() }, ...kept].slice(0, DRAFTS_PER_BRAND);
-  write(localStorage, KEY.drafts, all);
-  return all[searchedDomain];
+  return (await store.saveDraft(searchedDomain, draft)) || [];
 }
 
 /**
  * The drafts built for one pair. Matched on domain rather than brand name, which is display text
  * and can differ between what the catalog reports and what a recommendation called the brand.
  */
-export function draftsForPair(searchedDomain, partnerDomain) {
+export async function draftsForPair(searchedDomain, partnerDomain) {
   if (!searchedDomain || !partnerDomain) return [];
-  return draftsFor(searchedDomain).filter(draft => (draft.domains || []).includes(partnerDomain));
+  return (await draftsFor(searchedDomain)).filter(draft => (draft.domains || []).includes(partnerDomain));
 }
 
 /** Records the published page against a draft, so the lookup happens once per stack. */
 export function rememberPublishedUrl(searchedDomain, stackId, publishedUrl) {
-  const all = read(localStorage, KEY.drafts) || {};
-  const list = all[searchedDomain] || [];
-  const entry = list.find(draft => draft.stackId === stackId);
-  if (!entry || entry.publishedUrl === publishedUrl) return;
-  entry.publishedUrl = publishedUrl;
-  write(localStorage, KEY.drafts, all);
+  if (!searchedDomain || !stackId || !publishedUrl) return Promise.resolve(false);
+  return store.markDraftPublished(searchedDomain, stackId, publishedUrl);
 }
 
 /**
@@ -176,9 +166,7 @@ export async function publishedUrlFor(stackId) {
 }
 
 export function forgetDrafts(searchedDomain) {
-  const all = read(localStorage, KEY.drafts) || {};
-  if (searchedDomain) delete all[searchedDomain];
-  write(localStorage, KEY.drafts, searchedDomain ? all : null);
+  return store.clearDrafts(searchedDomain);
 }
 
 /* -------------------------------------------------------------------------- */

@@ -13,3 +13,11 @@ pages_build_output_dir = "."
 #   - OPENGRAPH_API_KEY
 #   - SERP_API_KEY
 #   - GEMINI_API_KEY
+
+# The finder's data store: searches, crawled catalogs and socials, history, feedback and
+# OfferLab drafts. Schema lives in migrations/; apply it with `npm run db:migrate`.
+[[d1_databases]]
+binding = "DB"
+database_name = "offerlab-tools"
+database_id = "10833831-1ee4-48b2-8a1b-36a207cd2579"
+migrations_dir = "migrations"
