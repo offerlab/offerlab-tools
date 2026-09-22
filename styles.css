@@ -1910,7 +1910,6 @@ position: relative;
   border-radius: 50%;
   background: var(--content-background-base);
   color: var(--content-primary);
-  box-shadow: 0 0 0 1px var(--content-border-neutral) inset;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
