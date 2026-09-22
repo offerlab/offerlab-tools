@@ -3645,14 +3645,16 @@ function trackHeaderHeight() {
    -------------------------------------------------------------------------- */
 const PHONE_FOOTER = window.matchMedia('(max-width: 900px)');
 
+// On a phone the back control and the pill both live in the footer, back first, so the sheet has
+// one sticky bar rather than two; a desktop keeps them at the top of the sheet.
 function placeOmnibar() {
   const search = document.querySelector('#viewHeader .header-nav-search, #omniFooter .header-nav-search');
+  const back = document.querySelector('#viewHeader .header-nav-back-wrapper, #omniFooter .header-nav-back-wrapper');
   const { viewHeader, omniFooter } = elements;
   if (!search || !viewHeader || !omniFooter) return;
-  if (PHONE_FOOTER.matches) {
-    if (search.parentElement !== omniFooter) omniFooter.appendChild(search);
-  } else if (search.parentElement !== viewHeader) {
-    viewHeader.insertBefore(search, viewHeader.querySelector('.header-nav-back-wrapper')?.nextSibling || null);
+  const home = PHONE_FOOTER.matches ? omniFooter : viewHeader;
+  for (const part of [back, search]) {
+    if (part && part.parentElement !== home) home.appendChild(part);
   }
   syncOmniFooter();
 }

@@ -2624,6 +2624,24 @@ position: relative;
     position: static;
     margin-left: auto;
   }
+
+  /* The card itself opens the site; the visit control is a second way to say so. */
+  .searched-brand-card-link-slot {
+    display: none;
+  }
+
+  /* The product row runs to the card's right edge rather than stopping at the content padding.
+     Three classes: the desktop reset of this strip's margins comes later in the sheet. */
+  .searched-brand-card .card-catalog-slot .card-catalog-thumbs {
+    margin: 0 -16px 0 0;
+    padding: 0 16px 0 0;
+  }
+
+  .searched-brand-card .card-catalog-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -3297,32 +3315,79 @@ position: relative;
     padding-inline: 16px;
   }
 
-  /* Mobile results: the omnibar is a footer under the scroll region, in flow (app.js moves it
-     here from the bar). Not fixed: the browser chrome collapsing on scroll made a fixed pill
-     stutter. It keeps the collapsed size it has in the desktop bar and opens the same way on
-     focus; narrower than the desktop 360 so it reads as a control, not a second footer. */
-  .omni-footer {
-    position: relative;
-    top: auto;
-    flex: none;
-    display: flex;
-    justify-content: center;
-    padding: 8px 16px 24px;
-    background: var(--content-background-elevated);
-  }
-
-  /* Loading, the bar holds nothing on a phone (the back control hides, the pill is in the footer). */
-  .view-header--loading:not(.omni-footer) {
+  /* Mobile results: the bar at the top of the sheet is gone; the back control and the pill are
+     one footer over the bottom of the sheet (app.js moves them there), wearing the bar's scrim
+     run the other way so the results dissolve into it. Absolute in the sheet, not fixed: the
+     browser chrome collapsing on scroll made a fixed pill stutter. */
+  .view-header:not(.omni-footer) {
     display: none;
   }
 
-  .omni-footer .header-nav-search {
-    --pill-max: 300px;
+  .omni-footer {
+    position: absolute;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
     flex: none;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 16px 24px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--content-background-elevated) 75%, transparent) 35%,
+      var(--content-background-elevated) 95%
+    );
+    pointer-events: none;
+  }
+
+  .omni-footer > * {
+    pointer-events: auto;
+  }
+
+  .omni-footer .header-nav-back-wrapper {
+    flex: none;
+  }
+
+  /* The pill takes the rest of the row. Its form wears the ring's padding, so the negative
+     margins put the pill's own edge, not the ring's, 6px from the back control and on the gutter. */
+  .omni-footer .header-nav-search {
+    --pill-max: 100%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+    margin: 0 calc(-1 * var(--pill-pad));
+  }
+
+  /* The pill grows upward from the footer, so history and suggestions open above the box, in
+     view, rather than under it and off the bottom of the viewport. */
+  .omni-footer .omni-ai-box-container--header {
+    top: auto;
+    bottom: 0;
+  }
+
+  .omni-footer .search-form {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .omni-footer .search-form.dropdown-open .search-input-wrapper {
+    border-radius: 0 0 var(--rounded-2xl) var(--rounded-2xl);
+  }
+
+  .omni-footer .search-history-dropdown {
+    border-radius: var(--rounded-2xl) var(--rounded-2xl) 0 0;
+  }
+
+  /* Room at the end of the scroll for the footer that stands over it. */
+  .sheet-scroll::after {
+    content: "";
+    flex: none;
+    height: 104px;
   }
 
   .results-grid {
@@ -6938,7 +7003,9 @@ position: relative;
   left: var(--mode-switch-pad);
   width: calc((100% - 2 * var(--mode-switch-pad)) / 2);
   border-radius: var(--rounded-full);
+  /* The elevated button's surface and shadow, without its border. */
   background: var(--content-background-elevated);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.32);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
