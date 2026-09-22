@@ -82,7 +82,10 @@ function normalizeProduct(product, storeUrl) {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   if (variants.length === 0) return null;
 
-  const prices = variants.map(v => toNumber(v.price)).filter(p => p !== null);
+  // A $0 price is a placeholder, not a free product: OfferLab refuses to take one live, so a
+  // bundle built with it fails. Only a real price counts, and a product with none is left out.
+  const prices = variants.map(v => toNumber(v.price)).filter(p => p !== null && p > 0);
+  if (prices.length === 0) return null;
   const compareAt = variants.map(v => toNumber(v.compare_at_price)).filter(p => p !== null);
   const image = product.images?.[0]?.src || variants.find(v => v.featured_image?.src)?.featured_image?.src || null;
   // A live storefront photographs what it sells. An entry with no image at all is almost always a
@@ -96,7 +99,7 @@ function normalizeProduct(product, storeUrl) {
     title: product.title,
     url: `${storeUrl}/products/${product.handle}`,
     image,
-    price: prices.length ? Math.min(...prices) : null,
+    price: Math.min(...prices),
     compareAtPrice: compareAt.length ? Math.max(...compareAt) : null,
     available: variants.some(v => v.available),
     vendor: product.vendor || '',
