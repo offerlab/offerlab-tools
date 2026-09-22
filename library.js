@@ -180,6 +180,10 @@ function makeTile(bundle) {
   tile.setAttribute('aria-label', `${bundle.name}, ${bundle.brands.join(', ')}`);
   tile.innerHTML = `
     <span class="library-tile-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async"></span>
+    <span class="library-tile-scrim" aria-hidden="true">
+      <img class="library-tile-scrim-soft" src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async">
+      <img class="library-tile-scrim-deep" src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt="" decoding="async">
+    </span>
     <span class="library-tile-name">${escape(bundle.name)}</span>`;
   tile.querySelector('img').addEventListener('error', () => tile.classList.add('is-bare'), { once: true });
   return tile;
@@ -627,7 +631,10 @@ function openLightbox(id, tile) {
     <button type="button" class="icon-button library-lightbox-close" data-action="library-close" aria-label="Close">${icon('cross-large', { size: 16 })}</button>
     <div class="library-lightbox-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt=""></div>
     <div class="library-lightbox-body">
-      <p class="library-lightbox-collab">${bundle.brands.map(brandMark).join('<span class="library-lightbox-x" aria-hidden="true">×</span>')}</p>
+      <p class="library-lightbox-collab">
+        <span class="library-lightbox-stack" aria-hidden="true">${bundle.brands.map(brandMark).join('')}</span>
+        ${bundle.brands.map(escape).join('<span class="library-lightbox-x" aria-hidden="true">×</span>')}
+      </p>
       <h2 class="library-lightbox-title" id="libraryLightboxTitle">${escape(bundle.name)}</h2>
       <ul class="library-lightbox-chips"><li>${escape(label(bundle.category))}</li></ul>
       ${bundle.products.length ? `<p class="library-lightbox-products">${escape(bundle.products.join(', '))}</p>` : ''}
@@ -660,10 +667,9 @@ function openLightbox(id, tile) {
 /** A brand's avatar from the team database, or its initial where the team has none. */
 function brandMark(name) {
   const logo = state.logos[name.toLowerCase()];
-  const avatar = logo
+  return logo
     ? `<span class="library-lightbox-avatar"><img src="library/${escape(logo)}" alt=""></span>`
     : `<span class="library-lightbox-avatar">${escape(name.trim().charAt(0).toUpperCase())}</span>`;
-  return `<span class="library-lightbox-brand">${avatar}${escape(name)}</span>`;
 }
 
 /** The transform that puts the card's cover over the tile, turned 30° away, or null on a phone. */
