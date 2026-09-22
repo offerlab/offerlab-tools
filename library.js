@@ -38,6 +38,9 @@ const GHOST_GRID = 8;
 const FADE_MS = 320;
 const SWEEP_MS = 200;
 const TYPING_MS = 120;
+const TILT_DEG = 10;
+const FLIP_MS = 650;
+const LIGHTBOX_COVER_WIDTH = 1200;
 const SEED = 0x9e3779b1;
 
 const KEY_STEP = 160;
@@ -506,6 +509,25 @@ function bindViewport() {
     if (tile) openLightbox(tile.dataset.id, tile);
   }, true);
 
+  // The hovered cover tilts toward the pointer and catches the light under it.
+  view.addEventListener('pointermove', event => {
+    if (state.dragging || MOBILE.matches) return;
+    const tile = event.target.closest('.library-tile');
+    if (!tile || tile.classList.contains('library-tile--ghost')) return;
+    const r = tile.getBoundingClientRect();
+    const x = (event.clientX - r.left) / r.width, y = (event.clientY - r.top) / r.height;
+    tile.style.setProperty('--tilt-x', `${((x - 0.5) * 2 * TILT_DEG).toFixed(1)}deg`);
+    tile.style.setProperty('--tilt-y', `${((0.5 - y) * 2 * TILT_DEG).toFixed(1)}deg`);
+    tile.style.setProperty('--sheen-x', `${(x * 100).toFixed(1)}%`);
+    tile.style.setProperty('--sheen-y', `${(y * 100).toFixed(1)}%`);
+  });
+  view.addEventListener('pointerout', event => {
+    const tile = event.target.closest('.library-tile');
+    if (tile && !tile.contains(event.relatedTarget)) {
+      for (const name of ['--tilt-x', '--tilt-y', '--sheen-x', '--sheen-y']) tile.style.removeProperty(name);
+    }
+  });
+
   view.addEventListener('wheel', event => {
     if (MOBILE.matches) return;
     event.preventDefault();
@@ -564,9 +586,10 @@ function openLightbox(id, tile) {
   const bundle = state.bundles.find(b => b.id === id);
   if (!bundle) return;
   state.lastTile = tile;
-  dom.lightbox.querySelector('.library-lightbox-card').innerHTML = `
+  const card = dom.lightbox.querySelector('.library-lightbox-card');
+  card.innerHTML = `
     <button type="button" class="icon-button library-lightbox-close" data-action="library-close" aria-label="Close">${icon('cross-large', { size: 16 })}</button>
-    <div class="library-lightbox-cover"><img src="${escape(bundle.cover)}" alt=""></div>
+    <div class="library-lightbox-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt=""></div>
     <div class="library-lightbox-body">
       <p class="library-lightbox-eyebrow">${escape(label(bundle.category))} · ${escape(bundle.store)}</p>
       <h2 class="library-lightbox-title" id="libraryLightboxTitle">${escape(bundle.name)}</h2>
@@ -576,17 +599,54 @@ function openLightbox(id, tile) {
         Open the bundle ${icon('arrow-up-right', { size: 16 })}
       </a>
     </div>`;
-  dom.lightbox.classList.remove('hidden');
-  requestAnimationFrame(() => dom.lightbox.classList.add('is-open'));
+  // The card flies with the cover the tile already has; the sharp one replaces it once it lands.
+  const sharp = new Image();
+  sharp.onload = () => { if (state.lastTile === tile) card.querySelector('.library-lightbox-cover img').src = sharp.src; };
+  sharp.src = coverUrl(bundle.cover, LIGHTBOX_COVER_WIDTH);
+  clearTimeout(state.closing);
+  dom.lightbox.classList.remove('hidden', 'is-closing');
+  // The card starts where the cover stood, turned away, and flies forward as it turns to face you.
+  const from = liftOrigin(tile, card);
+  if (from) {
+    card.style.transition = 'none';
+    card.style.transform = from;
+    void card.offsetWidth;
+    card.style.transition = '';
+    tile.classList.add('is-lifted');
+  }
+  requestAnimationFrame(() => {
+    dom.lightbox.classList.add('is-open');
+    card.style.transform = '';
+  });
   dom.lightbox.querySelector('.library-lightbox-open').focus();
 }
 
+/** The transform that puts the card's cover over the tile, turned 30° away, or null on a phone. */
+function liftOrigin(tile, card) {
+  if (MOBILE.matches || !tile?.isConnected) return null;
+  const t = tile.getBoundingClientRect();
+  const cover = card.querySelector('.library-lightbox-cover').getBoundingClientRect();
+  const c = card.getBoundingClientRect();
+  const scale = t.width / cover.width;
+  return `perspective(1400px) translate(${t.left - c.left}px, ${t.top - c.top}px) scale(${scale.toFixed(4)}) rotateY(-42deg)`;
+}
+
 function closeLightbox() {
-  if (dom.lightbox.classList.contains('hidden')) return;
+  if (dom.lightbox.classList.contains('hidden') || dom.lightbox.classList.contains('is-closing')) return;
+  const card = dom.lightbox.querySelector('.library-lightbox-card');
+  const tile = state.lastTile;
+  const to = liftOrigin(tile, card);
   dom.lightbox.classList.remove('is-open');
-  dom.lightbox.classList.add('hidden');
-  // The tile may have been dropped out of the window while the lightbox was open.
-  (state.lastTile?.isConnected ? state.lastTile : dom.viewport).focus();
+  dom.lightbox.classList.add('is-closing');
+  if (to) card.style.transform = to;
+  state.closing = setTimeout(() => {
+    dom.lightbox.classList.add('hidden');
+    dom.lightbox.classList.remove('is-closing');
+    card.style.transform = '';
+    tile?.classList.remove('is-lifted');
+    // The tile may have been dropped out of the window while the lightbox was open.
+    (tile?.isConnected ? tile : dom.viewport).focus();
+  }, to ? FLIP_MS : 250);
 }
 
 function trapFocus(event) {

@@ -6855,13 +6855,23 @@ position: absolute;
   pointer-events: none;
 }
 
+/* Hover: the cover lifts, tilts toward the pointer and catches the light where the pointer is.
+   library.js sets the tilt and sheen from the pointer's place on the tile. */
 .library-tile:hover,
 .library-tile:focus-visible {
-  transform: translateY(-8px) scale(1.02);
+  transform: perspective(900px) translateY(-8px) scale(1.03) rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg));
   box-shadow:
     0 2px 3px rgba(0, 0, 0, 0.22),
     8px 22px 36px -8px rgba(0, 0, 0, 0.4);
   z-index: 2;
+}
+
+.library-tile:hover {
+  transition-duration: 0.12s, 0.25s, 0.32s;
+}
+
+.library-tile.is-lifted {
+  visibility: hidden;
 }
 
 .library-tile:hover::after,
@@ -6877,12 +6887,32 @@ position: absolute;
 }
 
 .library-tile-cover {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
   border-radius: 28px;
   overflow: hidden;
   background: var(--content-background-base);
+}
+
+/* A glossy streak across the cover plus a hot spot under the pointer, both following it. */
+.library-tile-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(40% 40% at var(--sheen-x, 50%) var(--sheen-y, 50%), rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(115deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) calc(var(--sheen-x, 50%) - 22%), rgba(255, 255, 255, 0.45) calc(var(--sheen-x, 50%) - 4%), rgba(255, 255, 255, 0.14) calc(var(--sheen-x, 50%) + 4%), rgba(255, 255, 255, 0) calc(var(--sheen-x, 50%) + 22%));
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.library-tile:hover .library-tile-cover::after,
+.library-tile:focus-visible .library-tile-cover::after {
+  opacity: 1;
 }
 
 .library-tile-cover img {
@@ -7223,14 +7253,22 @@ position: absolute;
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+/* The scrim and blur fade on their own layer, so the card is solid from its first frame and
+   takes the lifted tile's place without a gap. */
+.library-lightbox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: rgba(36, 32, 27, 0.45);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.4s ease;
 }
 
-.library-lightbox.is-open {
+.library-lightbox.is-open::before {
   opacity: 1;
 }
 
@@ -7244,12 +7282,29 @@ position: absolute;
   overflow: hidden;
   background: var(--content-background-elevated);
   box-shadow: var(--shadow-lg);
+  transform-origin: 0 0;
   transform: scale(0.94) translateY(12px);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
 }
 
+/* On desktop the card starts where the clicked cover stood, turned away, and flies forward as it
+   turns to face you (library.js sets the start on the card). The details follow it in. */
 .library-lightbox.is-open .library-lightbox-card {
   transform: none;
+}
+
+.library-lightbox-body {
+  opacity: 0;
+  transition: opacity 0.3s ease 0.3s;
+}
+
+.library-lightbox.is-open .library-lightbox-body {
+  opacity: 1;
+}
+
+.library-lightbox.is-closing .library-lightbox-body {
+  opacity: 0;
+  transition-delay: 0s;
 }
 
 .library-lightbox-close {
@@ -7399,6 +7454,12 @@ position: absolute;
     width: 100%;
     max-height: 92vh;
     border-radius: 24px 24px 0 0;
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+  }
+
+  .library-lightbox.is-open .library-lightbox-card {
+    opacity: 1;
   }
 
   .library-lightbox-cover {
