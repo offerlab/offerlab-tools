@@ -8,6 +8,7 @@ import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restor
 import { icon, hydrateIcons } from './icons.js';
 import * as offerlab from './offerlab.js';
 import { initLibrary, showLibrary, hideLibrary, libraryFilterParams } from './library.js';
+import { initPhotoSearch } from './photo.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
 const CONFIG = {
@@ -3638,6 +3639,7 @@ function init() {
   console.log('[init] Render complete');
 
   initLibrary();
+  initPhotoSearch({ search: url => { hideAllSearchHistoryDropdowns(); performSearch(url); } });
   initModeSwitch();
 
   // Restore from URL (refresh, direct link, or browser back/forward). The library mode wins

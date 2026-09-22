@@ -144,7 +144,7 @@ app.get('/api/serpapi', async (req, res) => {
 });
 
 // Gemini API proxy - API key stays server-side
-app.post('/api/gemini', express.json(), async (req, res) => {
+app.post('/api/gemini', express.json({ limit: '12mb' }), async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn('GEMINI_API_KEY not set in .env - Gemini requests will fail');
