@@ -50,3 +50,36 @@ store until the stored copy ages out (`?refresh=1` forces a crawl).
 
 OAuth state for the OfferLab connection (the registered client, the session token and the PKCE
 verifier) stays in the browser's own storage; it is credentials, not data.
+
+## Server-side crawl
+
+The finder's search runs on the server too (`shared/search.js` is the one search both sides run),
+so a domain can be searched ahead of time with no browser, and each search can grow the graph.
+
+- **Queue:** `crawl_queue` in D1 (`migrations/0002_crawl_queue.sql`). Each domain takes two steps,
+  each its own request so it stays inside the Workers subrequest limit: a search (or a stored one,
+  reused), then an expansion.
+- **Expansion:** Jev (TypeSafe's System One model, `shared/jev.js`) answers three questions about
+  each recommended brand that has a catalog and has not been searched: is it a consumer brand or a
+  store, service or media; are its sample products its own; how well would it bundle with the
+  searched brand. The ones that clear the thresholds are queued one level deeper, best first.
+  Turned-down candidates stay as `skipped` rows with Jev's answers, so a verdict can be checked.
+- **Caps:** seeds expand once and what they queue does not (`CRAWL_MAX_DEPTH`, default 1); one
+  search queues at most `CRAWL_EXPAND_PER_SEARCH` (5); at most `CRAWL_DAILY_LIMIT` (150) searches
+  start in any 24 hours. A search that finds fewer than 5 partners fails and is not expanded. A
+  step retries once, then fails.
+- **Thresholds:** measured on 41 recommendations from three stored searches (Stacked Farm, Liquid
+  Death, Little Spoon). Services, venues and retailers such as Thrive Market and Grove fall out on
+  the first question; the own-products question is noisy (Yoto scored 0.39), so its floor is 0.3
+  and only drops catalogs of other sellers' listings.
+- **Routes:** `GET /api/crawl` (queue counts, recent rows), `POST /api/crawl {domains, refresh}`,
+  `POST /api/crawl/next` (one step). All need `Authorization: Bearer $CRAWL_SECRET`.
+- **Scheduler:** Pages has no cron, so `workers/crawl-scheduler` is a Worker whose cron calls
+  `/api/crawl/next` every minute.
+- **Seeding:** `npm run crawl -- domains.txt` queues a list; `npm run crawl -- --status` shows it.
+
+Setup, once:
+
+1. `npm run db:migrate` applies the queue table.
+2. In the Pages project, set `CRAWL_SECRET` (any long random string) and `TYPESAFE_API_KEY`.
+3. `cd workers/crawl-scheduler && npx wrangler deploy && npx wrangler secret put CRAWL_SECRET`.
