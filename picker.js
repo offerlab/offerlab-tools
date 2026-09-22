@@ -88,6 +88,30 @@ export function initPicker() {
 
   dom.section.addEventListener('click', onSectionClick);
   dom.tray.addEventListener('click', onSectionClick);
+  // On touch, a control acts on the tap itself (pointerup, with a slop so a scroll that starts
+  // on it is not a press); the click Safari may send afterwards is ignored. Safari spends a
+  // touch's first click on hover states, so a product tile took two taps to pick.
+  for (const root of [dom.section, dom.tray]) {
+    let down = null;
+    let tappedAt = 0;
+    root.addEventListener('pointerdown', (e) => {
+      down = e.pointerType === 'touch' ? { el: e.target.closest('[data-action]'), x: e.clientX, y: e.clientY } : null;
+    });
+    root.addEventListener('pointerup', (e) => {
+      if (!down || e.pointerType !== 'touch') return;
+      const { el, x, y } = down;
+      down = null;
+      if (!el || e.target.closest('[data-action]') !== el || Math.hypot(e.clientX - x, e.clientY - y) > 8) return;
+      tappedAt = performance.now();
+      el.click();
+    });
+    root.addEventListener('click', (e) => {
+      if (e.isTrusted && performance.now() - tappedAt < 700 && e.target.closest('[data-action]')) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    }, true);
+  }
   dom.section.addEventListener('input', onSectionInput);
   dom.columns.addEventListener('keydown', onRailKeydown);
   dom.columns.addEventListener('scroll', updateRailControls, { passive: true });
