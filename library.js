@@ -132,7 +132,7 @@ async function load() {
   state.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
     // Every word of the bundle, stemmed once, so a query is a set lookup per term.
-    tokens: new Set(words([bundle.name, bundle.anchorBrand, ...bundle.brands, ...bundle.products,
+    tokens: new Set(words([bundle.name, ...bundle.brands, ...bundle.products,
       bundle.category.replace(/-/g, ' '), bundle.description].join(' ')).map(stem))
   }));
   state.categories = snapshot.categories.filter(c => state.bundles.some(b => b.category === c));

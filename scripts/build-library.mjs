@@ -14,6 +14,8 @@ const CURATION = JSON.parse(readFileSync(join(root, 'library/curation.json'), 'u
 const OUT = join(root, 'library/snapshot.json');
 
 const MODEL = 'gemini-2.5-flash';
+// Bumped when the fields written per bundle change, so every bundle is classified again once.
+const SNAPSHOT_SHAPE = 2;
 const CLASSIFY_BATCH = 20;
 const PAGE_SIZE = 250;
 const PRODUCT_SHOTS = 6;
@@ -104,7 +106,7 @@ function toRecord(store, product) {
     partnerTags: partnerTags(product),
     description,
     publishedAt: product.published_at,
-    hash: hash(`${product.title}\n${product.vendor}\n${description}`)
+    hash: hash(`${SNAPSHOT_SHAPE}\n${product.title}\n${product.vendor}\n${description}`)
   };
 }
 
@@ -114,19 +116,20 @@ function toRecord(store, product) {
 
 async function classifyBatch(records) {
   const prompt = [
-    'These are product bundles sold by an anchor brand together with partner brands. For each, read',
-    'the name, anchor brand and description, and return the brands involved, the individual products',
+    'These are product bundles that bring several brands together. For each, read the name and',
+    'description, and return the brands involved, the individual products',
     'named, and one category from this list exactly:',
     CATEGORIES.join(', '),
     '',
-    'Brands are company names as written (e.g. "Graza", "Our Place"), never product names. Include the',
-    'anchor brand. Products are the individual items named, short, without the brand prefix.',
+    'Brands are the company names the copy itself names (e.g. "Graza", "Our Place"), never product',
+    'names, and never a brand the copy does not mention. Products are the individual items named,',
+    'short, without the brand prefix.',
     '',
     'Return a JSON array, one object per bundle, in the same order, shaped',
     '{"handle": string, "brands": string[], "products": string[], "category": string}.',
     '',
     JSON.stringify(records.map(r => ({
-      handle: r.handle, name: r.name, anchorBrand: r.anchorBrand, description: r.description.slice(0, 900)
+      handle: r.handle, name: r.name, description: r.description.slice(0, 900)
     })))
   ].join('\n');
 
@@ -160,11 +163,16 @@ function dedupe(list) {
   return [...seen.values()];
 }
 
+/* Brands are the ones the bundle's own copy names, which is what a visitor sees on the PDP. The
+   vendor and the ol-partner-* tags are OfferLab team names, which on the demo store do not line
+   up with the products' brands; they are kept apart as teams, for search only. */
 function applyClassification(record, result) {
   const category = CATEGORIES.includes(result?.category) ? result.category : 'other';
+  const brands = dedupe(result?.brands || []);
   return {
     ...record,
-    brands: dedupe([record.anchorBrand, ...(result?.brands || []), ...record.partnerTags]),
+    brands: brands.length ? brands : [record.anchorBrand],
+    teams: dedupe([record.anchorBrand, ...record.partnerTags]),
     products: dedupe(result?.products || []),
     category
   };
@@ -197,12 +205,13 @@ for (const store of STORES) {
 const pending = [];
 const bundles = records.map(record => {
   const before = known.get(record.id);
-  // Reuse keeps the model's answer but re-reads the tags: they are ours, so their spelling wins.
+  // Reuse keeps the model's answer; the teams are re-read from the tags, which are ours.
   if (before && before.hash === record.hash && before.category) {
     report.reused++;
     return {
       ...record,
-      brands: dedupe([...record.partnerTags, ...before.brands]),
+      brands: before.brands,
+      teams: dedupe([record.anchorBrand, ...record.partnerTags]),
       products: before.products,
       category: before.category
     };

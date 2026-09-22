@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-21T23:30:35.330Z",
+  "generatedAt": "2026-09-22T12:08:56.152Z",
   "stores": [
     "demo.offerlab.com"
   ],
@@ -37,18 +37,22 @@
       "anchorBrand": "Fishwife",
       "description": "The Cookware Trio Set brings together the Our Place Pan Perfect Bundle, the Fable Serving Platter Set, and the Graza Trio + Frizzle Spray so you can cook, serve, and finish every meal with ease. Sear and simmer in the pan, plate it on coordinated platters, then add a final drizzle or spritz of Graza for instant flavor at the table.",
       "publishedAt": "2026-08-21T11:38:46-07:00",
-      "hash": "uqyee7",
+      "hash": "13zypzv",
       "brands": [
-        "Flamingo Estate",
-        "Graza",
-        "Fishwife",
         "Our Place",
-        "Fable"
+        "Fable",
+        "Graza"
+      ],
+      "teams": [
+        "Fishwife",
+        "Flamingo Estate",
+        "Graza"
       ],
       "products": [
         "Pan Perfect Bundle",
         "Serving Platter Set",
-        "Trio + Frizzle Spray"
+        "Trio",
+        "Frizzle Spray"
       ],
       "category": "home-and-kitchen"
     },
@@ -70,16 +74,18 @@
       "anchorBrand": "CLEARSTEM",
       "description": "Give oily or combination skin a quick at-home reset with the Revitalize Your Skin bundle. Start with Three Ships’ Refresh Papaya + Salicylic Acid Cleanser to lift makeup, oil, and buildup, then follow with Asarai’s Earth Tones Australian red clay mask from the Fresh Facial Set. Finish by wiping it all away with the ultra-soft microfiber towel for skin that feels clean, balanced, and visibly refreshed.",
       "publishedAt": "2026-08-04T23:02:44-07:00",
-      "hash": "1eyfn8m",
+      "hash": "28evqa",
       "brands": [
-        "CLEARSTEM",
         "Three Ships",
         "Asarai"
+      ],
+      "teams": [
+        "CLEARSTEM"
       ],
       "products": [
         "Refresh Papaya + Salicylic Acid Cleanser",
         "Earth Tones Australian red clay mask",
-        "microfiber towel"
+        "ultra-soft microfiber towel"
       ],
       "category": "beauty-and-skincare"
     },
@@ -99,12 +105,15 @@
       "anchorBrand": "Moon Juice",
       "description": "Restore your skin’s natural softness with a daily ritual for gentle nourishment, balance, and glow—inside and out.",
       "publishedAt": "2026-06-04T10:12:36-07:00",
-      "hash": "3gnil3",
+      "hash": "69clcj",
       "brands": [
         "Moon Juice"
       ],
+      "teams": [
+        "Moon Juice"
+      ],
       "products": [
-        "Skin nourishment ritual"
+        "skin care products"
       ],
       "category": "beauty-and-skincare"
     },
@@ -126,11 +135,14 @@
       "anchorBrand": "Maya Kaimal",
       "description": "The 30-Minute Weeknight Dinner bundle brings Maya Kaimal’s Organic Indian Everyday Dal together with Palmini Spanish Rice and Good Ranchers’ Wild-Caught Seafood Box so home cooks can serve comforting, Indian-inspired dinners any night. Pair the black lentil, tomato & cumin dal with quick-seared salmon, rock fish, or shrimp over warm Spanish Rice for a satisfying meal that feels slow-simmered, but comes together fast. Keep this trio on hand to bring traditional Indian flavors and quality seafood into your kitchen in about half an hour.",
       "publishedAt": "2026-08-04T23:05:42-07:00",
-      "hash": "10b1fty",
+      "hash": "1bm35pe",
       "brands": [
         "Maya Kaimal",
         "Palmini",
         "Good Ranchers"
+      ],
+      "teams": [
+        "Maya Kaimal"
       ],
       "products": [
         "Organic Indian Everyday Dal",
@@ -155,14 +167,15 @@
       "anchorBrand": "Apothékary",
       "description": "Plant-powered calm meets deep sleep. Three clinically-studied formulas for whole-body harmony—your nightly ritual for rest, recovery, and resilience.",
       "publishedAt": "2026-06-04T10:12:35-07:00",
-      "hash": "5opn70",
+      "hash": "1smvrvs",
       "brands": [
         "Apothékary"
       ],
+      "teams": [
+        "Apothékary"
+      ],
       "products": [
-        "Adaptogen formulas",
-        "Stress support",
-        "Sleep support"
+        "adaptogen formulas"
       ],
       "category": "supplements-and-wellness"
     },
@@ -184,15 +197,18 @@
       "anchorBrand": "Mud WTR",
       "description": "The Adaptogens & Chill bundle is your new calm-but-on ritual. Start the day with Mud WTR’s Original Starter Kit for functional mushroom-fueled focus, crack open Pablo's Mate Remolacha: 12-Pack when you want heart-open, clean energy, then end on a spoonful of EatDeux Chocolate Chip Cookie Dough with Reishi and Vitamin D for a mood-bright dessert. Three functional essentials, one feel-good flow for mind and body.",
       "publishedAt": "2026-08-04T23:04:24-07:00",
-      "hash": "50scvj",
+      "hash": "1me1lkb",
       "brands": [
         "Mud WTR",
         "Pablo's Mate",
         "EatDeux"
       ],
+      "teams": [
+        "Mud WTR"
+      ],
       "products": [
         "Original Starter Kit",
-        "Remolacha",
+        "Remolacha: 12-Pack",
         "Chocolate Chip Cookie Dough with Reishi and Vitamin D"
       ],
       "category": "supplements-and-wellness"
@@ -215,8 +231,11 @@
       "anchorBrand": "Wolven",
       "description": "Meet the Adventure Ready Kit, your carry on only setup for days filled with flights, hikes, and sunshine. Train or explore in the Sapphire Crisscross Tank, roll through the airport with the Carry-On Pro, then protect your skin with Classic Spray SPF 30. Less packing stress. More movement.",
       "publishedAt": "2026-06-04T10:14:02-07:00",
-      "hash": "p0c1i2",
+      "hash": "6ijvx2",
       "brands": [
+        "Wolven"
+      ],
+      "teams": [
         "Wolven"
       ],
       "products": [
@@ -242,13 +261,17 @@
       "anchorBrand": "AWAKE Chocolate",
       "description": "Own the afternoon! Fuel up with real-deal chocolate, a zesty sip, and crunchy chocolatey granola. No jitters. Just pep in your step!",
       "publishedAt": "2026-06-04T10:12:28-07:00",
-      "hash": "6y077t",
+      "hash": "10kh6px",
       "brands": [
         "AWAKE Chocolate"
       ],
+      "teams": [
+        "AWAKE Chocolate"
+      ],
       "products": [
-        "Chocolate",
-        "Granola"
+        "chocolate",
+        "sip",
+        "granola"
       ],
       "category": "snacks"
     },
@@ -270,11 +293,14 @@
       "anchorBrand": "Taika",
       "description": "Your countertop just became the hottest coffee bar in town. Start with Verve’s bright Morning Brew Blend, reset with Taika’s creamy, dreamy Strawberry Matcha Latte, then crack open an ice-cold Poppi Sparkling Prebiotic Soda Beverage with Apple Cider Vinegar, Seltzer Water and Fruit Juice, Shirley Temple, 12 Fl Oz, Pack of 12 when you want something sparkling and fun. Morning to midnight, you stay inspired, not wired.",
       "publishedAt": "2026-08-04T18:32:41-07:00",
-      "hash": "16lbnk7",
+      "hash": "ynpg03",
       "brands": [
-        "Taika",
         "Verve",
+        "Taika",
         "Poppi"
+      ],
+      "teams": [
+        "Taika"
       ],
       "products": [
         "Morning Brew Blend",
@@ -299,13 +325,16 @@
       "anchorBrand": "Brami Foods",
       "description": "A simple bundle of high-quality, allergy-friendly essentials for healthy lunches. Enjoy wholesome pasta and a smooth, chocolatey seed butter spread.",
       "publishedAt": "2026-06-04T10:12:37-07:00",
-      "hash": "ywebpk",
+      "hash": "im0jk4",
       "brands": [
         "Brami Foods"
       ],
+      "teams": [
+        "Brami Foods"
+      ],
       "products": [
-        "Pasta",
-        "Seed butter spread"
+        "pasta",
+        "seed butter spread"
       ],
       "category": "food-and-drink"
     },
@@ -325,13 +354,16 @@
       "anchorBrand": "88 Acres",
       "description": "Allergen-free snacks made with simple ingredients—safe for everyone to enjoy. Wholesome treats for every pantry and every family.",
       "publishedAt": "2026-05-11T15:59:27-07:00",
-      "hash": "1kbzjwf",
+      "hash": "9jzkqj",
       "brands": [
         "88 Acres"
       ],
+      "teams": [
+        "88 Acres"
+      ],
       "products": [
-        "Snacks",
-        "Treats"
+        "snacks",
+        "treats"
       ],
       "category": "snacks"
     },
@@ -353,11 +385,14 @@
       "anchorBrand": "Magic Spoon",
       "description": "Make breakfast the meal you actually look forward to. The Anti-Seed-Oil Breakfast bundles a Magic Spoon Variety 6 case, a Hu Kitchen Salty Dark Chocolate Bar, and Hero Flour Tortillas™ with olive oil so you can pour a high protein bowl, roll a breakfast taco, and sneak a square of salty dark chocolate, all in one simple, smarter morning setup.",
       "publishedAt": "2026-08-04T15:28:41-07:00",
-      "hash": "ixi75a",
+      "hash": "1vbrcve",
       "brands": [
         "Magic Spoon",
         "Hu Kitchen",
         "Hero"
+      ],
+      "teams": [
+        "Magic Spoon"
       ],
       "products": [
         "Variety 6 case",
@@ -384,11 +419,14 @@
       "anchorBrand": "Ruggable",
       "description": "The Apartment Glow-Up is your fast track from “fine” to “this feels good” at home. Ground the room with Ruggable’s Cyrus Black Rug, make your entire bed in one move with Brooklinen’s Luxe Sateen Hardcore Sheet Bundle, and clear the entry clutter with the Open Spaces Entryway Rack. One bundle, three upgrades, a home that finally looks put together.",
       "publishedAt": "2026-06-04T10:14:00-07:00",
-      "hash": "1etpir",
+      "hash": "1k5f0of",
       "brands": [
         "Ruggable",
         "Brooklinen",
         "Open Spaces"
+      ],
+      "teams": [
+        "Ruggable"
       ],
       "products": [
         "Cyrus Black Rug",
@@ -414,15 +452,18 @@
       "anchorBrand": "Ghia",
       "description": "Our greatest sips meet the richest bites. Bitter, bright, and briny—Aperitivo Hour is served. Just add friends.",
       "publishedAt": "2026-06-04T10:13:10-07:00",
-      "hash": "7ga5hm",
+      "hash": "1y84epy",
       "brands": [
         "Ghia",
         "Fishwife",
         "Acid League"
       ],
+      "teams": [
+        "Ghia"
+      ],
       "products": [
-        "non-alcoholic aperitivo",
-        "snacks"
+        "sips",
+        "bites"
       ],
       "category": "alcohol"
     },
@@ -442,13 +483,16 @@
       "anchorBrand": "Lalo",
       "description": "Beautiful, safe essentials for easy mealtimes and gentle care—made for everyday life with your baby and toddler.",
       "publishedAt": "2026-06-04T10:12:31-07:00",
-      "hash": "1drnt5a",
+      "hash": "1o3fd3e",
       "brands": [
         "Lalo"
       ],
+      "teams": [
+        "Lalo"
+      ],
       "products": [
-        "Mealtime essentials",
-        "Baby care essentials"
+        "mealtime essentials",
+        "baby care essentials"
       ],
       "category": "baby-and-kids"
     },
@@ -470,12 +514,15 @@
       "anchorBrand": "Chamberlain Coffee",
       "description": "The Back-to-Routine Breakfast bundle turns rushed mornings into a simple daily ritual. Pull a bold shot of organic Espresso Dark Roast, pour a crunchy bowl of Classic Marshmallow and S'mores protein cereal with marshmallows, then grab a spoon of Birthday Cake Vegan Cookie Dough for a little mood-brightening sweetness. It is your go-to lineup for getting out the door faster, with a freshly roasted coffee, feel-good crunch and a fun, sprinkle-packed treat in one easy bundle.",
       "publishedAt": "2026-08-04T23:05:42-07:00",
-      "hash": "179tacy",
+      "hash": "8jcwoe",
       "brands": [
         "Chamberlain Coffee"
       ],
+      "teams": [
+        "Chamberlain Coffee"
+      ],
       "products": [
-        "Espresso Dark Roast",
+        "organic Espresso Dark Roast",
         "Classic Marshmallow and S'mores protein cereal",
         "Birthday Cake Vegan Cookie Dough"
       ],
@@ -499,10 +546,12 @@
       "anchorBrand": "Good Ranchers",
       "description": "The Backyard Grill Upgrade gives you everything you need for an easy cookout at home. Grill up American sourced pork chops, bacon, brats, and sausage, warm grain free almond flour tortillas for tacos or wraps, and crack open a cold Atlética non-alcoholic beer. Simple, real food that’s ready for your next backyard night.",
       "publishedAt": "2026-08-04T18:30:27-07:00",
-      "hash": "m5i5wq",
+      "hash": "9a9bty",
       "brands": [
-        "Good Ranchers",
         "Atlética"
+      ],
+      "teams": [
+        "Good Ranchers"
       ],
       "products": [
         "pork chops",
@@ -532,13 +581,14 @@
       "anchorBrand": "Dryft Sleep",
       "description": "Upgrade your nightly routine with The Bedtime Stack—a curated bundle of expert sleep solutions designed to help you fall asleep faster, stay asleep longer, and wake up feeling truly restored.",
       "publishedAt": "2026-06-04T10:13:45-07:00",
-      "hash": "14xlewm",
+      "hash": "1okuk1e",
       "brands": [
         "Dryft Sleep"
       ],
-      "products": [
-        "sleep solutions"
+      "teams": [
+        "Dryft Sleep"
       ],
+      "products": [],
       "category": "supplements-and-wellness"
     },
     {
@@ -557,14 +607,16 @@
       "anchorBrand": "Hatch",
       "description": "Ease into better sleep. Gentle sounds, calming sips, and silky sheets—your new bedtime routine starts here. Sleep deeper, wake gently.",
       "publishedAt": "2026-06-04T10:12:30-07:00",
-      "hash": "1s8bkwo",
+      "hash": "1lyeuok",
       "brands": [
         "Hatch"
       ],
+      "teams": [
+        "Hatch"
+      ],
       "products": [
-        "Gentle sounds device",
-        "Calming sips",
-        "Silky sheets"
+        "calming sips",
+        "silky sheets"
       ],
       "category": "home-and-kitchen"
     },
@@ -586,11 +638,14 @@
       "anchorBrand": "Foria Wellness",
       "description": "The Better Bedtime Ritual brings together Foria Wellness Sleep Capsules, Hostage Tape Mouth Tape, and Bloom Nutrition Greens & Superfoods to support rest from the inside out. This simple three-step routine encourages nighttime relaxation, calmer breathing, and gentle gut support so the body can settle. Thoughtful, plant-based ingredients and practical tools help create a consistent wind-down ritual that supports sleep, overall wellness, and the intimacy that comes with feeling rested.",
       "publishedAt": "2026-08-04T23:05:44-07:00",
-      "hash": "w36uup",
+      "hash": "16dk7e5",
       "brands": [
         "Foria Wellness",
         "Hostage Tape",
         "Bloom Nutrition"
+      ],
+      "teams": [
+        "Foria Wellness"
       ],
       "products": [
         "Sleep Capsules",
@@ -617,14 +672,17 @@
       "anchorBrand": "Taika",
       "description": "Meet your new mood-boosting sampler: three wildly creative sips, one bundle, zero boring days. Creamy, dreamy, and ready to spark your next big idea. Why settle for ordinary when you could have The Better Buzz?",
       "publishedAt": "2026-06-04T10:13:43-07:00",
-      "hash": "12q9m46",
+      "hash": "1ot9ib6",
       "brands": [
+        "Taika"
+      ],
+      "teams": [
         "Taika"
       ],
       "products": [
         "sips"
       ],
-      "category": "coffee-and-tea"
+      "category": "food-and-drink"
     },
     {
       "id": "demo.offerlab.com/the-better-candy-aisle",
@@ -644,14 +702,16 @@
       "anchorBrand": "Hot Girl Soda",
       "description": "Meet The Better Candy Aisle. One ice cold Hot Girl Soda Raspberry Lemonade, a stash of BEHAVE Sour Bears, and SmartSweets - Sour Gummy Worms ready to tag in. Big flavor. Less sugar drama. This is your upgraded movie night, road trip, or 3 pm slump fix in one grab so you can stay hot, stay hydrated, and still hit the candy aisle energy.",
       "publishedAt": "2026-06-04T10:13:55-07:00",
-      "hash": "1tcafdy",
+      "hash": "cbby8y",
       "brands": [
-        "Hot Girl Soda",
         "BEHAVE",
         "SmartSweets"
       ],
+      "teams": [
+        "Hot Girl Soda"
+      ],
       "products": [
-        "Raspberry Lemonade",
+        "Hot Girl Soda Raspberry Lemonade",
         "Sour Bears",
         "Sour Gummy Worms"
       ],
@@ -673,13 +733,16 @@
       "anchorBrand": "immi",
       "description": "Slurp up nostalgia with a savory ramen cup, Filipino sisig starters, and a citrusy calamansi fizz. Comfort, umami, and a little sparkle—all in one bowl!",
       "publishedAt": "2026-06-04T10:13:02-07:00",
-      "hash": "p9d1pf",
+      "hash": "dpce1r",
       "brands": [
+        "immi"
+      ],
+      "teams": [
         "immi"
       ],
       "products": [
         "ramen cup",
-        "Filipino sisig starters",
+        "sisig starters",
         "calamansi fizz"
       ],
       "category": "food-and-drink"
@@ -700,8 +763,11 @@
       "anchorBrand": "Hero Bread",
       "description": "Better-for-you snacking made simple. Enjoy soft tortillas, bold hummus, and craveable popcorn—each with real benefits for your lifestyle.",
       "publishedAt": "2026-06-04T10:13:01-07:00",
-      "hash": "clw0uq",
+      "hash": "1vpuiry",
       "brands": [
+        "Hero Bread"
+      ],
+      "teams": [
         "Hero Bread"
       ],
       "products": [
@@ -727,13 +793,16 @@
       "anchorBrand": "Rip Van",
       "description": "Crush your cravings. Sip, snack, and indulge—guilt-free. All the flavor. None of the crash.",
       "publishedAt": "2026-05-18T13:18:08-07:00",
-      "hash": "4rwvlz",
+      "hash": "f3ofk3",
       "brands": [
         "Rip Van"
       ],
+      "teams": [
+        "Rip Van"
+      ],
       "products": [
-        "Soda",
-        "Snack"
+        "soda",
+        "snack"
       ],
       "category": "snacks"
     },
@@ -755,8 +824,11 @@
       "anchorBrand": "Ghia",
       "description": "Our greatest sips, crave-worthy cookies, and a garden’s worth of delights—everything you need for a night in, no RSVP required.",
       "publishedAt": "2026-06-04T10:13:39-07:00",
-      "hash": "1n9za7p",
+      "hash": "1hzyh4h",
       "brands": [
+        "Ghia"
+      ],
+      "teams": [
         "Ghia"
       ],
       "products": [
@@ -784,17 +856,19 @@
       "anchorBrand": "Fishwife",
       "description": "The Bougie Trail Lunch turns a mid-hike stop into something worth lingering over. Layer buttery Cantabrian anchovies on whatever bread or crackers fit in the pack, spoon on numbing, savory Original Sichuan Chili Crisp, and wash it down with bright LMNT Raspberry Salt electrolytes. It is a compact, premium trio built for people who want real flavor, real hydration, and carefully sourced tinned seafood even when they are miles from a kitchen.",
       "publishedAt": "2026-08-04T23:05:42-07:00",
-      "hash": "lksybr",
+      "hash": "1hhi5qb",
       "brands": [
-        "Fishwife",
         "LMNT"
+      ],
+      "teams": [
+        "Fishwife"
       ],
       "products": [
         "Cantabrian anchovies",
         "Original Sichuan Chili Crisp",
         "Raspberry Salt electrolytes"
       ],
-      "category": "fitness-and-outdoors"
+      "category": "food-and-drink"
     },
     {
       "id": "demo.offerlab.com/the-brunch-reinvented",
@@ -814,14 +888,17 @@
       "anchorBrand": "Magic Spoon",
       "description": "Your new brunch routine in one click. Brew bold organic cold brew, crisp up plant based egg patties, and pour a bowl of Classic Marshmallow & Smores protein cereal with marshmallows. Featuring Classic Marshmallow & S'mores - Protein Cereal with Marshmallows, this spread is high protein, sweet and delicious, and way easier than waiting in line for brunch.",
       "publishedAt": "2026-06-04T10:13:58-07:00",
-      "hash": "1pjh20y",
+      "hash": "lk29fi",
       "brands": [
         "Magic Spoon"
       ],
+      "teams": [
+        "Magic Spoon"
+      ],
       "products": [
-        "cold brew",
+        "organic cold brew",
         "plant based egg patties",
-        "Classic Marshmallow & S'mores Protein Cereal"
+        "Classic Marshmallow & S'mores protein cereal with marshmallows"
       ],
       "category": "food-and-drink"
     },
@@ -841,13 +918,16 @@
       "anchorBrand": "BEHAVE Candy",
       "description": "Low-sugar, clean label gummies and chocolate—remixed. Three chef-crafted favorites, one craveable bundle. Less sugar, more candy.",
       "publishedAt": "2026-06-04T10:12:34-07:00",
-      "hash": "uunvgj",
+      "hash": "xncy7z",
       "brands": [
         "BEHAVE Candy"
       ],
+      "teams": [
+        "BEHAVE Candy"
+      ],
       "products": [
-        "Gummies",
-        "Chocolate"
+        "gummies",
+        "chocolate"
       ],
       "category": "snacks"
     },
@@ -868,13 +948,16 @@
       "anchorBrand": "Flamingo Estate",
       "description": "Elevate daily rituals with a curated trio of nature-inspired fragrance and care. Botanical, lush, and beautifully crafted for the senses.",
       "publishedAt": "2026-06-04T10:13:03-07:00",
-      "hash": "ibg673",
+      "hash": "6hwtcr",
       "brands": [
+        "Flamingo Estate"
+      ],
+      "teams": [
         "Flamingo Estate"
       ],
       "products": [
         "fragrance",
-        "care products"
+        "care"
       ],
       "category": "personal-care"
     },
@@ -894,8 +977,11 @@
       "anchorBrand": "Public Goods",
       "description": "Simple, sustainable essentials for mindful living. Clean hands, fresh skin, and comfort—made easy. Reduce waste and refresh your daily routine.",
       "publishedAt": "2026-05-11T15:59:26-07:00",
-      "hash": "1iuzqd7",
+      "hash": "1vxf1tj",
       "brands": [
+        "Public Goods"
+      ],
+      "teams": [
         "Public Goods"
       ],
       "products": [],
@@ -919,16 +1005,18 @@
       "anchorBrand": "Verve Coffee Roasters",
       "description": "Meet The Clean Morning, your no guesswork start to the day. Brew a bright cup of Morning Brew Blend from Verve Coffee Roasters, mix a daily scoop of AG1: Next Gen Pouch greens, and finish with a bowl of Classic Marshmallow & S'mores - Protein Cereal with Marshmallows from Magic Spoon. One bundle, three essentials, so you get cafe quality coffee, foundational nutrition, and a crunchy sweet bowl that still keeps things light.",
       "publishedAt": "2026-06-04T10:13:53-07:00",
-      "hash": "1tr2ogy",
+      "hash": "wuf7ha",
       "brands": [
         "Verve Coffee Roasters",
-        "AG1",
         "Magic Spoon"
+      ],
+      "teams": [
+        "Verve Coffee Roasters"
       ],
       "products": [
         "Morning Brew Blend",
-        "Next Gen Pouch greens",
-        "Classic Marshmallow & S'mores Protein Cereal"
+        "AG1: Next Gen Pouch greens",
+        "Classic Marshmallow & S'mores Protein Cereal with Marshmallows"
       ],
       "category": "food-and-drink"
     },
@@ -948,14 +1036,17 @@
       "anchorBrand": "A Dozen Cousins",
       "description": "Stock up the fam’s pantry with real ingredients—beans, cereal, and snack bars. Ready to heat, pour, or grab and go. Serve it up, Second Cousins!",
       "publishedAt": "2026-05-11T15:59:24-07:00",
-      "hash": "1a7672n",
+      "hash": "y489sb",
       "brands": [
         "A Dozen Cousins"
       ],
+      "teams": [
+        "A Dozen Cousins"
+      ],
       "products": [
-        "Beans",
-        "Cereal",
-        "Snack Bars"
+        "beans",
+        "cereal",
+        "snack bars"
       ],
       "category": "food-and-drink"
     },
@@ -977,11 +1068,14 @@
       "anchorBrand": "Foria Wellness",
       "description": "The Clean Sleep Stack is a gentle, plant-based ritual for deeper nightly rest and overall wellness. Foria Sleep Capsules offer cannabinoid support for nighttime relaxation, Beam Organics Dream brings a comforting hot cocoa made with sleep-focused ingredients, and Cymbiotika Irish Sea Moss nourishes gut, skin, and hormonal balance that can influence restful sleep. Together, they create a simple, soothing routine that helps the body unwind so sleep can feel more restorative and supportive of everyday health and intimacy.",
       "publishedAt": "2026-08-04T23:01:36-07:00",
-      "hash": "rs1ccy",
+      "hash": "y7zoy6",
       "brands": [
-        "Foria Wellness",
+        "Foria",
         "Beam Organics",
         "Cymbiotika"
+      ],
+      "teams": [
+        "Foria Wellness"
       ],
       "products": [
         "Sleep Capsules",
@@ -1008,13 +1102,15 @@
       "anchorBrand": "SMACKIN' Sunflower Seeds",
       "description": "Snack clean, snack bold. The Clean Snack Run brings together three crave-worthy flavors—cheesy, spicy sunflower seeds, plant-based crunch, and a sour citrus punch—all in one easy bundle. Grab a handful, fuel your day, and enjoy the best of American-made snacks wherever you go.",
       "publishedAt": "2026-06-04T10:13:43-07:00",
-      "hash": "105ch5b",
+      "hash": "1x0n5vv",
       "brands": [
         "SMACKIN' Sunflower Seeds"
       ],
+      "teams": [
+        "SMACKIN' Sunflower Seeds"
+      ],
       "products": [
-        "cheesy sunflower seeds",
-        "spicy sunflower seeds",
+        "sunflower seeds",
         "plant-based crunch",
         "sour citrus punch"
       ],
@@ -1037,12 +1133,15 @@
       "anchorBrand": "Clearstem",
       "description": "Your 3-step routine for clear, bright, barrier-supported skin. Gentle, pore-friendly, and powered by community-loved brands. See real results—inside and out.",
       "publishedAt": "2026-06-04T10:13:05-07:00",
-      "hash": "c43t12",
+      "hash": "13lomeq",
       "brands": [
         "Clearstem"
       ],
+      "teams": [
+        "Clearstem"
+      ],
       "products": [
-        "skin routine products"
+        "skin products"
       ],
       "category": "beauty-and-skincare"
     },
@@ -1062,8 +1161,11 @@
       "anchorBrand": "Taika",
       "description": "Creamy mocha magic. Bright, juicy brews. The grinder your mornings deserve. Ready to make your coffee ritual legendary?",
       "publishedAt": "2026-06-04T10:13:00-07:00",
-      "hash": "1nzak6t",
+      "hash": "1ovka9",
       "brands": [
+        "Taika"
+      ],
+      "teams": [
         "Taika"
       ],
       "products": [
@@ -1089,8 +1191,11 @@
       "anchorBrand": "Blk & Bold",
       "description": "Bold coffee, bigger impact. Three powerhouse blends. Coffee for you, impact for our youth. All Rise together.",
       "publishedAt": "2026-06-04T10:12:45-07:00",
-      "hash": "1y943vt",
+      "hash": "1jvt49x",
       "brands": [
+        "Blk & Bold"
+      ],
+      "teams": [
         "Blk & Bold"
       ],
       "products": [
@@ -1117,15 +1222,18 @@
       "anchorBrand": "Beekeeper's Naturals",
       "description": "The Cold Season Stash brings together bee-powered propolis, an organic mushroom coffee alternative, and a zero-sugar electrolyte mix to support everyday wellness when temperatures drop. Soothe the throat, mix a warm Mud WTR drink, and keep hydration on track with LMNT Raspberry Salt. Simple, natural staples that make it easier to support immune health and energy when cold season hits.",
       "publishedAt": "2026-08-04T23:05:42-07:00",
-      "hash": "m4qbcx",
+      "hash": "1820erh",
       "brands": [
-        "Beekeeper's Naturals",
         "Mud WTR",
         "LMNT"
+      ],
+      "teams": [
+        "Beekeeper's Naturals"
       ],
       "products": [
         "bee-powered propolis",
         "organic mushroom coffee alternative",
+        "zero-sugar electrolyte mix",
         "Raspberry Salt"
       ],
       "category": "supplements-and-wellness"
@@ -1148,11 +1256,14 @@
       "anchorBrand": "Bloom Nutrition",
       "description": "The Collagen Glow Kitchen brings together a daily colostrum and collagen routine, rich dark chocolate coconut Bites, and mellow extra virgin olive oil so womens health support fits naturally into every day. Stir Bloom Nutrition Colostrum & Collagen Peptides into a morning drink, cook with Graza Sizzle for nourishing meals, then enjoy Hu Creamy Coconut Dark Chocolate Bites as a chocolate forward finish. Simple, delicious moments that support wellness goals.",
       "publishedAt": "2026-08-04T19:18:39-07:00",
-      "hash": "v2uyi5",
+      "hash": "1vhdre1",
       "brands": [
         "Bloom Nutrition",
         "Graza",
         "Hu"
+      ],
+      "teams": [
+        "Bloom Nutrition"
       ],
       "products": [
         "Colostrum & Collagen Peptides",
@@ -1179,12 +1290,15 @@
       "anchorBrand": "OLIPOP",
       "description": "Snack break, leveled up. The College Care Package brings you fizzy, gut-friendly soda, sweet bites, and crunchy treats—made for late nights, study sessions, or anytime you need a better-for-you pick-me-up.",
       "publishedAt": "2026-06-04T10:13:53-07:00",
-      "hash": "83lz10",
+      "hash": "bau3tc",
       "brands": [
         "OLIPOP"
       ],
+      "teams": [
+        "OLIPOP"
+      ],
       "products": [
-        "soda",
+        "fizzy, gut-friendly soda",
         "sweet bites",
         "crunchy treats"
       ],
@@ -1206,8 +1320,11 @@
       "anchorBrand": "Our Place",
       "description": "Refresh your kitchen with non-toxic, design-led essentials. Save with set pricing, free shipping, and our 100-day trial. Everything you need—made with intention.",
       "publishedAt": "2026-06-04T10:12:42-07:00",
-      "hash": "zmial6",
+      "hash": "s5ewye",
       "brands": [
+        "Our Place"
+      ],
+      "teams": [
         "Our Place"
       ],
       "products": [
@@ -1233,11 +1350,14 @@
       "anchorBrand": "Eat Deux",
       "description": "You want a donut. And sour gummies. And something crunchy to dunk in your coffee. Welcome to The Cookie Monster’s Dilemma. You get Eat Deux Cinnamon Sugar Donut holes, SmartSweets - Sour Gummy Worms, and Partake Gluten-Free Graham Crackers all in one snack-happy squad. Vegan, gluten-free, low sugar, and stacked with functional ingredients so you can chase every craving and still feel good good about it.",
       "publishedAt": "2026-06-04T10:15:06-07:00",
-      "hash": "b89hci",
+      "hash": "h5gjwu",
       "brands": [
         "Eat Deux",
         "SmartSweets",
         "Partake"
+      ],
+      "teams": [
+        "Eat Deux"
       ],
       "products": [
         "Cinnamon Sugar Donut holes",
@@ -1264,8 +1384,11 @@
       "anchorBrand": "Graza",
       "description": "High quality olive oil, fresh noodles, and a hand-blown wine glass. Simple, rich flavor for an easy night in.",
       "publishedAt": "2026-06-04T10:13:38-07:00",
-      "hash": "psno68",
+      "hash": "137dj6k",
       "brands": [
+        "Graza"
+      ],
+      "teams": [
         "Graza"
       ],
       "products": [
@@ -1293,14 +1416,17 @@
       "anchorBrand": "Graza",
       "description": "The Couples Dinner Night bundle gives you an easy at home date. Cook with Sizzle Extra Virgin Olive Oil, toss Omsom Soy Garlic Saucy Noodles, then share cold Sanzo sparkling waters. High quality pantry staples, simple steps, and rich flavor for two.",
       "publishedAt": "2026-08-04T23:05:46-07:00",
-      "hash": "1ar0dpr",
+      "hash": "1aj5s17",
       "brands": [
-        "Graza",
+        "Sizzle",
         "Omsom",
         "Sanzo"
       ],
+      "teams": [
+        "Graza"
+      ],
       "products": [
-        "Sizzle Extra Virgin Olive Oil",
+        "Extra Virgin Olive Oil",
         "Soy Garlic Saucy Noodles",
         "sparkling waters"
       ],
@@ -1322,14 +1448,17 @@
       "anchorBrand": "Sunday Citizen",
       "description": "Elevate your space with plush textures, soft scents, and sculptural style. Effortless comfort for slow mornings and soft nights.",
       "publishedAt": "2026-06-04T10:12:31-07:00",
-      "hash": "vrgqyj",
+      "hash": "16lyhiv",
       "brands": [
         "Sunday Citizen"
       ],
+      "teams": [
+        "Sunday Citizen"
+      ],
       "products": [
-        "Plush textures",
-        "Soft scents",
-        "Sculptural style items"
+        "plush textures",
+        "soft scents",
+        "sculptural style"
       ],
       "category": "home-and-kitchen"
     },
@@ -1350,12 +1479,15 @@
       "anchorBrand": "LesserEvil Snacks",
       "description": "A curated mix of cleaner, crafted snacks and drinks for a better movie night. Enjoy organic cheddar popcorn, a chocolatey treat, and fan-favorite sodas—no hype, just quality.",
       "publishedAt": "2026-06-04T10:13:10-07:00",
-      "hash": "c1http",
+      "hash": "1gnpbeh",
       "brands": [
         "LesserEvil Snacks"
       ],
+      "teams": [
+        "LesserEvil Snacks"
+      ],
       "products": [
-        "organic cheddar popcorn",
+        "cheddar popcorn",
         "chocolatey treat",
         "sodas"
       ],
@@ -1379,15 +1511,18 @@
       "anchorBrand": "De Soi",
       "description": "The Cycling Club Kit is a ride-ready ritual in one box: a bold Haute Margarita non-alcoholic sparkling apéritif for the post-ride toast, Organic Full SEND Bars for focused, steady energy, and Dutch Caramel & Vanilla Wafels for a low-sugar treat tucked into any jersey pocket. Designed with long days in the saddle in mind, it turns every spin into a sophisticated, feel-good outing.",
       "publishedAt": "2026-08-04T23:05:46-07:00",
-      "hash": "13pv9b4",
+      "hash": "cwg9lo",
       "brands": [
-        "De Soi",
+        "Haute Margarita",
         "Full SEND"
       ],
+      "teams": [
+        "De Soi"
+      ],
       "products": [
-        "Haute Margarita non-alcoholic sparkling apéritif",
-        "Organic Full SEND Bars",
-        "Caramel & Vanilla Wafels"
+        "non-alcoholic sparkling apéritif",
+        "Organic Bars",
+        "Dutch Caramel & Vanilla Wafels"
       ],
       "category": "fitness-and-outdoors"
     },
@@ -1409,11 +1544,14 @@
       "anchorBrand": "Arrae",
       "description": "The Daily Foundation Kit locks in your core routine in three simple steps. Support metabolic burn and appetite with Arrae MB-1, tackle sugar cravings with Sakara Life’s tangy pomegranate Metabolism Bites, and cover your daily foundational nutrition with AG1: Next Gen Pouch, the cult-favorite greens. One kit, once a day, to help you feel lighter, more energized, and in control of your body composition and bloat.",
       "publishedAt": "2026-06-04T10:14:02-07:00",
-      "hash": "1uz2s6l",
+      "hash": "1db7yw9",
       "brands": [
         "Arrae",
         "Sakara Life",
         "AG1"
+      ],
+      "teams": [
+        "Arrae"
       ],
       "products": [
         "MB-1",
@@ -1438,8 +1576,11 @@
       "anchorBrand": "Arrae",
       "description": "Elevate your routine. Burn fat, curb cravings, and support immunity—every day. Three essentials. One chic bundle.",
       "publishedAt": "2026-06-04T10:13:01-07:00",
-      "hash": "y10tb5",
+      "hash": "134zorh",
       "brands": [
+        "Arrae"
+      ],
+      "teams": [
         "Arrae"
       ],
       "products": [
@@ -1465,14 +1606,17 @@
       "anchorBrand": "AFLALO",
       "description": "Night out, dialed up. Silk, semi-precious stones, and the new aviator—minimal effort, maximum effect.",
       "publishedAt": "2026-06-04T10:12:35-07:00",
-      "hash": "fpfbav",
+      "hash": "1oj131v",
       "brands": [
         "AFLALO"
       ],
+      "teams": [
+        "AFLALO"
+      ],
       "products": [
-        "Silk",
-        "Semi-precious stones",
-        "Sunglasses"
+        "silk",
+        "semi-precious stones",
+        "sunglasses"
       ],
       "category": "apparel-and-accessories"
     },
@@ -1494,16 +1638,20 @@
       "anchorBrand": "Ghia",
       "description": "Everything you need for a night in that feels like a night out—bitter sips, golden drizzles, and cookware worthy of your greatest hits. Le Spritz, Le Fizz, Le Feast. All in one box. Ready when you are.",
       "publishedAt": "2026-06-04T10:13:50-07:00",
-      "hash": "ybsmug",
+      "hash": "3dryp0",
       "brands": [
         "Ghia"
       ],
+      "teams": [
+        "Ghia"
+      ],
       "products": [
+        "Le Spritz",
+        "Le Fizz",
+        "Le Feast",
         "bitter sips",
         "golden drizzles",
-        "cookware",
-        "Le Spritz",
-        "Le Fizz"
+        "cookware"
       ],
       "category": "home-and-kitchen"
     },
@@ -1524,8 +1672,11 @@
       "anchorBrand": "Wild One",
       "description": "Everything for walks, playtime, and travel. Harness kit, plush toy, and carry-on—dog essentials for every outing.",
       "publishedAt": "2026-06-04T10:13:06-07:00",
-      "hash": "1uljj3r",
+      "hash": "1ovu3lf",
       "brands": [
+        "Wild One"
+      ],
+      "teams": [
         "Wild One"
       ],
       "products": [
@@ -1553,11 +1704,14 @@
       "anchorBrand": "Wild One",
       "description": "The Dog Mom Reward System is your go bag in one click. A comfy Wild One Travel Carrier for your up-to-16 lb pup, maxbone Freeze-Dried Raw Beef Recipe for on-the-go rewards, and SmartSweets Sourmelon Bites for you. Pack it once, grab it for walks, vet visits, or flights, and everyone gets a treat.",
       "publishedAt": "2026-08-04T23:05:46-07:00",
-      "hash": "1jszumz",
+      "hash": "21uon",
       "brands": [
         "Wild One",
         "maxbone",
         "SmartSweets"
+      ],
+      "teams": [
+        "Wild One"
       ],
       "products": [
         "Travel Carrier",
@@ -1584,8 +1738,11 @@
       "anchorBrand": "Wild One",
       "description": "Everything you need for dog park days—hands-free leash, glitz jumper for your pup, and a comfy one-shoulder dress for you. Simple, practical essentials for every walk and play session.",
       "publishedAt": "2026-06-04T10:13:52-07:00",
-      "hash": "140xwu7",
+      "hash": "1jz5kjf",
       "brands": [
+        "Wild One"
+      ],
+      "teams": [
         "Wild One"
       ],
       "products": [
@@ -1612,12 +1769,15 @@
       "anchorBrand": "maxbone",
       "description": "Reimagining the pet industry. Modern essentials for memorable moments. Simple, thoughtful, better.",
       "publishedAt": "2026-06-04T10:13:14-07:00",
-      "hash": "19w61oz",
+      "hash": "1f7uj7z",
       "brands": [
         "maxbone"
       ],
+      "teams": [
+        "maxbone"
+      ],
       "products": [
-        "pet essentials"
+        "essentials"
       ],
       "category": "pets"
     },
@@ -1639,11 +1799,14 @@
       "anchorBrand": "Wild One",
       "description": "Set up every walk in one click. The Dog Walk Starter Kit combines Wild One’s Harness Walk Kit, the maxbone Talon Raincoat, and LMNT Sparkling 16oz so you’re both ready for loops around the block or all-day adventures. Comfy harness, sturdy leash, poop bag carrier, rain protection for your pup, and electrolytes for you. Simple everyday gear for dogs and their humans who are always out on walks.",
       "publishedAt": "2026-08-04T23:00:34-07:00",
-      "hash": "e1cn6i",
+      "hash": "zymql2",
       "brands": [
         "Wild One",
         "maxbone",
         "LMNT"
+      ],
+      "teams": [
+        "Wild One"
       ],
       "products": [
         "Harness Walk Kit",
@@ -1668,8 +1831,11 @@
       "anchorBrand": "Fishwife",
       "description": "Carefully sourced tins and bold pantry staples for every cupboard. Premium smoked salmon, vibrant vinegar, and Sichuan heat—elevate everyday meals with ease.",
       "publishedAt": "2026-06-04T10:13:00-07:00",
-      "hash": "vzqn95",
+      "hash": "1fyzx11",
       "brands": [
+        "Fishwife"
+      ],
+      "teams": [
         "Fishwife"
       ],
       "products": [
@@ -1696,14 +1862,17 @@
       "anchorBrand": "Cymbiotika",
       "description": "Support energy, focus, and muscle recovery with clinically proven NAD+, creatine, and 20g protein. Invest in yourself—save 30% with this science-backed bundle.",
       "publishedAt": "2026-05-11T16:00:11-07:00",
-      "hash": "16zn3r7",
+      "hash": "1qmw8vz",
       "brands": [
+        "Cymbiotika"
+      ],
+      "teams": [
         "Cymbiotika"
       ],
       "products": [
         "NAD+",
-        "Creatine",
-        "Protein"
+        "creatine",
+        "protein"
       ],
       "category": "supplements-and-wellness"
     },
@@ -1725,11 +1894,14 @@
       "anchorBrand": "Mud WTR",
       "description": "The Energy Without the Crash bundle gives you a full day of clean energy, start to finish. Kick off with Taika Black Coffee for focused go-time, crack a Pablo’s Mate Remolacha when you need a bright lift, then land the day with Mud WTR Hot Cacao and its functional mushrooms and ashwagandha. One kit, three moods, zero jitters or crash.",
       "publishedAt": "2026-06-04T10:14:00-07:00",
-      "hash": "1pta8ng",
+      "hash": "rx42vc",
       "brands": [
-        "Mud WTR",
         "Taika",
-        "Pablo’s Mate"
+        "Pablo’s Mate",
+        "Mud WTR"
+      ],
+      "teams": [
+        "Mud WTR"
       ],
       "products": [
         "Black Coffee",
@@ -1754,12 +1926,15 @@
       "anchorBrand": "Perelel Health",
       "description": "Doctor-backed support for your first trimester—plus comfort and care for you and baby. Everything you need, all in one expert-approved bundle.",
       "publishedAt": "2026-06-04T10:12:26-07:00",
-      "hash": "18j54bb",
+      "hash": "kitmxf",
       "brands": [
         "Perelel Health"
       ],
+      "teams": [
+        "Perelel Health"
+      ],
       "products": [],
-      "category": "supplements-and-wellness"
+      "category": "baby-and-kids"
     },
     {
       "id": "demo.offerlab.com/the-fall-soup-season",
@@ -1779,13 +1954,16 @@
       "anchorBrand": "immi",
       "description": "Welcome to Fall Soup Season. You get a high protein black garlic “chicken” cup ramen to slurp on the couch, an herby Greens Fonio Pilaf that eats like a cozy side or hearty bowl, and a Sweet + Spicy Sichuan Chili Sauce that you’ll end up drizzling on everything. Three plant-based pantry heroes, endless comforting, umami-packed fall dinners.",
       "publishedAt": "2026-08-04T23:05:39-07:00",
-      "hash": "85t958",
+      "hash": "1tzv0p4",
       "brands": [
+        "immi"
+      ],
+      "teams": [
         "immi"
       ],
       "products": [
         "high protein black garlic “chicken” cup ramen",
-        "Greens Fonio Pilaf",
+        "herby Greens Fonio Pilaf",
         "Sweet + Spicy Sichuan Chili Sauce"
       ],
       "category": "food-and-drink"
@@ -1806,12 +1984,15 @@
       "anchorBrand": "Cleveland Kitchen",
       "description": "Fresh flavor, bold crunch, and gut-happy benefits—three craveable ways to upgrade your daily routine. Naturally fermented, always vibrant.",
       "publishedAt": "2026-06-04T10:12:40-07:00",
-      "hash": "1oioy9",
+      "hash": "1o6yh3h",
       "brands": [
         "Cleveland Kitchen"
       ],
+      "teams": [
+        "Cleveland Kitchen"
+      ],
       "products": [
-        "Fermented foods"
+        "fermented foods"
       ],
       "category": "food-and-drink"
     },
@@ -1833,16 +2014,18 @@
       "anchorBrand": "Liquid Death",
       "description": "Crush thirst with Liquid Death, destroy hunger with pizza seeds, and slap on SPF 50. No plastic. No mercy. Only survival.",
       "publishedAt": "2026-06-04T10:13:18-07:00",
-      "hash": "533c0x",
+      "hash": "l1azq5",
       "brands": [
         "Liquid Death"
       ],
+      "teams": [
+        "Liquid Death"
+      ],
       "products": [
-        "water",
         "pizza seeds",
         "SPF 50"
       ],
-      "category": "other"
+      "category": "fitness-and-outdoors"
     },
     {
       "id": "demo.offerlab.com/the-flavor-bomb-kit",
@@ -1862,11 +2045,14 @@
       "anchorBrand": "Maya Kaimal",
       "description": "The Flavor Bomb Kit gathers three bold pantry favorites in one easy set. Maya Kaimal’s Organic Indian Everyday Dal brings traditional Indian flavors of black lentil, tomato, and cumin. Omsom’s Filipino Sisig Starter delivers rich umami with bright calamansi. Momofuku Chili Crunch Hot Honey adds sweet heat and crunchy chili to anything. Together, they turn simple rice, eggs, noodles, or tofu into fast, flavor-packed meals that bring India and Asia into your kitchen.",
       "publishedAt": "2026-06-04T10:13:58-07:00",
-      "hash": "1ktn6z6",
+      "hash": "1b5wytq",
       "brands": [
         "Maya Kaimal",
         "Omsom",
         "Momofuku"
+      ],
+      "teams": [
+        "Maya Kaimal"
       ],
       "products": [
         "Organic Indian Everyday Dal",
@@ -1891,15 +2077,17 @@
       "anchorBrand": "Sucker Punch Gourmet",
       "description": "Turn up the flavor with bold sauces, tangy pickle juice, and rich garlic ghee. Crafted for snackers and heat seekers who crave something special.",
       "publishedAt": "2026-06-04T10:12:26-07:00",
-      "hash": "fmo9dt",
+      "hash": "zo5q65",
       "brands": [
         "Sucker Punch Gourmet"
       ],
+      "teams": [
+        "Sucker Punch Gourmet"
+      ],
       "products": [
-        "Sauces",
-        "Snacks",
-        "Garlic Ghee",
-        "Pickle Juice"
+        "sauces",
+        "pickle juice",
+        "garlic ghee"
       ],
       "category": "food-and-drink"
     },
@@ -1921,8 +2109,11 @@
       "anchorBrand": "Fly By Jing",
       "description": "Ready to electrify your flavor game? Meet The Flavor Explorer — a bold, mouthwatering mashup of the flyest sauces, noodles, and olive oil from the world’s hottest brands. Sweet, spicy, tingly, and totally craveable. One bundle. Infinite flavor adventures. Let’s get saucy!",
       "publishedAt": "2026-06-04T10:13:41-07:00",
-      "hash": "1b7msmq",
+      "hash": "fmtkxa",
       "brands": [
+        "Fly By Jing"
+      ],
+      "teams": [
         "Fly By Jing"
       ],
       "products": [
@@ -1950,12 +2141,14 @@
       "anchorBrand": "SMACKIN' Sunflower Seeds",
       "description": "The Football Sunday Hosting Edit keeps your crew happy from kickoff to the final whistle. You get SMACKIN' x PCA Deep Dish Pizza sunflower seeds made in the USA, nostalgia-packed Outstanding Foods Cheddar Cheese Balls, and an ice-cold Hot Girl Soda Mango Dragon Fruit to wash it all down. Set it out, crack some shells, pass the cheese balls, and let everyone sip something fun while you actually enjoy the game.",
       "publishedAt": "2026-08-04T23:05:39-07:00",
-      "hash": "1vy1rja",
+      "hash": "bmb882",
       "brands": [
-        "SMACKIN' Sunflower Seeds",
-        "PCA",
+        "SMACKIN' x PCA",
         "Outstanding Foods",
         "Hot Girl Soda"
+      ],
+      "teams": [
+        "SMACKIN' Sunflower Seeds"
       ],
       "products": [
         "Deep Dish Pizza sunflower seeds",
@@ -1980,8 +2173,11 @@
       "anchorBrand": "Maya Kaimal",
       "description": "Bring authentic flavors into your kitchen with this curated bundle of traditional Indian rice, vibrant fajita seasonings, and creamy coconut yogurt.",
       "publishedAt": "2026-06-04T10:12:59-07:00",
-      "hash": "15dvt7f",
+      "hash": "17b7txz",
       "brands": [
+        "Maya Kaimal"
+      ],
+      "teams": [
         "Maya Kaimal"
       ],
       "products": [
@@ -2007,13 +2203,14 @@
       "anchorBrand": "Flamingo Estate",
       "description": "An elegant ritual for the senses—nature’s finest, beautifully curated for home and table. Experience botanical luxury in every moment.",
       "publishedAt": "2026-06-04T10:13:14-07:00",
-      "hash": "sg8xup",
+      "hash": "3rabkt",
       "brands": [
         "Flamingo Estate"
       ],
-      "products": [
-        "botanical luxury items"
+      "teams": [
+        "Flamingo Estate"
       ],
+      "products": [],
       "category": "home-and-kitchen"
     },
     {
@@ -2034,8 +2231,11 @@
       "anchorBrand": "DedCool",
       "description": "Meet ur Genderless Glow Up. Start with PINK CLOUD to wash the day off, mist on SOS when skin acts up, then finish with Xtra Milk for that soft skin smell that just reads as you. Clean face. Calm vibes. Cozy signature scent that plays nice on every body.",
       "publishedAt": "2026-06-04T10:16:32-07:00",
-      "hash": "dr2qch",
+      "hash": "12j7e71",
       "brands": [
+        "DedCool"
+      ],
+      "teams": [
         "DedCool"
       ],
       "products": [
@@ -2063,14 +2263,14 @@
       "anchorBrand": "Beardbrand",
       "description": "Three brands. One box. Smells like hardwood, citrus, and trouble brewing. Suds up, oil up, crack a can—this is the gift that says you know what he actually wants. No socks. No apologies.",
       "publishedAt": "2026-06-04T10:13:52-07:00",
-      "hash": "1x6b62t",
+      "hash": "10jdo3l",
       "brands": [
         "Beardbrand"
       ],
-      "products": [
-        "cleanser",
-        "beard oil"
+      "teams": [
+        "Beardbrand"
       ],
+      "products": [],
       "category": "personal-care"
     },
     {
@@ -2091,15 +2291,18 @@
       "anchorBrand": "Tower 28 Beauty",
       "description": "The Girls' Weekend Glow Up is your low-lift, high-fun pregame kit: calm stressed, sensitive skin with Tower 28’s SOS 3-Step Skincare Set, mist on Sainte Labs Dew It Again™ for that dewy finish, then crack open Surely’s Non-Alcoholic Brut cans for crisp, bubbly sips. One bundle that gets your skin and your group chat ready for late nights, early brunch, and every selfie in between.",
       "publishedAt": "2026-08-04T23:05:44-07:00",
-      "hash": "bjqgmi",
+      "hash": "1mahysm",
       "brands": [
-        "Tower 28 Beauty",
+        "Tower 28",
         "Sainte Labs",
         "Surely"
       ],
+      "teams": [
+        "Tower 28 Beauty"
+      ],
       "products": [
         "SOS 3-Step Skincare Set",
-        "Dew It Again™",
+        "Dew It Again",
         "Non-Alcoholic Brut cans"
       ],
       "category": "beauty-and-skincare"
@@ -2122,14 +2325,14 @@
       "anchorBrand": "Jolie Skin Co",
       "description": "Clearer skin. Softer hair. Fewer breakouts. The Glow Protocol is your shortcut to visible results—starting with clean water and ending with a balanced, barrier-friendly routine. Three brands. One bundle. Your best skin & hair. Guaranteed.",
       "publishedAt": "2026-06-04T10:13:51-07:00",
-      "hash": "xpcqeu",
+      "hash": "1y8rr76",
       "brands": [
         "Jolie Skin Co"
       ],
-      "products": [
-        "clean water",
-        "skin & hair routine"
+      "teams": [
+        "Jolie Skin Co"
       ],
+      "products": [],
       "category": "beauty-and-skincare"
     },
     {
@@ -2148,12 +2351,17 @@
       "anchorBrand": "Tower 28 Beauty",
       "description": "Glow from the inside out! Three derm-approved favorites to soothe, protect, and support sensitive skin—plus free shipping. Ready to feel your best?",
       "publishedAt": "2026-06-04T10:12:58-07:00",
-      "hash": "18pg3uu",
+      "hash": "118cq82",
       "brands": [
         "Tower 28 Beauty"
       ],
+      "teams": [
+        "Tower 28 Beauty"
+      ],
       "products": [
-        "sensitive skin essentials"
+        "soothing product",
+        "protecting product",
+        "skin support product"
       ],
       "category": "beauty-and-skincare"
     },
@@ -2175,11 +2383,14 @@
       "anchorBrand": "Good Ranchers",
       "description": "The GLP-1 Pantry keeps real food on hand so you can stick with your plan without overthinking every meal. You get Better than Organic Chicken from Good Ranchers for satisfying American sourced protein, Black Garlic “Chicken” Cup Ramen from immi when you need a quick, higher‑protein comfort bowl, and Tribiotic from Arrae for daily gut and immune support. Simple, flexible, and commitment free, this bundle helps you eat well and feel supported at home.",
       "publishedAt": "2026-08-04T23:05:40-07:00",
-      "hash": "f8zmoz",
+      "hash": "1x2sqjj",
       "brands": [
         "Good Ranchers",
         "immi",
         "Arrae"
+      ],
+      "teams": [
+        "Good Ranchers"
       ],
       "products": [
         "Better than Organic Chicken",
@@ -2204,13 +2415,16 @@
       "anchorBrand": "Beauty of Joseon",
       "description": "Restore balance and nourish your skin barrier with a heritage-led ritual for radiant, calm skin—inside and out.",
       "publishedAt": "2026-06-04T10:12:44-07:00",
-      "hash": "1jylpm",
+      "hash": "1bw41eu",
       "brands": [
         "Beauty of Joseon"
       ],
+      "teams": [
+        "Beauty of Joseon"
+      ],
       "products": [
-        "Glow Kit",
-        "Hanbang Radiance Ritual"
+        "skin barrier nourishment",
+        "radiance ritual"
       ],
       "category": "beauty-and-skincare"
     },
@@ -2232,16 +2446,19 @@
       "anchorBrand": "Hot Girl Soda",
       "description": "Grain free taco night, but make it hot girl. Stack Siete Grain Free Almond Flour Tortillas, load them up with Palmini Lasagna hearts of palm layers, then crack open a cold Mango Dragon Fruit Hot Girl Soda. You get soft tortillas, low carb fillings, and an all natural, aloe infused sip that keeps you glowing while you crush taco Tuesday.",
       "publishedAt": "2026-08-04T23:04:29-07:00",
-      "hash": "1o4aa4t",
+      "hash": "1tnc615",
       "brands": [
-        "Hot Girl Soda",
         "Siete",
-        "Palmini"
+        "Palmini",
+        "Hot Girl Soda"
+      ],
+      "teams": [
+        "Hot Girl Soda"
       ],
       "products": [
-        "Almond Flour Tortillas",
+        "Grain Free Almond Flour Tortillas",
         "Lasagna hearts of palm layers",
-        "Mango Dragon Fruit Soda"
+        "Mango Dragon Fruit Hot Girl Soda"
       ],
       "category": "food-and-drink"
     },
@@ -2263,16 +2480,19 @@
       "anchorBrand": "Muddy Bites",
       "description": "Hosting the Halloween hang for actual grown ups this year? This bundle has your whole snack table covered. Fill bowls with Muddy Bites Bestseller Variety Pack for crunchy chocolate cone bites, The Everything Pack from BEHAVE Candy for sweet and sour gummies, and line up ice cold cans of Hot Girl Soda Variety Pack. Less trick, more treat. All main character energy.",
       "publishedAt": "2026-08-04T23:02:45-07:00",
-      "hash": "1dkd49q",
+      "hash": "jjzzx6",
       "brands": [
         "Muddy Bites",
         "BEHAVE Candy",
         "Hot Girl Soda"
       ],
+      "teams": [
+        "Muddy Bites"
+      ],
       "products": [
         "Bestseller Variety Pack",
         "The Everything Pack",
-        "Variety Pack"
+        "Hot Girl Soda Variety Pack"
       ],
       "category": "snacks"
     },
@@ -2294,11 +2514,14 @@
       "anchorBrand": "Hero Bread",
       "description": "The Guilt-Free Pantry Raid brings together Hero Hawaiian Rolls™, Ithaca Roasted Red Pepper Hummus, and Outstanding Foods Cheddar Cheese Balls for snack time that actually fits their goals. Build soft, slightly sweet low-carb sliders, scoop bold, veggie-loaded hummus, and crunch into dairy-free cheddar bites packed with vitamins and minerals. It is an easy way to keep the pantry stocked with delicious bread and better-for-you snacks that are ready whenever hunger hits.",
       "publishedAt": "2026-08-04T23:05:44-07:00",
-      "hash": "yamy7q",
+      "hash": "bhxkz6",
       "brands": [
-        "Hero Bread",
+        "Hero",
         "Ithaca",
         "Outstanding Foods"
+      ],
+      "teams": [
+        "Hero Bread"
       ],
       "products": [
         "Hawaiian Rolls",
@@ -2325,14 +2548,16 @@
       "anchorBrand": "Seed Health, Inc.",
       "description": "The Gut-Brain Reset brings together DS-01® Daily Synbiotic, OLIPOP Winter Seasonal Crisp Apple, and Beekeeper's Naturals Propolis + Vitamin C Liposomal in one structured protocol. Designed for daily use, this bundle aligns clinically studied probiotic strains, a prebiotic soda, and targeted immune support to help maintain digestive function, support the gut brain axis, and sustain overall resilience through the season.",
       "publishedAt": "2026-06-04T10:13:57-07:00",
-      "hash": "o3vh3r",
+      "hash": "sgq61f",
       "brands": [
-        "Seed Health, Inc.",
         "OLIPOP",
         "Beekeeper's Naturals"
       ],
+      "teams": [
+        "Seed Health, Inc."
+      ],
       "products": [
-        "DS-01® Daily Synbiotic",
+        "DS-01 Daily Synbiotic",
         "Winter Seasonal Crisp Apple",
         "Propolis + Vitamin C Liposomal"
       ],
@@ -2354,15 +2579,17 @@
       "anchorBrand": "Wildwonder",
       "description": "Bright, bold flavor meets gut-friendly goodness. A heritage-inspired bundle with sparkling prebiotic + probiotic, nutrient-rich sea moss, and real fruit crunch.",
       "publishedAt": "2026-05-11T16:00:14-07:00",
-      "hash": "1hfcb5f",
+      "hash": "1kmkfxr",
       "brands": [
         "Wildwonder"
       ],
+      "teams": [
+        "Wildwonder"
+      ],
       "products": [
-        "Sparkling Drink",
-        "Sea Moss",
-        "Almonds",
-        "Fruit Crunch"
+        "sparkling drink",
+        "sea moss",
+        "crunchy almonds"
       ],
       "category": "supplements-and-wellness"
     },
@@ -2382,8 +2609,11 @@
       "anchorBrand": "Mud WTR",
       "description": "Gut support, clean energy, and real rest—no fillers, no crash. Three essentials for your daily ritual. Ready to feel good from the inside out?",
       "publishedAt": "2026-06-04T10:12:58-07:00",
-      "hash": "11yfqx7",
+      "hash": "1q7jtqf",
       "brands": [
+        "Mud WTR"
+      ],
+      "teams": [
         "Mud WTR"
       ],
       "products": [
@@ -2411,8 +2641,11 @@
       "anchorBrand": "Seed Health, Inc.",
       "description": "Pioneering microbiome science meets functional nutrition—The Gut Reset bundle delivers a daily synbiotic, prebiotic soda, and a nutrient-dense oat bowl for comprehensive digestive and systemic support.",
       "publishedAt": "2026-06-04T10:13:39-07:00",
-      "hash": "l7x8f4",
+      "hash": "13np730",
       "brands": [
+        "Seed Health, Inc."
+      ],
+      "teams": [
         "Seed Health, Inc."
       ],
       "products": [
@@ -2440,16 +2673,17 @@
       "anchorBrand": "Send Bars",
       "description": "The Gym Bod Essentials bundle is your all-day training kit. Smash a Organic Lemon Cherry Energy Bar for clean plant-protein and adaptogens before or after you lift. Mix up LMNT Raspberry Salt to keep your hydration dialed with zero sugar. Then throw Better than Organic Chicken on the stove or grill for real, pasture-raised protein that makes the gains stick. Gym bag to dinner plate, this stack goes full send.",
       "publishedAt": "2026-06-04T10:14:03-07:00",
-      "hash": "17h40bs",
+      "hash": "pt971g",
       "brands": [
-        "Send Bars",
-        "LMNT",
-        "Better than Organic"
+        "LMNT"
+      ],
+      "teams": [
+        "Send Bars"
       ],
       "products": [
         "Organic Lemon Cherry Energy Bar",
         "Raspberry Salt",
-        "Chicken"
+        "Organic Chicken"
       ],
       "category": "fitness-and-outdoors"
     },
@@ -2469,8 +2703,11 @@
       "anchorBrand": "Helssy Hair",
       "description": "Découvre le top collection pour hydrater tes boucles, illuminer ta peau et sentir bon. Bons plans, produits naturels et marques engagées. Je fonce !",
       "publishedAt": "2026-06-04T10:12:24-07:00",
-      "hash": "1cgp2dh",
+      "hash": "4x5ts1",
       "brands": [
+        "Helssy Hair"
+      ],
+      "teams": [
         "Helssy Hair"
       ],
       "products": [],
@@ -2494,14 +2731,16 @@
       "anchorBrand": "Last Crumb",
       "description": "The Harvest Grazing Board is your shortcut to looking unreasonably put-together. On one side, the Death By Chocolate Cookie Collection doing rich, ooey-gooey damage. On the other, Fishwife Smoked Salmon bringing buttery smoke, ready to bathe in Graza Sizzle & Drizzle. Line it up on a board, tear open the tins, drown everything in olive oil, and watch people lose their minds. This is peak snacking season, handled.",
       "publishedAt": "2026-08-04T23:02:44-07:00",
-      "hash": "f1vnpu",
+      "hash": "1a8n4su",
       "brands": [
-        "Last Crumb",
         "Fishwife",
         "Graza"
       ],
+      "teams": [
+        "Last Crumb"
+      ],
       "products": [
-        "Death By Chocolate Cookie Collection",
+        "Cookie Collection",
         "Smoked Salmon",
         "Sizzle & Drizzle"
       ],
@@ -2523,14 +2762,17 @@
       "anchorBrand": "Ballerina Farm",
       "description": "Start the day strong with wholesome, farm-fresh ingredients. This bundle brings together hearty flour, nourishing oats, and a refreshing protein boost for simple, satisfying mornings.",
       "publishedAt": "2026-06-04T10:12:33-07:00",
-      "hash": "1var3uy",
+      "hash": "1yhz8na",
       "brands": [
         "Ballerina Farm"
       ],
+      "teams": [
+        "Ballerina Farm"
+      ],
       "products": [
-        "Flour",
-        "Oats",
-        "Protein boost"
+        "flour",
+        "oats",
+        "protein boost"
       ],
       "category": "food-and-drink"
     },
@@ -2550,14 +2792,17 @@
       "anchorBrand": "Good Ranchers",
       "description": "Real food, real protein. American sourced meat, clean snacks, and zero-sugar hydration. Simple, flexible, commitment free.",
       "publishedAt": "2026-06-04T10:13:02-07:00",
-      "hash": "10stwe5",
+      "hash": "uix661",
       "brands": [
+        "Good Ranchers"
+      ],
+      "teams": [
         "Good Ranchers"
       ],
       "products": [
         "meat",
-        "clean snacks",
-        "zero-sugar hydration"
+        "snacks",
+        "hydration"
       ],
       "category": "food-and-drink"
     },
@@ -2578,16 +2823,19 @@
       "anchorBrand": "Drink LMNT",
       "description": "Stay salty on the trail. Get sodium-packed hydration, protein-rich bread, and guilt-free sour gummies—all in one clean, rebellious bundle.",
       "publishedAt": "2026-06-04T10:13:03-07:00",
-      "hash": "1mqhroh",
+      "hash": "16tc7ml",
       "brands": [
+        "Drink LMNT"
+      ],
+      "teams": [
         "Drink LMNT"
       ],
       "products": [
         "hydration",
-        "protein-rich bread",
+        "bread",
         "sour gummies"
       ],
-      "category": "snacks"
+      "category": "fitness-and-outdoors"
     },
     {
       "id": "demo.offerlab.com/the-home-entertainer",
@@ -2607,8 +2855,11 @@
       "anchorBrand": "Estelle Colored Glass",
       "description": "A curated collection for effortless entertaining—colored glassware, garden-inspired essentials, and modern details for every gathering.",
       "publishedAt": "2026-06-04T10:13:49-07:00",
-      "hash": "z1im1s",
+      "hash": "acjzrw",
       "brands": [
+        "Estelle Colored Glass"
+      ],
+      "teams": [
         "Estelle Colored Glass"
       ],
       "products": [
@@ -2634,12 +2885,15 @@
       "anchorBrand": "Bala",
       "description": "Make exercise fun again. Design-forward essentials for movement, motherhood, and everything in between. Bundle & save—your home gym, upgraded.",
       "publishedAt": "2026-06-04T10:12:37-07:00",
-      "hash": "tprck1",
+      "hash": "50sqa5",
       "brands": [
         "Bala"
       ],
+      "teams": [
+        "Bala"
+      ],
       "products": [
-        "Home gym essentials"
+        "gym essentials"
       ],
       "category": "fitness-and-outdoors"
     },
@@ -2661,11 +2915,14 @@
       "anchorBrand": "Good Ranchers",
       "description": "The Home Gym Starter gives you what your workouts need most: real food protein, clean hydration, and simple daily support. Wild-caught American seafood from Good Ranchers covers dinner, LMNT Zero-Sugar Electrolytes keeps you hydrated without sugar, and Cymbiotika Liposomal Vitamin C supports your immune system and recovery. No guesswork. Just a solid, commitment free way to back up your home training with smart choices.",
       "publishedAt": "2026-08-04T23:02:44-07:00",
-      "hash": "1e45536",
+      "hash": "nwc79a",
       "brands": [
         "Good Ranchers",
         "LMNT",
         "Cymbiotika"
+      ],
+      "teams": [
+        "Good Ranchers"
       ],
       "products": [
         "seafood",
@@ -2692,11 +2949,14 @@
       "anchorBrand": "Mud WTR",
       "description": "The Hormone Health for Him bundle turns your daily routine into a low-drama wellness stack. Start your morning with Mud WTR’s coffee alternative for clean energy without the jitters, cover your bases with Seed’s DM-02 Daily Multivitamin for body and gut support, and finish strong with Dr. Squatch’s Full & Thick Hair Care Kit for fuller, thicker-looking hair. One set, three daily habits that help fuel your mind, body, and confidence.",
       "publishedAt": "2026-08-04T23:04:29-07:00",
-      "hash": "1x2lwkl",
+      "hash": "1l47mn5",
       "brands": [
         "Mud WTR",
         "Seed",
         "Dr. Squatch"
+      ],
+      "teams": [
+        "Mud WTR"
       ],
       "products": [
         "coffee alternative",
@@ -2721,8 +2981,11 @@
       "anchorBrand": "Estelle Colored Glass",
       "description": "Elevate your gatherings with a curated collection of colored glass stemware, non-alcoholic apéritifs, and seasonal delights. Crafted for elegant entertaining.",
       "publishedAt": "2026-06-04T10:12:59-07:00",
-      "hash": "qjdcm1",
+      "hash": "6uoxud",
       "brands": [
+        "Estelle Colored Glass"
+      ],
+      "teams": [
         "Estelle Colored Glass"
       ],
       "products": [
@@ -2750,8 +3013,11 @@
       "anchorBrand": "Wolven",
       "description": "Move energetically. Dress to empower. Hydrate, refresh, repeat. Everything you need for your next hot girl walk.",
       "publishedAt": "2026-06-04T10:13:37-07:00",
-      "hash": "h1u4w6",
+      "hash": "8skc5e",
       "brands": [
+        "Wolven"
+      ],
+      "teams": [
         "Wolven"
       ],
       "products": [
@@ -2779,11 +3045,14 @@
       "anchorBrand": "Cymbiotika",
       "description": "The Hot Yoga Bag is your post-class reset in three intentional steps. Support cellular energy and healthy aging with Cymbiotika’s Liposomal NAD+, refresh sweat-soaked hair with HiBAR’s low-waste Shampoo & Conditioner Sampler Set, and lock in long-lasting moisture with Herbivore Botanicals’ PHOENIX Rosehip + Sea Buckthorn Deep Renewal Facial Oil. Keep this bundle in your studio bag so you leave each session feeling energized, clean, and hydrated from the inside out.",
       "publishedAt": "2026-08-04T23:04:24-07:00",
-      "hash": "oio3e2",
+      "hash": "6r9nxi",
       "brands": [
         "Cymbiotika",
         "HiBAR",
         "Herbivore Botanicals"
+      ],
+      "teams": [
+        "Cymbiotika"
       ],
       "products": [
         "Liposomal NAD+",
@@ -2810,11 +3079,14 @@
       "anchorBrand": "Drink LMNT",
       "description": "The Hydration Protocol is your daily stack for healthful hydration: LMNT Zero-Sugar Electrolytes for More Salt, Not Less, Liquid Death Mountain Water (Still) from American mountain ranges, and AG1: Next Gen Pouch as your greens-powered daily health drink. Three heavy-hitting brands. One simple protocol that covers water, electrolytes, and foundational nutrition with no sugar, no gluten, and no dodgy ingredients in your LMNT. Stay Salty.",
       "publishedAt": "2026-06-04T10:13:59-07:00",
-      "hash": "kcqafo",
+      "hash": "16y8k5s",
       "brands": [
-        "Drink LMNT",
+        "LMNT",
         "Liquid Death",
         "AG1"
+      ],
+      "teams": [
+        "Drink LMNT"
       ],
       "products": [
         "Zero-Sugar Electrolytes",
@@ -2840,8 +3112,11 @@
       "anchorBrand": "Beekeeper's Naturals",
       "description": "Clean, effective support for your daily wellness ritual. Harness the power of bee products, advanced nutrients, and prebiotics for immune and cellular health.",
       "publishedAt": "2026-06-04T10:13:09-07:00",
-      "hash": "u17elm",
+      "hash": "9kjxie",
       "brands": [
+        "Beekeeper's Naturals"
+      ],
+      "teams": [
         "Beekeeper's Naturals"
       ],
       "products": [
@@ -2867,8 +3142,11 @@
       "anchorBrand": "Eat Deux",
       "description": "Sweet AF mornings start here. Donuts, coffee, and a snack bar squad—aka your new breakfast BFFs. Why settle for basic when you can treat yourself?",
       "publishedAt": "2026-06-04T10:12:57-07:00",
-      "hash": "9lguut",
+      "hash": "pjoik1",
       "brands": [
+        "Eat Deux"
+      ],
+      "teams": [
         "Eat Deux"
       ],
       "products": [
@@ -2894,8 +3172,11 @@
       "anchorBrand": "Monos",
       "description": "Travel thoughtfully—our Carry-On, Global Citizen Pet Carrier, and Harness Walk Kit, bundled for seamless journeys with your pet. Limited edition. Free shipping on orders $100+.",
       "publishedAt": "2026-06-04T10:12:57-07:00",
-      "hash": "3evozw",
+      "hash": "12080zs",
       "brands": [
+        "Monos"
+      ],
+      "teams": [
         "Monos"
       ],
       "products": [
@@ -2921,14 +3202,17 @@
       "anchorBrand": "BÉIS",
       "description": "The full setup for your next quick trip. Nothing missed. Nothing mismatched. Three best sellers, packed and ready to roll.",
       "publishedAt": "2026-06-04T10:12:40-07:00",
-      "hash": "ph10a0",
+      "hash": "jrbkro",
       "brands": [
         "BÉIS"
       ],
+      "teams": [
+        "BÉIS"
+      ],
       "products": [
-        "Carry-On",
-        "Toiletry",
-        "Tech"
+        "carry-on",
+        "toiletry",
+        "tech"
       ],
       "category": "other"
     },
@@ -2948,8 +3232,11 @@
       "anchorBrand": "4th & Heart Ghee",
       "description": "Refresh your kitchen with grass-fed ghee, vibrant hot sauce, and plant-based dish soap—simple choices for everyday wellness and clean living.",
       "publishedAt": "2026-05-11T15:59:24-07:00",
-      "hash": "len3id",
+      "hash": "rez801",
       "brands": [
+        "4th & Heart Ghee"
+      ],
+      "teams": [
         "4th & Heart Ghee"
       ],
       "products": [
@@ -2976,8 +3263,11 @@
       "anchorBrand": "Material Kitchen",
       "description": "Smart kitchenware, optimized for performance. Crafted from better-for-you materials for a complete kitchen upgrade.",
       "publishedAt": "2026-06-04T10:13:15-07:00",
-      "hash": "o3wvzw",
+      "hash": "bl8m60",
       "brands": [
+        "Material Kitchen"
+      ],
+      "teams": [
         "Material Kitchen"
       ],
       "products": [
@@ -3003,11 +3293,14 @@
       "anchorBrand": "Fly By Jing",
       "description": "Korean drama on. Sweatpants on. Bowls up. The Korean Night In bundle hooks you up with a warm pouch of Maya Kaimal Black Lentil, Tomato & Cumin Everyday Dal, a jar of Fly By Jing Xtra Crunchy Sichuan Chili Crisp for that tingly crunch, and ice-cold Sanzo Alphonso Mango Sparkling Water to cool things down. Heat, drizzle, sip, repeat. Your flavor game just upgraded to main character energy.",
       "publishedAt": "2026-08-04T23:02:44-07:00",
-      "hash": "yz57vl",
+      "hash": "18xqs7x",
       "brands": [
-        "Fly By Jing",
         "Maya Kaimal",
+        "Fly By Jing",
         "Sanzo"
+      ],
+      "teams": [
+        "Fly By Jing"
       ],
       "products": [
         "Black Lentil, Tomato & Cumin Everyday Dal",
@@ -3034,11 +3327,14 @@
       "anchorBrand": "Fishwife",
       "description": "The Labor Day Host Edit gathers everything needed for an easy, impressive spread. Fishwife California White Sturgeon Caviar brings buttery, nutty richness to chips and crème fraîche, Brightland’s The Spring Flavor Duo Olive Oil Set layers basil and lemon flavor onto whatever is on the table, and Ghia’s Original Apéritif offers a bright, bitter, non alcoholic pour for everyone. One bundle, and the long weekend gathering is ready.",
       "publishedAt": "2026-08-04T23:04:24-07:00",
-      "hash": "41jq5p",
+      "hash": "7xciuh",
       "brands": [
         "Fishwife",
         "Brightland",
         "Ghia"
+      ],
+      "teams": [
+        "Fishwife"
       ],
       "products": [
         "California White Sturgeon Caviar",
@@ -3065,12 +3361,14 @@
       "anchorBrand": "Brooklinen",
       "description": "The Luxe Home Reset is your fast track to a bedroom glow-up. Slip into our fan-favorite Luxe Sateen Core Sheet Set, ground the space with Ruggable’s washable Julietta Soft Pink Rug by Anthropologie, then set the mood with Sunday Forever’s 11:11 Deep Fig & White Woods Fragrance. Coolest bedding, statement rug, and signature scent, all in one best-value bundle made for fresh starts and spa-worthy nights in.",
       "publishedAt": "2026-08-04T23:04:27-07:00",
-      "hash": "189hqj8",
+      "hash": "c2gus0",
       "brands": [
-        "Brooklinen",
         "Ruggable",
         "Anthropologie",
         "Sunday Forever"
+      ],
+      "teams": [
+        "Brooklinen"
       ],
       "products": [
         "Luxe Sateen Core Sheet Set",
@@ -3095,10 +3393,12 @@
       "anchorBrand": "Brooklinen",
       "description": "Meet your new favorite trio: our super-plush robe, cashmere wool socks, and a Bala Pilates Ball. Coolest bedding vibes—now for your downtime. Best value. Best in bed.",
       "publishedAt": "2026-06-04T10:12:41-07:00",
-      "hash": "44fzeb",
+      "hash": "16imje7",
       "brands": [
-        "Brooklinen",
         "Bala"
+      ],
+      "teams": [
+        "Brooklinen"
       ],
       "products": [
         "robe",
@@ -3125,11 +3425,14 @@
       "anchorBrand": "Graza",
       "description": "The MAHA Pantry is your easy toast and drizzle kit. You get Graza The Trio olive oils for cooking and finishing, Fly By Jing Original Sichuan Chili Crisp for bold heat, and Hero Classic White Bread for soft, nostalgic slices. Keep this on hand for fast snacks, simple breakfasts, and late night bites with rich flavor and very little effort.",
       "publishedAt": "2026-08-04T18:33:06-07:00",
-      "hash": "v663en",
+      "hash": "wpqupn",
       "brands": [
         "Graza",
         "Fly By Jing",
         "Hero"
+      ],
+      "teams": [
+        "Graza"
       ],
       "products": [
         "The Trio",
@@ -3154,12 +3457,15 @@
       "anchorBrand": "Blume",
       "description": "Elevate your daily ritual with three plant-powered matcha blends for clean, uplifting support. Nourish your routine, naturally.",
       "publishedAt": "2026-06-04T10:12:39-07:00",
-      "hash": "9peaah",
+      "hash": "1rwi47p",
       "brands": [
         "Blume"
       ],
+      "teams": [
+        "Blume"
+      ],
       "products": [
-        "Matcha blends"
+        "matcha blends"
       ],
       "category": "coffee-and-tea"
     },
@@ -3181,11 +3487,14 @@
       "anchorBrand": "Fishwife",
       "description": "The Mediterranean Table brings together Fishwife’s Albacore Tuna in Spicy Olive Oil, YOLELE’s Greens Fonio Pilaf, and Force of Nature’s Grass Fed Bison Ancestral Blend for a vibrant, protein-rich meal that starts in the cupboard and finishes at the table. Think spicy Spanish-style tuna, herbaceous West African grain, and regeneratively raised bison ready for burgers, meatballs, or tacos. It is an easy way to serve a bold, modern spread built on carefully sourced staples.",
       "publishedAt": "2026-08-21T11:36:09-07:00",
-      "hash": "lobbv6",
+      "hash": "igi3ke",
       "brands": [
         "Fishwife",
         "YOLELE",
         "Force of Nature"
+      ],
+      "teams": [
+        "Fishwife"
       ],
       "products": [
         "Albacore Tuna in Spicy Olive Oil",
@@ -3212,11 +3521,14 @@
       "anchorBrand": "Ghia",
       "description": "The Mocktail Bar Cart is your instant booze free bar. Stock up with Ghia’s Discovery Set, De Soi’s Spritz Italiano, and Surely’s Non-Alcoholic Sparkling Brut, so every guest can grab their kind of spritz or bubbly. Bitter, bright, berry, and crisp grape notes come together for an apéritif moment that feels grown-up, not sugary. Just chill, pour, and enjoy more clear-eyes mornings.",
       "publishedAt": "2026-06-04T10:13:56-07:00",
-      "hash": "18fvmxy",
+      "hash": "hmgn8i",
       "brands": [
         "Ghia",
         "De Soi",
         "Surely"
+      ],
+      "teams": [
+        "Ghia"
       ],
       "products": [
         "Discovery Set",
@@ -3243,11 +3555,14 @@
       "anchorBrand": "Bloom Nutrition",
       "description": "The Moms Morning Stack turns the first hour of the day into a simple wellness ritual. Bloom Clear Protein offers a light, juicy way to support daily protein and glow, Arrae Tone Creatine Gummies help support womens strength goals, and Chamberlain Coffee Organic Flavored Variety Cold Brew Singles bring a comforting coffee moment. Together, they give her a delicious and nutritious way to ease into the day while staying connected to her wellness goals.",
       "publishedAt": "2026-08-04T23:02:45-07:00",
-      "hash": "1kl3yov",
+      "hash": "1mg8ujf",
       "brands": [
-        "Bloom Nutrition",
+        "Bloom",
         "Arrae",
         "Chamberlain Coffee"
+      ],
+      "teams": [
+        "Bloom Nutrition"
       ],
       "products": [
         "Clear Protein",
@@ -3272,14 +3587,17 @@
       "anchorBrand": "49th Parallel Coffee Roasters",
       "description": "Start strong with specialty espresso, high-protein oats, and a satisfying protein bar. Curated for clean energy and balanced flavor in every morning routine.",
       "publishedAt": "2026-06-04T10:12:29-07:00",
-      "hash": "1o965wp",
+      "hash": "5h63ol",
       "brands": [
         "49th Parallel Coffee Roasters"
       ],
+      "teams": [
+        "49th Parallel Coffee Roasters"
+      ],
       "products": [
-        "Espresso",
-        "Oats",
-        "Protein Bar"
+        "espresso",
+        "oats",
+        "protein bar"
       ],
       "category": "food-and-drink"
     },
@@ -3301,11 +3619,14 @@
       "anchorBrand": "OLIPOP",
       "description": "Skip basic snacks and give movie night a real upgrade. Vintage Cola from OLIPOP brings prebiotic soda with classic cola taste. LesserEvil Real Organic Cheddar Popcorn covers the warm, cheesy crunch. Muddy Bites Double Fudge Fright finishes it with a spooky, double fudge bite. One box, salty sweet balance, couch ready.",
       "publishedAt": "2026-06-04T10:13:56-07:00",
-      "hash": "1cva8hj",
+      "hash": "1g3i3hv",
       "brands": [
         "OLIPOP",
         "LesserEvil",
         "Muddy Bites"
+      ],
+      "teams": [
+        "OLIPOP"
       ],
       "products": [
         "Vintage Cola",
@@ -3330,14 +3651,17 @@
       "anchorBrand": "Little Spoon",
       "description": "Everything you need for first feeds, easy cleanups, and peace of mind—feed after feed. Expert-picked for new parents, with clean, tested essentials for your little one.",
       "publishedAt": "2026-06-04T10:12:48-07:00",
-      "hash": "m14psq",
+      "hash": "zuqjfa",
       "brands": [
+        "Little Spoon"
+      ],
+      "teams": [
         "Little Spoon"
       ],
       "products": [
         "Babyblends",
         "First Bites",
-        "on-the-go clean essentials"
+        "On-the-Go Clean"
       ],
       "category": "baby-and-kids"
     },
@@ -3357,14 +3681,17 @@
       "anchorBrand": "Primary Clothing",
       "description": "All the essentials for new parents. Super soft leggings, gentle baby wash, and a smart sleep clock—easy, colorful, ready for every day.",
       "publishedAt": "2026-05-11T16:00:15-07:00",
-      "hash": "1bo3xpj",
+      "hash": "lh2iw3",
       "brands": [
         "Primary Clothing"
       ],
+      "teams": [
+        "Primary Clothing"
+      ],
       "products": [
-        "Leggings",
-        "Baby Wash",
-        "Sleep Clock"
+        "leggings",
+        "baby wash",
+        "sleep clock"
       ],
       "category": "baby-and-kids"
     },
@@ -3385,14 +3712,17 @@
       "anchorBrand": "Athletic Brewing Company",
       "description": "Great tasting, non-alcoholic essentials for your bar cart. Includes best sellers from Athletic Brewing, Ghia, and W&P. Fit for all times®.",
       "publishedAt": "2026-06-04T10:13:13-07:00",
-      "hash": "yhv50a",
+      "hash": "1ffl1zq",
       "brands": [
-        "Athletic Brewing Company",
+        "Athletic Brewing",
         "Ghia",
         "W&P"
       ],
+      "teams": [
+        "Athletic Brewing Company"
+      ],
       "products": [
-        "non-alcoholic essentials"
+        "essentials"
       ],
       "category": "alcohol"
     },
@@ -3414,11 +3744,14 @@
       "anchorBrand": "Surely",
       "description": "The Non Alc Wine Night is your new aperitif ritual. Crack open a chilled Surely Non-Alcoholic Brut Can 4-Pack, spoon out buttery Fishwife California White Sturgeon Caviar, then brighten snacks with a splash of Acid League Strawberry Rosé Living Vinegar. It is a California leaning spread that feels special on a Tuesday and effortless for guests, with crisp bubbles, savory caviar, and vibrant strawberry rosé acid for happier hours and better mornings.",
       "publishedAt": "2026-08-04T23:02:45-07:00",
-      "hash": "10dnv8n",
+      "hash": "ec0hlv",
       "brands": [
         "Surely",
         "Fishwife",
         "Acid League"
+      ],
+      "teams": [
+        "Surely"
       ],
       "products": [
         "Non-Alcoholic Brut Can 4-Pack",
@@ -3445,11 +3778,14 @@
       "anchorBrand": "immi",
       "description": "Noodle night just leveled up. You get immi’s Black Garlic “Chicken” Cup Ramen for a high protein, plant-based slurp, Maya Kaimal Chili Crisp for crunchy, garlicky heat on top, and a can of Sanzo Lychee Sparkling Water to sip between bites. It tastes like the instant noodle nights you grew up on, now with richer umami, floral bubbles, and way more fun in every cup.",
       "publishedAt": "2026-06-04T10:13:55-07:00",
-      "hash": "1v39xs",
+      "hash": "fl82x8",
       "brands": [
         "immi",
         "Maya Kaimal",
         "Sanzo"
+      ],
+      "teams": [
+        "immi"
       ],
       "products": [
         "Black Garlic “Chicken” Cup Ramen",
@@ -3476,15 +3812,18 @@
       "anchorBrand": "Tubby Todd",
       "description": "The Nursery Starter keeps those early days simple. You get gentle wash and lotion for sensitive newborn skin, safe bathtime basics that actually fit your space, and soft underbed storage for all the swaddles and tiny outfits. Less scrambling for supplies, more sweet, squeaky clean snuggles.",
       "publishedAt": "2026-08-04T23:04:27-07:00",
-      "hash": "1ibt00j",
+      "hash": "g5zmrz",
       "brands": [
+        "Tubby Todd"
+      ],
+      "teams": [
         "Tubby Todd"
       ],
       "products": [
         "gentle wash",
         "lotion",
         "bathtime basics",
-        "underbed storage"
+        "soft underbed storage"
       ],
       "category": "baby-and-kids"
     },
@@ -3504,13 +3843,16 @@
       "anchorBrand": "Brightland",
       "description": "Premium extra virgin olive oils and vibrant vinegar, curated for exceptional taste and fresh culinary experiences. Elevate every meal beautifully.",
       "publishedAt": "2026-06-04T10:12:36-07:00",
-      "hash": "19rx5jj",
+      "hash": "1ssf4ln",
       "brands": [
         "Brightland"
       ],
+      "teams": [
+        "Brightland"
+      ],
       "products": [
-        "Olive oils",
-        "Vinegar"
+        "olive oils",
+        "vinegar"
       ],
       "category": "food-and-drink"
     },
@@ -3532,14 +3874,17 @@
       "anchorBrand": "Acid League",
       "description": "Vibrant vinegars, punchy chocolate, and bold seasonings—this bundle brings a new dimension of taste to every meal.",
       "publishedAt": "2026-06-04T10:13:44-07:00",
-      "hash": "1u861cl",
+      "hash": "8lrudt",
       "brands": [
         "Acid League"
       ],
+      "teams": [
+        "Acid League"
+      ],
       "products": [
-        "vinegars",
-        "chocolate",
-        "seasonings"
+        "vibrant vinegars",
+        "punchy chocolate",
+        "bold seasonings"
       ],
       "category": "food-and-drink"
     },
@@ -3560,14 +3905,17 @@
       "anchorBrand": "Momofuku Goods",
       "description": "Elevate your next pasta night with bold flavors—spicy-sweet hot honey, plant-based lasagna noodles, and a salty dark chocolate finish. Restaurant-quality, made simple.",
       "publishedAt": "2026-06-04T10:13:11-07:00",
-      "hash": "w6lkmp",
+      "hash": "157ys8d",
       "brands": [
+        "Momofuku Goods"
+      ],
+      "teams": [
         "Momofuku Goods"
       ],
       "products": [
         "hot honey",
-        "plant-based lasagna noodles",
-        "salty dark chocolate"
+        "lasagna noodles",
+        "dark chocolate"
       ],
       "category": "food-and-drink"
     },
@@ -3589,11 +3937,14 @@
       "anchorBrand": "Drink LMNT",
       "description": "You don’t need another sports drink with sugar. You need a recovery routine that keeps up with your game. The Pickleball Recovery Stack pairs LMNT Zero-Sugar Electrolytes with Arrae Clear Protein+ and Beam Greens so you can rehydrate with More Salt, Not Less, rebuild with clean protein and collagen, and cover your bases with daily greens. Three stick-pack staples. One simple, healthful hydration and recovery stack for your next match.",
       "publishedAt": "2026-08-04T23:04:27-07:00",
-      "hash": "1lg00fp",
+      "hash": "of6k4x",
       "brands": [
-        "Drink LMNT",
+        "LMNT",
         "Arrae",
         "Beam"
+      ],
+      "teams": [
+        "Drink LMNT"
       ],
       "products": [
         "Zero-Sugar Electrolytes",
@@ -3620,11 +3971,14 @@
       "anchorBrand": "Poppi",
       "description": "Plant-based pizza night just leveled up. Pour Miyokos Pourable Cashew Milk Mozzarella for bubbling pies, crack open ice cold Poppi Shirley Temple prebiotic soda, then blend Daily Harvest Acai plus Cherry Smoothies for dessert. Family dinner, all plants, big flavor.",
       "publishedAt": "2026-08-04T23:04:27-07:00",
-      "hash": "g39w9t",
+      "hash": "1pjqw2l",
       "brands": [
-        "Poppi",
         "Miyokos",
+        "Poppi",
         "Daily Harvest"
+      ],
+      "teams": [
+        "Poppi"
       ],
       "products": [
         "Pourable Cashew Milk Mozzarella",
@@ -3650,8 +4004,11 @@
       "anchorBrand": "YOLELE",
       "description": "Three pantry staples for simple, plant-based meals. Fonio pilaf, plant chicken, and a tropical protein blend—straightforward, nutritious, and ready for your week.",
       "publishedAt": "2026-06-04T10:13:15-07:00",
-      "hash": "1yc2ki7",
+      "hash": "1258lxn",
       "brands": [
+        "YOLELE"
+      ],
+      "teams": [
         "YOLELE"
       ],
       "products": [
@@ -3679,8 +4036,11 @@
       "anchorBrand": "Miyoko's Creamery",
       "description": "Three award-winning brands. One plant-powered kitchen. The Plant Kitchen bundle brings together artisan plant milk mozzarella, hearts of palm lasagna, and West African-inspired fonio pilaf—crafted for bold flavor, creamy texture, and effortless weeknight meals. No cow, just wow.",
       "publishedAt": "2026-06-04T10:13:42-07:00",
-      "hash": "zorbcg",
+      "hash": "9w6d7w",
       "brands": [
+        "Miyoko's Creamery"
+      ],
+      "teams": [
         "Miyoko's Creamery"
       ],
       "products": [
@@ -3706,8 +4066,11 @@
       "anchorBrand": "Bob's Red Mill",
       "description": "Proud to be 100% employee owned. Our team brings you pantry staples you can trust. Employee owned. Customer focused.",
       "publishedAt": "2026-06-04T10:12:41-07:00",
-      "hash": "1oryurv",
+      "hash": "gblitj",
       "brands": [
+        "Bob's Red Mill"
+      ],
+      "teams": [
         "Bob's Red Mill"
       ],
       "products": [
@@ -3733,10 +4096,13 @@
       "anchorBrand": "Pablo's Mate",
       "description": "Your night has a protocol now. Start with Pablo's Mango Mint mate, sugar free and grounding. Sip from the insulated tumbler that keeps every drink just right. Then tuck in with Foria's hemp powered Sleep Capsules. One bundle, from early evening chisme to deep descanso, starring Pablo's Mate: Sugar Free Mango Mint 12-pack.",
       "publishedAt": "2026-08-04T23:04:28-07:00",
-      "hash": "ba6x3u",
+      "hash": "1adh9ee",
       "brands": [
         "Pablo's Mate",
         "Foria"
+      ],
+      "teams": [
+        "Pablo's Mate"
       ],
       "products": [
         "Mango Mint mate",
@@ -3763,10 +4129,13 @@
       "anchorBrand": "Pablo's Mate",
       "description": "The Pre-Concert Pack keeps you hyped, not heavy. Pablo's Mate Sugar Free Mango Mint for clean energía, Garlic Parmesan sunflower seeds for salty crunch, and BEHAVE Sour Bears for tart, fruity hits. Toss it in the car, pregámete with los amigos de pablo, and roll up to the show awake, light, and listo.",
       "publishedAt": "2026-08-04T23:02:45-07:00",
-      "hash": "ukfuqv",
+      "hash": "1oxlwkj",
       "brands": [
         "Pablo's Mate",
         "BEHAVE"
+      ],
+      "teams": [
+        "Pablo's Mate"
       ],
       "products": [
         "Sugar Free Mango Mint",
@@ -3792,12 +4161,15 @@
       "anchorBrand": "Send Bars",
       "description": "Ready to full send? Fuel up with real food bars, crunchy protein cereal, and a blast of clean yerba mate. Let’s go!",
       "publishedAt": "2026-06-04T10:13:06-07:00",
-      "hash": "1xplede",
+      "hash": "28iq0u",
       "brands": [
         "Send Bars"
       ],
+      "teams": [
+        "Send Bars"
+      ],
       "products": [
-        "food bars",
+        "bars",
         "protein cereal",
         "yerba mate"
       ],
@@ -3821,11 +4193,14 @@
       "anchorBrand": "Sakara Life",
       "description": "Feel more supported during the busy prenatal season. The Prenatal Nourishment Kit brings together Sakara Life SERENE STATE for calm focus, Beekeeper's Naturals Propolis + Vitamin C Liposomal for daily immune support, and Little Spoon Lunchers to keep kids covered with build-it-yourself meals. Real, fresh food and targeted supplements, curated to help your days feel lighter and more organized.",
       "publishedAt": "2026-08-04T23:04:28-07:00",
-      "hash": "g9m71l",
+      "hash": "15dyat",
       "brands": [
         "Sakara Life",
         "Beekeeper's Naturals",
         "Little Spoon"
+      ],
+      "teams": [
+        "Sakara Life"
       ],
       "products": [
         "SERENE STATE",
@@ -3852,11 +4227,14 @@
       "anchorBrand": "Sakara Life",
       "description": "Feel good from gut to brain, morning through night. The Probiotic Power Stack pairs Sakara Life SERENE STATE wildberry gummies for fast calm, The Coconut Cult Harvest Strawberry Probiotic Coconut Yogurt for super-live probiotic nourishment, and Mud WTRs Rest Starter Kit for a soothing, caffeine-free wind down. One curated set to support focus, digestion, and deeper rest, so you can feel lighter and more grounded in your day.",
       "publishedAt": "2026-08-18T21:00:01-07:00",
-      "hash": "1qpusiw",
+      "hash": "1ct0zac",
       "brands": [
         "Sakara Life",
         "The Coconut Cult",
         "Mud WTR"
+      ],
+      "teams": [
+        "Sakara Life"
       ],
       "products": [
         "SERENE STATE wildberry gummies",
@@ -3883,14 +4261,14 @@
       "anchorBrand": "Force of Nature Meats",
       "description": "Meat you can trust. Plant protein that performs. One box. Finally.",
       "publishedAt": "2026-06-04T10:13:50-07:00",
-      "hash": "30wsxj",
+      "hash": "1aerlmb",
       "brands": [
         "Force of Nature Meats"
       ],
-      "products": [
-        "meat",
-        "plant protein"
+      "teams": [
+        "Force of Nature Meats"
       ],
+      "products": [],
       "category": "food-and-drink"
     },
     {
@@ -3910,13 +4288,16 @@
       "anchorBrand": "immi",
       "description": "Craving comfort, crunch, and crave-worthy protein? Restock your pantry with nostalgic ramen, snackable bars, and steakhouse classics—all in one bundle!",
       "publishedAt": "2026-06-04T10:13:16-07:00",
-      "hash": "10mkl1t",
+      "hash": "3zn32l",
       "brands": [
+        "immi"
+      ],
+      "teams": [
         "immi"
       ],
       "products": [
         "ramen",
-        "snackable bars",
+        "bars",
         "steakhouse classics"
       ],
       "category": "food-and-drink"
@@ -3937,14 +4318,17 @@
       "anchorBrand": "Power Crunch",
       "description": "Snack smarter. High-protein bars, creatine gummies, and chocolate shakes—your favorites, bundled up. Save 15% and power up every hour!",
       "publishedAt": "2026-06-04T10:12:30-07:00",
-      "hash": "nvtnsv",
+      "hash": "1nzr7uj",
       "brands": [
         "Power Crunch"
       ],
+      "teams": [
+        "Power Crunch"
+      ],
       "products": [
-        "Protein bars",
-        "Creatine gummies",
-        "Chocolate shakes"
+        "protein bars",
+        "creatine gummies",
+        "chocolate shakes"
       ],
       "category": "supplements-and-wellness"
     },
@@ -3964,13 +4348,16 @@
       "anchorBrand": "Foria Wellness",
       "description": "Gentle, plant-based support for restful sleep and nighttime wellness. Thoughtfully curated to help you unwind, restore, and care for your body and mind.",
       "publishedAt": "2026-06-04T10:12:56-07:00",
-      "hash": "1ivvs3r",
+      "hash": "1x0jj2b",
       "brands": [
+        "Foria Wellness"
+      ],
+      "teams": [
         "Foria Wellness"
       ],
       "products": [
         "sleep support",
-        "nighttime wellness support"
+        "nighttime wellness product"
       ],
       "category": "supplements-and-wellness"
     },
@@ -3992,11 +4379,14 @@
       "anchorBrand": "YOLELE",
       "description": "The Regenerative Pantry Drop brings together Yolele Yassa Fonio Pilaf, Force of Nature Grass Fed Venison and Beef Sausage with Cherry and Chipotle, and Verve Morning Brew Blend coffee. You get a spicy Senegalese inspired grain, rich smoky sausage, and bright Ethiopian coffee in one simple set, ready for an easy dinner and the next morning cup.",
       "publishedAt": "2026-08-04T23:04:28-07:00",
-      "hash": "1ouxom",
+      "hash": "wakshu",
       "brands": [
-        "YOLELE",
+        "Yolele",
         "Force of Nature",
         "Verve"
+      ],
+      "teams": [
+        "YOLELE"
       ],
       "products": [
         "Yassa Fonio Pilaf",
@@ -4021,12 +4411,15 @@
       "anchorBrand": "Dandy Del Mar",
       "description": "Curated for sunlit days and golden escapes. Three refined pieces, one poetic departure. The art of leisure, bundled.",
       "publishedAt": "2026-06-04T10:12:27-07:00",
-      "hash": "1dj06sv",
+      "hash": "6lit2j",
       "brands": [
         "Dandy Del Mar"
       ],
+      "teams": [
+        "Dandy Del Mar"
+      ],
       "products": [],
-      "category": "apparel-and-accessories"
+      "category": "other"
     },
     {
       "id": "demo.offerlab.com/the-retinol-night-shift-botanical-night-renewal-bundle",
@@ -4044,13 +4437,15 @@
       "anchorBrand": "Asarai",
       "description": "Unleash nature’s most powerful botanicals overnight. Three expertly crafted retinol treatments for visibly firmer, smoother, wildly Australian skin.",
       "publishedAt": "2026-06-04T10:12:33-07:00",
-      "hash": "sbpmys",
+      "hash": "1ksgk3k",
       "brands": [
         "Asarai"
       ],
+      "teams": [
+        "Asarai"
+      ],
       "products": [
-        "Retinol treatments",
-        "Botanical night renewal"
+        "retinol treatments"
       ],
       "category": "beauty-and-skincare"
     },
@@ -4071,14 +4466,17 @@
       "anchorBrand": "Liquid Death",
       "description": "Crush thirst with mountain water in a can. Smash hunger and snack cravings with savage seeds and brutal bars. No plastic. No mercy.",
       "publishedAt": "2026-06-04T10:13:08-07:00",
-      "hash": "8ojcnw",
+      "hash": "i0y5co",
       "brands": [
+        "Liquid Death"
+      ],
+      "teams": [
         "Liquid Death"
       ],
       "products": [
         "mountain water",
-        "savage seeds",
-        "brutal bars"
+        "seeds",
+        "bars"
       ],
       "category": "snacks"
     },
@@ -4098,16 +4496,18 @@
       "anchorBrand": "Cliganic",
       "description": "Simple, natural care for fuller, healthier hair. This uncomplicated bundle brings together organic nourishment and practical daily essentials for real-life results.",
       "publishedAt": "2026-06-04T10:12:43-07:00",
-      "hash": "n351cp",
+      "hash": "174mi51",
       "brands": [
         "Cliganic"
       ],
+      "teams": [
+        "Cliganic"
+      ],
       "products": [
-        "hair care",
         "organic nourishment",
         "daily essentials"
       ],
-      "category": "personal-care"
+      "category": "beauty-and-skincare"
     },
     {
       "id": "demo.offerlab.com/the-self-care-starter",
@@ -4127,14 +4527,16 @@
       "anchorBrand": "Dr. Squatch",
       "description": "The Self-Care Starter keeps the basics tight without getting fussy. You pick a Dr. Squatch Bar Soap 6-Pack for clean skin, tame your beard with Old Money Beard Oil, and support gut health with a daily scoop of Greens & Superfoods. Three everyday moves that cover body, beard, and bloat so you feel a little sharper every day.",
       "publishedAt": "2026-06-04T10:13:59-07:00",
-      "hash": "7in5jt",
+      "hash": "7sqfpx",
       "brands": [
-        "Dr. Squatch",
-        "Old Money"
+        "Dr. Squatch"
+      ],
+      "teams": [
+        "Dr. Squatch"
       ],
       "products": [
         "Bar Soap 6-Pack",
-        "Beard Oil",
+        "Old Money Beard Oil",
         "Greens & Superfoods"
       ],
       "category": "personal-care"
@@ -4155,15 +4557,18 @@
       "anchorBrand": "Blissy",
       "description": "Indulge in the best kept secret of beauty insiders. Elevate your nightly routine with high-quality silk and expert-approved sleep essentials for radiant mornings.",
       "publishedAt": "2026-06-04T10:12:44-07:00",
-      "hash": "4wyn1s",
+      "hash": "150w73g",
       "brands": [
+        "Blissy"
+      ],
+      "teams": [
         "Blissy"
       ],
       "products": [
         "silk",
         "sleep essentials"
       ],
-      "category": "home-and-kitchen"
+      "category": "beauty-and-skincare"
     },
     {
       "id": "demo.offerlab.com/the-skin-barrier-bootcamp-gentle-glow-routine-set",
@@ -4181,12 +4586,15 @@
       "anchorBrand": "Anua US",
       "description": "Glow starts with your barrier. Calm, hydrate, and plump—this bestselling set keeps skin soothed, juicy, and resilient. Glass skin, unlocked.",
       "publishedAt": "2026-06-04T10:12:32-07:00",
-      "hash": "1hrglhd",
+      "hash": "1kdg70d",
       "brands": [
         "Anua US"
       ],
+      "teams": [
+        "Anua US"
+      ],
       "products": [
-        "Skin barrier routine set"
+        "skin care set"
       ],
       "category": "beauty-and-skincare"
     },
@@ -4208,15 +4616,18 @@
       "anchorBrand": "Flamingo Estate",
       "description": "The Slow Saturday Soak gathers a forest-bright shower, garden-rich moisture, focused metabolic support, and medicinal-grade honey into one lingering weekend ritual. The Awake Morning Kit floods the bathroom with peppermint, sea salt, and Douglas Fir & Vetiver, Sage Rich Cream cocoons hands and feet in antioxidant sage, Arrae’s MB-1 supports metabolic burn, and Beekeeper’s Naturals Superfood Honey sweetens coffee or tea with propolis, bee pollen, and royal jelly for a slow, sensorial start to the day.",
       "publishedAt": "2026-07-24T09:09:20-07:00",
-      "hash": "190m06u",
+      "hash": "1wbd2r6",
       "brands": [
-        "Flamingo Estate",
+        "Awake",
         "Arrae",
         "Beekeeper’s Naturals"
       ],
+      "teams": [
+        "Flamingo Estate"
+      ],
       "products": [
-        "Awake Morning Kit",
-        "Sage Rich Cream",
+        "Morning Kit",
+        "Rich Cream",
         "MB-1",
         "Superfood Honey"
       ],
@@ -4239,14 +4650,17 @@
       "anchorBrand": "Daily Harvest",
       "description": "Build your own smoothie bowl bar—real fruits + vegetables, probiotic coconut yogurt, and a calm, focused boost. Ready in minutes. Nutrition made easy.",
       "publishedAt": "2026-06-04T10:13:07-07:00",
-      "hash": "yaexkf",
+      "hash": "1cf2oiz",
       "brands": [
+        "Daily Harvest"
+      ],
+      "teams": [
         "Daily Harvest"
       ],
       "products": [
         "fruits",
         "vegetables",
-        "probiotic coconut yogurt",
+        "coconut yogurt",
         "calm boost"
       ],
       "category": "food-and-drink"
@@ -4267,12 +4681,17 @@
       "anchorBrand": "Ghia",
       "description": "Three ways to sip, all bitter, bright, and booze free. Our greatest sips—ready for your next clear-eyes evening. Which will you open first?",
       "publishedAt": "2026-05-11T16:00:13-07:00",
-      "hash": "1tv3n2u",
+      "hash": "ubple",
       "brands": [
         "Ghia"
       ],
-      "products": [],
-      "category": "food-and-drink"
+      "teams": [
+        "Ghia"
+      ],
+      "products": [
+        "sips"
+      ],
+      "category": "alcohol"
     },
     {
       "id": "demo.offerlab.com/the-sourdough-sunday-curated-baking-essentials-bundle",
@@ -4290,12 +4709,15 @@
       "anchorBrand": "Clovers Sonoma",
       "description": "Elevate your weekend with a thoughtfully chosen bundle of high-quality baking essentials, curated for a refined Sonoma kitchen experience.",
       "publishedAt": "2026-06-04T10:12:38-07:00",
-      "hash": "1ix5bce",
+      "hash": "1kuhc2y",
       "brands": [
         "Clovers Sonoma"
       ],
+      "teams": [
+        "Clovers Sonoma"
+      ],
       "products": [
-        "Baking essentials"
+        "baking essentials"
       ],
       "category": "home-and-kitchen"
     },
@@ -4317,11 +4739,14 @@
       "anchorBrand": "Herbivore Botanicals",
       "description": "The Spa Night In brings together PHOENIX Rosehip + Sea Buckthorn Deep Renewal Facial Oil, CLEARSTEMs Clear + Clarify Duo, and Forias Daily Blend Full Spectrum CBD Tincture to turn one quiet evening into a reset. You clarify and brighten, replenish long-lasting moisture, and support a calm, centered state, all with plant-powered, clinically effective formulas designed to work in a single, streamlined night routine.",
       "publishedAt": "2026-08-04T23:02:48-07:00",
-      "hash": "v15z4h",
+      "hash": "15ufiod",
       "brands": [
         "Herbivore Botanicals",
-        "CLEARSTEM",
+        "CLEARSTEMs",
         "Foria"
+      ],
+      "teams": [
+        "Herbivore Botanicals"
       ],
       "products": [
         "PHOENIX Rosehip + Sea Buckthorn Deep Renewal Facial Oil",
@@ -4348,16 +4773,18 @@
       "anchorBrand": "Omsom",
       "description": "Meet The Spicy Pantry, your proud + loud hot girl dinner in one grab. Rip-and-pour Omsom Filipino Sisig Starters for an umami bomb with calamansi tang, crown your spread with buttery Fishwife California White Sturgeon Caviar, then cool it all down with zesty-sweet Hot Girl Soda Raspberry Lemonade. This is your rowdy, damn delicious pantry flex, ready when the craving for saucy heat and a little luxury hits.",
       "publishedAt": "2026-06-04T10:13:54-07:00",
-      "hash": "b4dztc",
+      "hash": "zgxqrw",
       "brands": [
         "Omsom",
-        "Fishwife",
-        "Hot Girl Soda"
+        "Fishwife"
+      ],
+      "teams": [
+        "Omsom"
       ],
       "products": [
         "Filipino Sisig Starters",
         "California White Sturgeon Caviar",
-        "Raspberry Lemonade"
+        "Hot Girl Soda Raspberry Lemonade"
       ],
       "category": "food-and-drink"
     },
@@ -4377,12 +4804,15 @@
       "anchorBrand": "HEATONIST",
       "description": "Bring the heat! This spicy snack lineup packs bold flavor, serious heat, and a jolt of energy. Ready for the hottest snack attack?",
       "publishedAt": "2026-05-11T15:59:25-07:00",
-      "hash": "1bhnq6o",
+      "hash": "1mc5gr0",
       "brands": [
         "HEATONIST"
       ],
+      "teams": [
+        "HEATONIST"
+      ],
       "products": [
-        "Snack"
+        "snacks"
       ],
       "category": "snacks"
     },
@@ -4404,14 +4834,17 @@
       "anchorBrand": "Taika",
       "description": "The Study Hall Drop is your new desk-side ritual. Crack a lightly sparkling Mateverse for inspired focus, grab a crispy-chewy Rip Van Dutch Caramel & Vanilla wafel, and keep the Organic Full SEND Variety Box on hand for clean, no added sugar, adaptogen-packed bar breaks. You get energy from yerba maté and lion’s mane, plus satisfying snacks that won’t send you into a sugar spiral. Study session, sorted.",
       "publishedAt": "2026-08-04T23:02:48-07:00",
-      "hash": "1o4q9vx",
+      "hash": "1xh8thl",
       "brands": [
-        "Taika",
+        "Mateverse",
         "Rip Van",
         "Full SEND"
       ],
+      "teams": [
+        "Taika"
+      ],
       "products": [
-        "Mateverse",
+        "lightly sparkling Mateverse",
         "Dutch Caramel & Vanilla wafel",
         "Organic Full SEND Variety Box"
       ],
@@ -4434,8 +4867,11 @@
       "anchorBrand": "Taika",
       "description": "Ready to crush your to-do list? Sip, snack, and stay sharp with this magically smooth, crave-worthy trio. Study fuel never tasted so dreamy.",
       "publishedAt": "2026-06-04T10:13:12-07:00",
-      "hash": "95zwxb",
+      "hash": "xcuey3",
       "brands": [
+        "Taika"
+      ],
+      "teams": [
         "Taika"
       ],
       "products": [
@@ -4461,12 +4897,16 @@
       "anchorBrand": "Good Ranchers",
       "description": "Everything you need for real summer grilling. American sourced meat, real food, and simple ingredients. No fuss. Just fire up the grill and enjoy.",
       "publishedAt": "2026-06-04T10:13:07-07:00",
-      "hash": "1547n26",
+      "hash": "1xkyk6y",
       "brands": [
         "Good Ranchers"
       ],
+      "teams": [
+        "Good Ranchers"
+      ],
       "products": [
-        "meat"
+        "meat",
+        "ingredients"
       ],
       "category": "food-and-drink"
     },
@@ -4488,12 +4928,15 @@
       "anchorBrand": "Fly By Jing",
       "description": "Turn up your flavor game—crunchy, mouthwatering, and tingly all in one box. Ready to electrify your taste buds? Let’s get saucy!",
       "publishedAt": "2026-06-04T10:13:17-07:00",
-      "hash": "luclgq",
+      "hash": "1wv561y",
       "brands": [
         "Fly By Jing"
       ],
+      "teams": [
+        "Fly By Jing"
+      ],
       "products": [
-        "sauce"
+        "sauces"
       ],
       "category": "food-and-drink"
     },
@@ -4513,8 +4956,11 @@
       "anchorBrand": "Sunday Forever",
       "description": "Glow, nourish, and lounge in pure magic. The Sunday Self-Care Box is your ticket to luxury me-time. You deserve nice things!",
       "publishedAt": "2026-05-11T16:00:14-07:00",
-      "hash": "e1qt3",
+      "hash": "1tpgd9v",
       "brands": [
+        "Sunday Forever"
+      ],
+      "teams": [
         "Sunday Forever"
       ],
       "products": [],
@@ -4538,8 +4984,11 @@
       "anchorBrand": "Chamberlain Coffee",
       "description": "Slow mornings, easy breakfasts, and snack breaks that actually satisfy. The Sunday Slow Down bundle brings together organic espresso, plant-based eggs, and a protein-packed treat—so you can enjoy every sip, slurp and spill, no rush required.",
       "publishedAt": "2026-06-04T10:13:48-07:00",
-      "hash": "1ss4es8",
+      "hash": "1ll2j9w",
       "brands": [
+        "Chamberlain Coffee"
+      ],
+      "teams": [
         "Chamberlain Coffee"
       ],
       "products": [
@@ -4566,14 +5015,17 @@
       "anchorBrand": "De Soi",
       "description": "An elegant trio for refined relaxation—sparkling non-alcoholic apéritif, floral lychee refreshment, and hand-blown stemware. Savor pleasure, beautifully restrained.",
       "publishedAt": "2026-06-04T10:13:11-07:00",
-      "hash": "w4rpx0",
+      "hash": "mwhsfk",
       "brands": [
         "De Soi"
       ],
+      "teams": [
+        "De Soi"
+      ],
       "products": [
-        "sparkling non-alcoholic apéritif",
-        "floral lychee refreshment",
-        "hand-blown stemware"
+        "non-alcoholic apéritif",
+        "lychee refreshment",
+        "stemware"
       ],
       "category": "alcohol"
     },
@@ -4594,12 +5046,15 @@
       "anchorBrand": "Siete Foods",
       "description": "Gather around the table for a delicious trio of heritage-inspired flavors, thoughtfully selected to bring family and friends together for taco night.",
       "publishedAt": "2026-06-04T10:13:04-07:00",
-      "hash": "1yxfl4w",
+      "hash": "11co96k",
       "brands": [
         "Siete Foods"
       ],
+      "teams": [
+        "Siete Foods"
+      ],
       "products": [
-        "taco ingredients"
+        "taco flavors"
       ],
       "category": "food-and-drink"
     },
@@ -4621,18 +5076,21 @@
       "anchorBrand": "Drink LMNT",
       "description": "Pack your tennis bag with purpose. The Tennis Bag Kit pairs LMNT Zero-Sugar Electrolytes for healthful hydration, Pablo’s Mate Remolacha for a beetroot and mate lift, and Real Organic Cheddar Popcorn for a clean, cheesy crunch on changeovers. Zero sugar in your electrolytes, a bold tonic to keep you sharp, and a real-ingredient snack that can actually live in your bag. Grab this kit and head straight to the court.",
       "publishedAt": "2026-08-04T23:04:24-07:00",
-      "hash": "3u4bib",
+      "hash": "ikj98f",
       "brands": [
-        "Drink LMNT",
+        "LMNT",
         "Pablo's Mate",
         "Real Organic"
+      ],
+      "teams": [
+        "Drink LMNT"
       ],
       "products": [
         "Zero-Sugar Electrolytes",
         "Remolacha",
         "Cheddar Popcorn"
       ],
-      "category": "snacks"
+      "category": "fitness-and-outdoors"
     },
     {
       "id": "demo.offerlab.com/the-toddler-adventure-pack-safe-gentle-essentials-bundle",
@@ -4650,14 +5108,17 @@
       "anchorBrand": "Pipette",
       "description": "Ready for every outing—spill-proof sips, gentle sun protection, and comfy play shorts. Safe, trusted, and made for toddlers on the move!",
       "publishedAt": "2026-05-11T16:00:13-07:00",
-      "hash": "b545z5",
+      "hash": "dr3ri5",
       "brands": [
         "Pipette"
       ],
+      "teams": [
+        "Pipette"
+      ],
       "products": [
-        "Sips",
-        "Sun Protection",
-        "Play Shorts"
+        "sips",
+        "sun protection",
+        "play shorts"
       ],
       "category": "baby-and-kids"
     },
@@ -4678,8 +5139,11 @@
       "anchorBrand": "Little Spoon",
       "description": "Fresh, easy meals and snacks for your little one—hidden veggies, clean ingredients, and peace of mind, all in one bundle.",
       "publishedAt": "2026-06-04T10:13:08-07:00",
-      "hash": "1g171pc",
+      "hash": "1itw4gs",
       "brands": [
+        "Little Spoon"
+      ],
+      "teams": [
         "Little Spoon"
       ],
       "products": [
@@ -4704,14 +5168,17 @@
       "anchorBrand": "Amara Organic Foods",
       "description": "Snack time, solved! Real fruit, soft-baked bars, and fluffy pancakes—made for busy days and little ones. Ingredients parents trust, flavors kids love.",
       "publishedAt": "2026-06-04T10:12:39-07:00",
-      "hash": "rf1h5k",
+      "hash": "1w18yqc",
       "brands": [
         "Amara Organic Foods"
       ],
+      "teams": [
+        "Amara Organic Foods"
+      ],
       "products": [
-        "Organic Bites",
-        "Bars",
-        "Pancakes"
+        "bites",
+        "bars",
+        "pancakes"
       ],
       "category": "baby-and-kids"
     },
@@ -4733,14 +5200,17 @@
       "anchorBrand": "Drink LMNT",
       "description": "Fuel your next trail day with a bundle that delivers real hydration, real energy, and zero junk. Salt-forward electrolytes, a crisp non-alcoholic IPA, and organic protein bars—no sugar, no gluten, no dodgy ingredients. Just what your body actually needs to go further.",
       "publishedAt": "2026-06-04T10:13:40-07:00",
-      "hash": "l038vn",
+      "hash": "pf1d9r",
       "brands": [
+        "Drink LMNT"
+      ],
+      "teams": [
         "Drink LMNT"
       ],
       "products": [
         "electrolytes",
         "non-alcoholic IPA",
-        "organic protein bars"
+        "protein bars"
       ],
       "category": "fitness-and-outdoors"
     },
@@ -4762,15 +5232,17 @@
       "anchorBrand": "Athletic Brewing Company",
       "description": "The Trail Runner's Pack was built for big days on your feet. Start with LMNT Zero-Sugar Electrolytes Raspberry Salt before or during your run, recover with a great tasting can of “Wit's Peak” Belgian-style White, then lock in deep rest with Hostage Tape Mouth Tape. One focused bundle for hydration, reward, and recovery, fit for all times®.",
       "publishedAt": "2026-06-04T10:14:01-07:00",
-      "hash": "lmia4k",
+      "hash": "1go7ji8",
       "brands": [
-        "Athletic Brewing Company",
         "LMNT",
         "Hostage Tape"
       ],
+      "teams": [
+        "Athletic Brewing Company"
+      ],
       "products": [
         "Zero-Sugar Electrolytes Raspberry Salt",
-        "Wit's Peak” Belgian-style White",
+        "“Wit's Peak” Belgian-style White",
         "Mouth Tape"
       ],
       "category": "fitness-and-outdoors"
@@ -4793,14 +5265,17 @@
       "anchorBrand": "Daring Foods",
       "description": "Build your training week around simple, satisfying meals. The Triathlon Training Pack pairs Daring Teriyaki Plant Chicken Pieces, Gluten-Free as your fast chicken alternative, a Good Ranchers Wild-Caught Seafood Box for high quality protein, and AG1: Next Gen Pouch for daily nutrition support. Stock your freezer and pantry once, then move from heavy training days to recovery days with less planning and more ready options that fit your routine.",
       "publishedAt": "2026-08-04T23:04:29-07:00",
-      "hash": "ku6z7a",
+      "hash": "xwjd6a",
       "brands": [
-        "Daring Foods",
+        "Daring",
         "Good Ranchers",
         "AG1"
       ],
+      "teams": [
+        "Daring Foods"
+      ],
       "products": [
-        "Teriyaki Plant Chicken Pieces",
+        "Teriyaki Plant Chicken Pieces, Gluten-Free",
         "Wild-Caught Seafood Box",
         "Next Gen Pouch"
       ],
@@ -4822,14 +5297,17 @@
       "anchorBrand": "Coco5",
       "description": "Hydrate like you mean it. Three real-good drinks—coconut water, pineapple, and a burst of orange-mango energy. Ready for anything?",
       "publishedAt": "2026-06-04T10:12:34-07:00",
-      "hash": "1uxdmks",
+      "hash": "7iqfyg",
       "brands": [
         "Coco5"
       ],
+      "teams": [
+        "Coco5"
+      ],
       "products": [
-        "Coconut water",
-        "Pineapple drink",
-        "Orange-mango energy drink"
+        "coconut water",
+        "pineapple drink",
+        "orange-mango energy drink"
       ],
       "category": "food-and-drink"
     },
@@ -4851,15 +5329,18 @@
       "anchorBrand": "Our Place",
       "description": "The Wedding Registry Kit brings together Our Place’s PFAS-free Thermakind ceramic nonstick cookware, W&P’s leakproof Seal Tight Glass Bowl, and Graza’s The Trio olive oils so you can cook, store, and serve from day one. It is a modern, non-toxic starter kitchen in one registry-ready bundle, with hardworking staples for weeknight dinners, leftovers, and date-night pasta at home.",
       "publishedAt": "2026-08-04T23:05:39-07:00",
-      "hash": "p39jk4",
+      "hash": "1jbq2kg",
       "brands": [
         "Our Place",
         "W&P",
         "Graza"
       ],
+      "teams": [
+        "Our Place"
+      ],
       "products": [
-        "PFAS-free Thermakind ceramic nonstick cookware",
-        "leakproof Seal Tight Glass Bowl",
+        "Thermakind ceramic nonstick cookware",
+        "Seal Tight Glass Bowl",
         "The Trio olive oils"
       ],
       "category": "home-and-kitchen"
@@ -4882,18 +5363,21 @@
       "anchorBrand": "Jolie Skin Co",
       "description": "Too many late nights, too much makeup, not enough water. Wedding season is fun, until your skin and hair revolt. The Wedding Season Recovery bundle gives you a real reset, with the Jolie Filtered Showerhead for clean water, Bloom Nutrition Clear Protein to refill protein and collagen, and CLEARSTEM GLOWTIME to support digestion so you bloat less. You get cleaner water on the outside and smarter support on the inside, so you can look like you slept even when you did not.",
       "publishedAt": "2026-08-04T23:04:30-07:00",
-      "hash": "10ksr9p",
+      "hash": "1sf3jyh",
       "brands": [
-        "Jolie Skin Co",
+        "Jolie",
         "Bloom Nutrition",
         "CLEARSTEM"
+      ],
+      "teams": [
+        "Jolie Skin Co"
       ],
       "products": [
         "Filtered Showerhead",
         "Clear Protein",
         "GLOWTIME"
       ],
-      "category": "personal-care"
+      "category": "beauty-and-skincare"
     },
     {
       "id": "demo.offerlab.com/the-weekend-brunch-bundle",
@@ -4912,12 +5396,15 @@
       "anchorBrand": "JüST",
       "description": "Eggs from plants. Bold coffee. Cookie dough for breakfast. All in one box. Deliciously easy.",
       "publishedAt": "2026-06-04T10:13:05-07:00",
-      "hash": "pjjon3",
+      "hash": "lgr3y3",
       "brands": [
         "JüST"
       ],
+      "teams": [
+        "JüST"
+      ],
       "products": [
-        "plant-based eggs",
+        "eggs",
         "coffee",
         "cookie dough"
       ],
@@ -4939,11 +5426,17 @@
       "anchorBrand": "PARKE",
       "description": "Three elevated essentials. Effortless, timeless, made to last. Pieces you’ll live in forever.",
       "publishedAt": "2026-05-11T15:59:25-07:00",
-      "hash": "icqcto",
+      "hash": "3zfd7s",
       "brands": [
         "PARKE"
       ],
-      "products": [],
+      "teams": [
+        "PARKE"
+      ],
+      "products": [
+        "essentials",
+        "pieces"
+      ],
       "category": "apparel-and-accessories"
     },
     {
@@ -4962,14 +5455,17 @@
       "anchorBrand": "Celsius",
       "description": "Clinically proven energy and high-protein fuel for your active lifestyle. Power your weekend with performance-driven hydration and movement-focused snacks.",
       "publishedAt": "2026-06-04T10:12:43-07:00",
-      "hash": "15n4zg5",
+      "hash": "ew3m41",
       "brands": [
         "Celsius"
       ],
+      "teams": [
+        "Celsius"
+      ],
       "products": [
-        "energy drink",
+        "energy product",
         "protein fuel",
-        "hydration",
+        "hydration product",
         "snacks"
       ],
       "category": "supplements-and-wellness"
@@ -4992,8 +5488,11 @@
       "anchorBrand": "Beekeeper's Naturals",
       "description": "Three science-forward essentials for daily wellness—bee-powered honey, bioavailable magnesium, and a greens blend—curated for balanced energy, focus, and everyday support.",
       "publishedAt": "2026-06-04T10:13:44-07:00",
-      "hash": "15m4etp",
+      "hash": "1y2vbyh",
       "brands": [
+        "Beekeeper's Naturals"
+      ],
+      "teams": [
         "Beekeeper's Naturals"
       ],
       "products": [
@@ -5019,8 +5518,11 @@
       "anchorBrand": "Lucille Health",
       "description": "Better nutrition, made simple. Three essentials for Super Seniors—real ingredients, real support, and a tasty boost for your best years.",
       "publishedAt": "2026-06-04T10:12:25-07:00",
-      "hash": "18l6bky",
+      "hash": "1wuaee6",
       "brands": [
+        "Lucille Health"
+      ],
+      "teams": [
         "Lucille Health"
       ],
       "products": [],
@@ -5044,14 +5546,17 @@
       "anchorBrand": "Taika",
       "description": "Your desk just got delicious. Creamy mocha, dreamy cacao, and cheesy popcorn—snack, sip, repeat. Ready to fuel your flow?",
       "publishedAt": "2026-06-04T10:13:19-07:00",
-      "hash": "11jepuo",
+      "hash": "153g3h8",
       "brands": [
+        "Taika"
+      ],
+      "teams": [
         "Taika"
       ],
       "products": [
         "mocha",
         "cacao",
-        "cheesy popcorn"
+        "popcorn"
       ],
       "category": "snacks"
     },
@@ -5072,13 +5577,15 @@
       "anchorBrand": "Foria Wellness",
       "description": "Restore your nighttime ritual with gentle, plant-based support for sleep and relaxation. A calming trio for body, mind, and mood.",
       "publishedAt": "2026-06-04T10:13:12-07:00",
-      "hash": "wvz08a",
+      "hash": "1l2ti92",
       "brands": [
         "Foria Wellness"
       ],
+      "teams": [
+        "Foria Wellness"
+      ],
       "products": [
-        "plant-based sleep support",
-        "relaxation support",
+        "sleep support",
         "scent"
       ],
       "category": "supplements-and-wellness"
@@ -5101,8 +5608,11 @@
       "anchorBrand": "Surely",
       "description": "Three award-winning brands. One zero-proof happy hour. Premium non-alcoholic wine, a bold apéritif, and a magnesium superblend for happier hours & better mornings.",
       "publishedAt": "2026-06-04T10:13:41-07:00",
-      "hash": "75xsqy",
+      "hash": "d69x8m",
       "brands": [
+        "Surely"
+      ],
+      "teams": [
         "Surely"
       ],
       "products": [
@@ -5110,7 +5620,7 @@
         "apéritif",
         "magnesium superblend"
       ],
-      "category": "alcohol"
+      "category": "supplements-and-wellness"
     },
     {
       "id": "demo.offerlab.com/the-zero-proof-happy-hour-botanical-craft-bundle",
@@ -5128,8 +5638,11 @@
       "anchorBrand": "Artet",
       "description": "Elevate your unwind with a curated trio: THC-infused spritz, craft IPA, and modern rosé spritz. Clean, botanical, and refreshingly low-calorie.",
       "publishedAt": "2026-06-04T10:12:42-07:00",
-      "hash": "1xmabtn",
+      "hash": "1lsqyzb",
       "brands": [
+        "Artet"
+      ],
+      "teams": [
         "Artet"
       ],
       "products": [
@@ -5137,7 +5650,7 @@
         "craft IPA",
         "rosé spritz"
       ],
-      "category": "alcohol"
+      "category": "food-and-drink"
     },
     {
       "id": "demo.offerlab.com/trailblazer-trio-your-ultra-light-ultra-epic-weekend-kit",
@@ -5157,14 +5670,17 @@
       "anchorBrand": "Test Store",
       "description": "Go further. Move faster. Carry less. Three trail icons, one legendary loadout. We've gathered the holy grail pieces of the ultralight world and assembled them into one definitive kit for those who measure freedom in grams shed. This is the loadout for dawn starts and ridge walks, for the trails that don't appear on most maps and the weekends that turn into stories. At under 3 lbs combined, you're carrying a complete shelter, weather system, and trusted footwear that weighs less than most people's tent alone. Each piece has earned its reputation through thousands of trail miles and multiple \"best in class\" awards—not through marketing, but through mud, rain, and relentless use. Three cult favorites from three brands obsessed with doing more with less. Your pack just went on a serious diet.",
       "publishedAt": "2026-05-11T16:02:49-07:00",
-      "hash": "13nujgm",
+      "hash": "1vno7k2",
       "brands": [
         "Test Store"
       ],
+      "teams": [
+        "Test Store"
+      ],
       "products": [
-        "Shelter",
-        "Weather System",
-        "Footwear"
+        "shelter",
+        "weather system",
+        "footwear"
       ],
       "category": "fitness-and-outdoors"
     }
