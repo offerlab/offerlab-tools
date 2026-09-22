@@ -2132,6 +2132,47 @@ position: relative;
   line-height: var(--line-height-sm);
 }
 
+/* Brand suggestions share the history rows. The arrow keys walk them; the name leads and the
+   domain follows in the quieter ink. */
+.history-item.is-active {
+  background: var(--content-background-base);
+}
+
+.suggestion-domain {
+  color: var(--content-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* While a name resolves to its site, the submit disc spins in place of the arrow. */
+.search-button {
+  position: relative;
+}
+
+.search-input-wrapper.is-resolving .search-button {
+  pointer-events: none;
+}
+
+.search-input-wrapper.is-resolving .search-button .search-icon {
+  opacity: 0;
+}
+
+.search-input-wrapper.is-resolving .search-button::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--white) 270deg, transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: spin-ring 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-input-wrapper.is-resolving .search-button::before {
+    animation: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Loading Section
    -------------------------------------------------------------------------- */

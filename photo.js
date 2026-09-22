@@ -3,24 +3,18 @@
  * pack, SerpAPI finds the site when the pack does not carry one, and the finder runs the search it
  * would have run from the typed URL. The photo goes to the model and nowhere else.
  */
+import { suggestBrands, findSite, hostOf } from './resolve.js';
+
 const MODEL = 'gemini-2.5-flash';
 const MAX_EDGE = 1280;
 const JPEG_QUALITY = 0.82;
-
-// Sites a product search returns ahead of the brand's own.
-const NOT_THE_BRAND = new Set([
-  'amazon', 'walmart', 'target', 'costco', 'kroger', 'instacart', 'thrivemarket', 'wholefoodsmarket', 'sprouts',
-  'etsy', 'ebay', 'shopify', 'instagram', 'facebook', 'tiktok', 'youtube', 'x', 'twitter', 'linkedin', 'pinterest',
-  'reddit', 'wikipedia', 'google', 'apple', 'yelp', 'crunchbase', 'bloomberg', 'forbes', 'grocery', 'iherb', 'vitacost'
-]);
 
 const PROMPT = `This is a photo of a consumer product, taken in a store or at a trade show. Identify the brand
 that makes it: the company name as printed on the packaging, not the product name, the flavor, or a
 retailer. For the website, return the domain printed on the pack if there is one; otherwise the
 brand's official website if you know it with confidence; otherwise null. Never guess a domain.
-Answer as JSON shaped {"brand": string | null, "product": string | null, "website": string | null,
-"printed": boolean} where printed is true only when the website is visible on the pack. If no brand
-is readable, brand is null.`;
+Answer as JSON shaped {"brand": string | null, "product": string | null, "website": string | null}.
+If no brand is readable, brand is null.`;
 
 /**
  * Wires every photo button on the page. `search(domain)` is the finder's own search; `settle` is
@@ -47,13 +41,11 @@ async function fromPhoto(file, ui, search) {
     const image = await shrink(file);
     const read = await readPack(image);
     if (!read?.brand) return ui.fail("Couldn't read a brand on that. Type the URL instead");
-    // The site printed on the pack, else Clearbit's company for exactly that name (the resolver the
-    // app's type-ahead uses), else the site the model knows, else a search.
-    let domain = read.printed ? hostOf(read.website) : null;
-    if (!domain) {
-      ui.working(`Finding ${read.brand}'s site…`);
-      domain = await clearbitSite(read.brand) || hostOf(read.website) || await findSite(read.brand, read.product);
-    }
+    // The omnibar's resolver for exactly that name first: the model's read of a printed domain is
+    // not reliable (it reported MADEGOOD.COM, a film studio, off a MadeGood pack). Then the site the
+    // model read or knows, then a search.
+    ui.working(`Finding ${read.brand}'s site…`);
+    const domain = await exactSuggestion(read.brand) || hostOf(read.website) || await findSite(read.brand, read.product || '');
     if (!domain) return ui.fail(`Couldn't find ${read.brand}'s site. Type the URL instead`);
     ui.done();
     search(domain);
@@ -185,46 +177,14 @@ async function readPack(image) {
 /* Finding the site                                                            */
 /* -------------------------------------------------------------------------- */
 
-const CLEARBIT = 'https://autocomplete.clearbit.com/v1/companies/suggest';
 const plainName = name => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** Clearbit's company whose name is the brand's, spelled loosely: "MADE GOOD" is "Made Good". */
-async function clearbitSite(brand) {
-  try {
-    const response = await fetch(`${CLEARBIT}?query=${encodeURIComponent(brand)}`);
-    if (!response.ok) return null;
-    const key = plainName(brand);
-    const hit = (await response.json()).find(c => plainName(c.name || '') === key);
-    return hit ? hostOf(hit.domain) : null;
-  } catch {
-    return null;
-  }
+/**
+ * The suggestion whose name is the brand's, spelled loosely ("MADE GOOD" is "Made Good"). Not the
+ * first suggestion: a name read off a pack is exact, and the first hit for it can be a namesake.
+ */
+async function exactSuggestion(brand) {
+  const key = plainName(brand);
+  const hit = (await suggestBrands(brand)).find(row => plainName(row.name) === key);
+  return hit?.domain || null;
 }
-
-async function findSite(brand, product) {
-  const params = new URLSearchParams({ q: `${brand} ${product || ''} official site`.replace(/\s+/g, ' ').trim(), engine: 'google' });
-  const response = await fetch(`/api/serpapi?${params}`);
-  if (!response.ok) throw new Error(`SerpAPI ${response.status}`);
-  const data = await response.json();
-  const hosts = (data.organic_results || []).map(r => hostOf(r.link)).filter(h => h && !NOT_THE_BRAND.has(secondLevel(h)));
-  // The brand's own domain usually is its name, then carries it; a lookalike with a hyphen in it
-  // ranks behind either. Failing all of that, the first site that is not a retailer.
-  const key = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const plain = h => secondLevel(h).replace(/[^a-z0-9]/g, '');
-  return hosts.find(h => plain(h) === key)
-    || hosts.find(h => !secondLevel(h).includes('-') && plain(h).includes(key))
-    || hosts.find(h => plain(h).includes(key))
-    || hosts[0] || null;
-}
-
-function hostOf(url) {
-  if (!url) return null;
-  try {
-    const host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.toLowerCase();
-    return host.includes('.') ? host.replace(/^www\./, '') : null;
-  } catch {
-    return null;
-  }
-}
-
-const secondLevel = host => host.split('.').slice(-2, -1)[0] || host;
