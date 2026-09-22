@@ -6750,8 +6750,8 @@ position: relative;
   .picker-section {
     --picker-column-width: 85vw;
     --picker-gutter: 20px;
-    /* Flush to the header: the bar above already supplies the space at this size. */
-    padding-top: 0;
+    /* The bar that once held this clear of the sheet's top is gone on a phone. */
+    padding-top: 16px;
   }
 
   /* Flush to the header: at this size the banner is the first thing on screen and the bar above
