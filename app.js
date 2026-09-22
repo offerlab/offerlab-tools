@@ -8,6 +8,7 @@ import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restor
 import { icon, hydrateIcons } from './icons.js';
 import * as offerlab from './offerlab.js';
 import { initLibrary, showLibrary, hideLibrary, libraryFilterParams } from './library.js';
+import { looksLikeDomain, attachBrandSuggestions } from './resolve.js';
 import { synthesizeSocialUrl, matchSocial } from './shared/socials.js';
 
 const CONFIG = {
@@ -271,11 +272,10 @@ function extractDomain(url) {
   }
 }
 
+// A web address, with or without scheme, www. or a path. Anything else typed into the omnibar
+// is a brand name and goes through resolve.js first.
 function isValidUrl(input) {
-  const domain = normalizeUrl(input);
-  // Basic domain validation
-  const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain);
+  return looksLikeDomain(input);
 }
 
 function getFaviconUrl(domain) {
@@ -2878,7 +2878,7 @@ function ensureHttps(item) {
    Typing Placeholder Animation
    -------------------------------------------------------------------------- */
 
-const TYPING_MESSAGES = ["Find your next collab", "Drop any brand URL", "Get instant recommendations"];
+const TYPING_MESSAGES = ["Find your next collab", "Type a brand name or URL", "Get instant recommendations"];
 // Brands seeded into the demo environment. The "Try {domain}" placeholder rotates through these,
 // one per cycle, with the brand's favicon inline after "Try".
 const DEMO_BRANDS = ['magicspoon.com', 'monos.com', 'flamingoestate.com', 'wildone.com', 'fanttik.com', 'jolieskinco.com'];
@@ -3313,31 +3313,74 @@ function initTileTilt() {
    Event Listeners
    -------------------------------------------------------------------------- */
 
+// Each omnibar's suggestions: the dropdown fills with brands as a name is typed, and Enter on a
+// name resolves it to a site before the search runs.
+const suggestions = {};
+
+// A domain searches at once. A name resolves first, the submit disc spinning meanwhile; a name
+// that resolves to nothing says so in the dropdown and leaves the text for the person to fix.
+async function submitSearch(input, suggest) {
+  const typed = input.value.trim();
+  if (!typed) return;
+  if (isValidUrl(typed)) {
+    hideAllSearchHistoryDropdowns();
+    performSearch(typed);
+    return;
+  }
+  const wrapper = input.closest('.search-input-wrapper');
+  if (wrapper?.classList.contains('is-resolving')) return;
+  wrapper?.classList.add('is-resolving');
+  try {
+    const domain = await suggest.resolve();
+    // Typed on while it looked: that Enter no longer applies.
+    if (input.value.trim() !== typed) return;
+    if (domain) {
+      input.value = domain;
+      hideAllSearchHistoryDropdowns();
+      performSearch(domain);
+    } else {
+      suggest.showMiss(typed);
+    }
+  } finally {
+    wrapper?.classList.remove('is-resolving');
+  }
+}
+
 function initEventListeners() {
+  suggestions.landing = attachBrandSuggestions({
+    input: elements.searchInput,
+    dropdown: elements.searchHistoryDropdown,
+    list: elements.historyList,
+    history: () => getSearchHistory().map(item => item.domain),
+    showHistory: () => renderSearchHistory(elements.historyList),
+    favicon: getFaviconUrl
+  });
+  suggestions.results = attachBrandSuggestions({
+    input: elements.resultsSearchInput,
+    dropdown: elements.resultsSearchHistoryDropdown,
+    list: elements.resultsHistoryList,
+    history: () => getSearchHistory().map(item => item.domain),
+    showHistory: () => renderSearchHistory(elements.resultsHistoryList),
+    favicon: getFaviconUrl
+  });
+
   // Main search form
   elements.searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const url = elements.searchInput.value.trim();
-    if (url && isValidUrl(url)) {
-      hideAllSearchHistoryDropdowns();
-      performSearch(url);
-    }
+    submitSearch(elements.searchInput, suggestions.landing);
   });
 
   // Results search form
   elements.resultsSearchForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const url = elements.resultsSearchInput.value.trim();
-    if (url && isValidUrl(url)) {
-      hideAllSearchHistoryDropdowns();
-      performSearch(url);
-    }
+    submitSearch(elements.resultsSearchInput, suggestions.results);
   });
 
   // Search input focus/blur for history dropdown (Landing Page)
   elements.searchInput.addEventListener('focus', () => {
     elements.searchInput.classList.add('focused');
     showSearchHistory(elements.searchHistoryDropdown);
+    suggestions.landing.sync();
   });
 
   elements.searchInput.addEventListener('blur', (e) => {
@@ -3354,6 +3397,7 @@ function initEventListeners() {
     elements.resultsSearchInput.classList.add('focused');
     syncResultsSearchDisplay();
     showSearchHistory(elements.resultsSearchHistoryDropdown);
+    suggestions.results.sync();
   });
 
   elements.resultsSearchInput.addEventListener('blur', (e) => {
