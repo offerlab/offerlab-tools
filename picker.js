@@ -117,6 +117,8 @@ export function initPicker() {
   dom.columns.addEventListener('scroll', updateRailControls, { passive: true });
   // Delegated, since the columns are re-rendered whole on every catalog change.
   dom.columns.addEventListener('pointerdown', (e) => {
+    // A pointer's tool: a finger crossing the gutter is on its way to a product, not resizing.
+    if (e.pointerType === 'touch') return;
     const handle = e.target.closest('.picker-column-resizer');
     if (handle) startColumnResize(handle, e);
   });

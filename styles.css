@@ -5722,6 +5722,14 @@ position: relative;
 /* 16px of hit area centred on the 10px gutter. left: 100% resolves against the column's PADDING
    box, so it lands 1px inside the border box and the strip has to be given that back: -3 centres
    16 on 10, +1 for the border. Without it the handle sat a pixel into the left-hand column. */
+/* No resizing by touch: a finger crossing the gutter on the way to a product was dragging the
+   column narrow. The handle is a pointer's tool. */
+@media (hover: none) {
+  .picker-column-resizer-zone {
+    display: none;
+  }
+}
+
 .picker-column-resizer-zone {
   position: absolute;
   left: 100%;
