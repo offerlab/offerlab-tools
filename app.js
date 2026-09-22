@@ -40,6 +40,9 @@ const CONFIG = {
 let currentSearchId = null;
 let currentResults = null;
 function getResults() { return currentResults; }
+// The searched brand of the search in flight: results are only stored once every catalog is in,
+// and the cards need its catalog before that.
+let liveSearchedBrand = null;
 let searchAbortController = null;
 let isSearchCancelled = false;
 
@@ -807,24 +810,61 @@ function renderCatalogChinstrap(catalog, radius = 32) {
   </div>`;
 }
 
+/**
+ * A bundle starts from the searched brand's own catalog, so a partner is only buildable while the
+ * searched brand is. Unknown counts as yes: the button would flicker if it waited on every fetch.
+ */
+function sellerCanBuild() {
+  const seller = getResults()?.searchedBrand || liveSearchedBrand;
+  return !seller?.catalog || canBuildWith(seller);
+}
+
+/** The searched card's chinstrap when it has no public catalog: why every Create bundle is gone. */
+function renderNoCatalogChinstrap(radius = 36) {
+  return `<div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--none" style="--tuck-radius: ${radius}px">
+    <span class="card-chinstrap-source">${icon('cross-large', { size: 12 })} No public catalog</span>
+    <span class="card-chinstrap-count">Bundles start from a brand that has one</span>
+    <div class="tuck-banner__notch tuck-banner__notch--left"></div>
+    <div class="tuck-banner__notch tuck-banner__notch--right"></div>
+  </div>`;
+}
+
+function setCardBuildable(card, buildable) {
+  card.dataset.buildable = buildable ? 'true' : 'false';
+  card.querySelector('.build-bundle-btn')?.classList.toggle('hidden', !buildable);
+}
+
 function updateCardCatalog(domain, catalog) {
-  const buildable = (catalog?.products?.length || 0) > 0;
+  const hasProducts = (catalog?.products?.length || 0) > 0;
   document.querySelectorAll(`[data-catalog-domain="${domain}"]`).forEach(group => {
     const slot = group.querySelector('.card-catalog-slot');
     if (slot) slot.innerHTML = renderCatalogThumbs(catalog);
     const linkSlot = group.querySelector('.searched-brand-card-link-slot');
     if (linkSlot) {
       linkSlot.innerHTML = renderSearchedBrandLink(catalog);
+      coverFromCatalog(group, catalog);
+      group.querySelector('.card-chinstrap')?.remove();
+      if (catalog && !hasProducts) {
+        group.insertAdjacentHTML('beforeend', renderNoCatalogChinstrap());
+        document.querySelectorAll('.result-card').forEach(card => setCardBuildable(card, false));
+      }
       return;
     }
     group.querySelector('.card-chinstrap')?.remove();
     const chinstrap = renderCatalogChinstrap(catalog);
     if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
     const card = group.querySelector('.result-card');
-    if (!card) return;
-    card.dataset.buildable = buildable ? 'true' : 'false';
-    card.querySelector('.build-bundle-btn')?.classList.toggle('hidden', !buildable);
+    if (card) setCardBuildable(card, hasProducts && sellerCanBuild());
   });
+}
+
+/** A site with no og:image gets its first product as the cover, once the catalog is in. */
+function coverFromCatalog(group, catalog) {
+  const cover = group.querySelector('.searched-brand-card-image.no-image');
+  const src = catalog?.products?.find(p => p.image)?.image;
+  if (!cover || !src) return;
+  cover.querySelector('img').src = catalogThumbUrl(src, 900);
+  cover.classList.remove('no-image');
 }
 
 function brandForCard(card) {
@@ -884,6 +924,7 @@ function createSearchedBrandCard(searchedBrand) {
   const fullUrl = url && url.startsWith('http') ? url : (url ? `https://${url}` : '#');
   const imageUrl = searchedBrand.imageUrl || '';
   const faviconUrl = searchedBrand.faviconUrl || getFaviconUrl(domain);
+  // No cover yet: the column waits, hidden, for the catalog's first product image.
   const imgSrc = imageUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
 
   const group = document.createElement('div');
@@ -898,7 +939,7 @@ function createSearchedBrandCard(searchedBrand) {
   card.dataset.url = fullUrl;
 
   card.innerHTML = `
-    <div class="searched-brand-card-image">
+    <div class="searched-brand-card-image${imageUrl ? '' : ' no-image'}">
       <img
         src="${imgSrc}"
         alt="${searchedBrand.name}"
@@ -957,7 +998,7 @@ function createBrandCard(brand, index) {
   card.dataset.url = fullUrl;
   card.dataset.domain = domain;
   card.dataset.social = JSON.stringify(brand.social || {});
-  if (canBuildWith(brand)) card.dataset.buildable = 'true';
+  if (canBuildWith(brand) && sellerCanBuild()) card.dataset.buildable = 'true';
 
   const showMenu = hasAnySocialLink(brand.social);
   card.innerHTML = `
@@ -982,7 +1023,7 @@ function createBrandCard(brand, index) {
     <div class="card-body">
       ${renderCardReason(brand)}
       <div class="card-actions">
-        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) ? '' : ' hidden'}">Create bundle</button>
+        <button type="button" class="btn btn--md btn--primary build-bundle-btn${canBuildWith(brand) && sellerCanBuild() ? '' : ' hidden'}">Create bundle</button>
         <div class="generate-pitch-wrapper" data-brand="${encodeURIComponent(JSON.stringify(brand))}">
           <button type="button" class="btn btn--md btn--secondary generate-pitch-btn">Pitch them</button>
         </div>
@@ -2691,16 +2732,8 @@ async function fetchOgImageUrl(url) {
       console.log(`[fetchOgImageUrl] Got OG image for ${url}: ${ogData.imageUrl}`);
       return ogData.imageUrl;
     }
-    
-    // Fallback: Use Google's high-res favicon API (256px)
-    // This works even for sites with bot protection
-    const domain = extractDomain(url);
-    if (domain) {
-      const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-      console.log(`[fetchOgImageUrl] No OG image, using high-res favicon fallback: ${faviconUrl}`);
-      return faviconUrl;
-    }
-    
+    // No favicon stand-in: a favicon blown up to a cover is worse than the catalog's first
+    // product, which the card takes once the catalog is in, or no cover at all.
     console.warn(`[fetchOgImageUrl] No image found for ${url}`);
     return null;
   } catch (err) {
@@ -3156,6 +3189,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
         if (isSearchCancelled) return;
         console.log(`[performSearch] onBrandsReady callback: ${brands.length} brands received`);
         brandsData = { searchedBrand, brands };
+        liveSearchedBrand = searchedBrand;
         
         if (brands.length === 0) {
           // No brands found, wait for products before deciding

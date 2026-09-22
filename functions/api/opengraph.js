@@ -3,6 +3,17 @@
  * Keeps the API key secure on the server side
  */
 
+/**
+ * OpenGraph.io's hybrid graph falls back to the site's favicon or header logo when a page carries
+ * no og:image (Caraway, Fly By Jing). Neither is a cover; the card does better with no image.
+ */
+function usableCover(imageUrl, faviconUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+  if (faviconUrl && imageUrl === faviconUrl) return null;
+  if (/favicon|(^|[\/_.-])logo([\/_.-]|$)|\.svg(\?|$)|\.ico(\?|$)/i.test(imageUrl)) return null;
+  return imageUrl;
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -84,7 +95,7 @@ export async function onRequest(context) {
 
     return new Response(
       JSON.stringify({
-        imageUrl: imageUrl && typeof imageUrl === 'string' ? imageUrl : null,
+        imageUrl: usableCover(imageUrl, faviconUrl),
         faviconUrl: faviconUrl && typeof faviconUrl === 'string' ? faviconUrl : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

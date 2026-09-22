@@ -19,6 +19,17 @@ const PORT = process.env.PORT || 5500;
 const SERPAPI_TIMEOUT_MS = 15000;
 
 // OpenGraph proxy - API key stays server-side
+/**
+ * OpenGraph.io's hybrid graph falls back to the site's favicon or header logo when a page carries
+ * no og:image (Caraway, Fly By Jing). Neither is a cover; the card does better with no image.
+ */
+function usableCover(imageUrl, faviconUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+  if (faviconUrl && imageUrl === faviconUrl) return null;
+  if (/favicon|(^|[\/_.-])logo([\/_.-]|$)|\.svg(\?|$)|\.ico(\?|$)/i.test(imageUrl)) return null;
+  return imageUrl;
+}
+
 app.get('/api/opengraph', async (req, res) => {
   const url = req.query.url;
   if (!url || typeof url !== 'string' || !url.trim()) {
@@ -85,7 +96,7 @@ app.get('/api/opengraph', async (req, res) => {
     console.log(`[OpenGraph Proxy] Extracted - image: ${imageUrl ? imageUrl.substring(0, 80) + '...' : 'null'}, favicon: ${faviconUrl ? 'found' : 'null'}`);
 
     res.json({
-      imageUrl: imageUrl && typeof imageUrl === 'string' ? imageUrl : null,
+      imageUrl: usableCover(imageUrl, faviconUrl),
       faviconUrl: faviconUrl && typeof faviconUrl === 'string' ? faviconUrl : null
     });
   } catch (err) {
