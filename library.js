@@ -26,16 +26,31 @@ const MOBILE = window.matchMedia('(max-width: 900px)');
 const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 
 // Geometry, owned here and mirrored onto the section as custom properties so the CSS cannot drift.
-// Each row is one continuous plank; odd rows sit half a column over.
-const TILE = 220;
-const GAP = 32;
-const COL_W = TILE + GAP;
-const PLANK_H = 18;
-const AIR = 64;
-const SHELF_H = AIR + TILE + PLANK_H;
+// Each row is one continuous plank; odd rows sit half a column over. A phone fits 2.25 columns
+// across the viewport so the next tile is always cut off at the edge; a desktop has fixed tiles.
+const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
+const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20 };
+const G = {};
+
+function measure() {
+  const width = dom.viewport.getBoundingClientRect().width || window.innerWidth;
+  if (MOBILE.matches) {
+    G.colW = Math.round(width / PHONE.columns);
+    G.gap = PHONE.gap;
+    G.tile = G.colW - G.gap;
+    G.plank = PHONE.plank;
+    G.air = PHONE.air;
+    G.radius = PHONE.radius;
+  } else {
+    Object.assign(G, { tile: DESKTOP.tile, gap: DESKTOP.gap, plank: DESKTOP.plank, air: DESKTOP.air, radius: DESKTOP.radius });
+    G.colW = G.tile + G.gap;
+  }
+  G.shelfH = G.air + G.tile + G.plank;
+  const vars = { tile: G.tile, gap: G.gap, plank: G.plank, air: G.air, shelf: G.shelfH, radius: G.radius };
+  for (const [name, value] of Object.entries(vars)) dom.section.style.setProperty(`--lib-${name}`, `${value}px`);
+}
 const TILE_COVER_WIDTH = 480;
 const EYEBROW_CHIPS = 2;
-const GHOST_GRID = 8;
 const FADE_MS = 320;
 const SWEEP_MS = 200;
 const TYPING_MS = 120;
@@ -78,7 +93,6 @@ export async function initLibrary() {
   if (!dom.section) return;
   dom.viewport = document.getElementById('libraryViewport');
   dom.board = document.getElementById('libraryBoard');
-  dom.grid = document.getElementById('libraryGrid');
   dom.form = document.getElementById('libraryForm');
   dom.input = document.getElementById('libraryInput');
   dom.filterBtn = document.getElementById('libraryFilterBtn');
@@ -91,14 +105,14 @@ export async function initLibrary() {
   // Out of the section, whose stacking context would keep it under the fixed header.
   document.body.appendChild(dom.lightbox);
 
-  const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, air: AIR, shelf: SHELF_H };
-  for (const [name, value] of Object.entries(geometry)) dom.section.style.setProperty(`--lib-${name}`, `${value}px`);
-
+  measure();
   bindViewport();
   bindOmnibox();
   bindLightbox();
-  window.addEventListener('resize', () => { if (state.loaded) render(); });
-  MOBILE.addEventListener('change', () => { if (state.loaded) apply(); });
+  // A new size means new cell positions, so the board is dealt again where it stands.
+  const remeasure = () => { measure(); if (state.loaded) { clearBoard(); render(); } };
+  window.addEventListener('resize', remeasure);
+  MOBILE.addEventListener('change', remeasure);
 }
 
 /** Called by app.js when the mode switches in; loads on first use. */
@@ -226,14 +240,14 @@ function orderFor(row) {
 const mod = (a, b) => ((a % b) + b) % b;
 const bundleAt = (row, c) => state.visible[orderFor(row)[mod(c, state.visible.length)]];
 
-const rowOffset = r => (r & 1 ? COL_W / 2 : 0);
+const rowOffset = r => (r & 1 ? G.colW / 2 : 0);
 
 function rowFor(r) {
   let row = state.rows.get(r);
   if (row) return row;
   const el = document.createElement('div');
   el.className = 'library-shelf';
-  el.style.transform = `translate3d(0, ${r * SHELF_H}px, 0)`;
+  el.style.transform = `translate3d(0, ${r * G.shelfH}px, 0)`;
   // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
   el.style.zIndex = String(r + 1e6);
   el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div>';
@@ -245,10 +259,9 @@ function rowFor(r) {
 
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 function render() {
-  if (MOBILE.matches) return;
   const view = dom.viewport.getBoundingClientRect();
-  const x0 = -state.pan.x - COL_W, x1 = -state.pan.x + view.width + COL_W;
-  const r0 = Math.floor(-state.pan.y / SHELF_H) - 1, r1 = Math.ceil((-state.pan.y + view.height) / SHELF_H) + 1;
+  const x0 = -state.pan.x - G.colW, x1 = -state.pan.x + view.width + G.colW;
+  const r0 = Math.floor(-state.pan.y / G.shelfH) - 1, r1 = Math.ceil((-state.pan.y + view.height) / G.shelfH) + 1;
   const keep = new Set();
 
   for (let r = r0; r <= r1; r++) {
@@ -257,7 +270,7 @@ function render() {
       part.style.left = `${x0}px`;
       part.style.width = `${x1 - x0}px`;
     }
-    const c0 = Math.floor((x0 - rowOffset(r)) / COL_W), c1 = Math.floor((x1 - rowOffset(r)) / COL_W);
+    const c0 = Math.floor((x0 - rowOffset(r)) / G.colW), c1 = Math.floor((x1 - rowOffset(r)) / G.colW);
     for (let c = c0; c <= c1; c++) {
       const key = `${r}:${c}`;
       keep.add(key);
@@ -265,7 +278,7 @@ function render() {
       const current = state.cells.get(key);
       if (current && current.dataset.id === (bundle?.id ?? '')) continue;
       const tile = bundle ? makeTile(bundle) : makeGhost();
-      const left = c * COL_W + rowOffset(r) + GAP / 2;
+      const left = c * G.colW + rowOffset(r) + G.gap / 2;
       tile.style.left = `${left}px`;
       state.cells.set(key, tile);
       if (current) crossfade(current, tile, (left + state.pan.x) / view.width);
@@ -345,38 +358,30 @@ function apply() {
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
 
-  dom.grid.replaceChildren();
-  if (MOBILE.matches) {
-    clearBoard();
-    // A phone scrolls the visible bundles once each, no repeats.
-    dom.grid.replaceChildren(...(n ? state.visible.map(makeTile) : Array.from({ length: GHOST_GRID }, makeGhost)));
-    return;
-  }
   // Row 0 opens across the middle with a tile centered; after that the pan is kept, so a filter
   // changes what is on the shelves and not where you are.
   if (!state.placed) {
     const view = dom.viewport.getBoundingClientRect();
-    state.pan = { x: Math.round((view.width - COL_W) / 2), y: Math.round(view.height / 2 - AIR - TILE / 2) };
+    state.pan = { x: Math.round((view.width - G.colW) / 2), y: Math.round(view.height / 2 - G.air - G.tile / 2) };
     state.placed = true;
   }
   setPan(state.pan.x, state.pan.y);
   render();
 }
 
-/** What narrowed the shelves, in the order the chips show. */
+/** The popover's filters, in the order the chips show. A typed query stays in the box, not here. */
 function narrowedBy() {
-  const { query, category, brand, store } = state.filters;
+  const { category, brand, store } = state.filters;
   return [
     category && { key: 'category', label: label(category) },
     brand && { key: 'brand', label: brand },
-    store && { key: 'store', label: store },
-    query && { key: 'query', label: `“${query}”` }
+    store && { key: 'store', label: store }
   ].filter(Boolean);
 }
 
 /**
- * Only while something narrows the shelves: the count, a chip per filter with its own remove,
- * the rest folded into "+n more" that opens the popover, and Clear on the far right.
+ * Only while a popover filter narrows the shelves: the count, a chip per filter with its own
+ * remove, the rest folded into "+n more" that opens the popover, and Clear on the far right.
  */
 function renderEyebrow(n) {
   const applied = narrowedBy();
@@ -399,8 +404,7 @@ function renderEmpty(n) {
 
 function removeFilter(key) {
   state.filters[key] = '';
-  if (key === 'query') dom.input.value = '';
-  else dom.popover.querySelector(`[data-filter="${key}"]`).value = '';
+  dom.popover.querySelector(`[data-filter="${key}"]`).value = '';
   apply();
 }
 
@@ -476,7 +480,7 @@ function bindViewport() {
   const view = dom.viewport;
 
   view.addEventListener('pointerdown', event => {
-    if (MOBILE.matches || event.button !== 0) return;
+    if (event.button !== 0) return;
     if (event.target.closest('.library-omni, .library-lightbox')) return;
     state.dragging = true;
     state.moved = false;
@@ -527,7 +531,7 @@ function bindViewport() {
   // catches the light under it. The rect is cached per interaction and the vars are written once
   // per frame, so the hot path is compositor transforms and one gradient.
   view.addEventListener('pointerover', event => {
-    if (MOBILE.matches || event.pointerType === 'touch') return;
+    if (event.pointerType === 'touch') return;
     const tile = event.target.closest('.library-tile');
     if (!tile || tile === state.tilt?.tile || tile.classList.contains('library-tile--ghost')) return;
     untilt();
@@ -545,13 +549,11 @@ function bindViewport() {
   });
 
   view.addEventListener('wheel', event => {
-    if (MOBILE.matches) return;
     event.preventDefault();
     setPan(state.pan.x - event.deltaX, state.pan.y - event.deltaY);
   }, { passive: false });
 
   view.addEventListener('keydown', event => {
-    if (MOBILE.matches) return;
     const step = { ArrowLeft: [KEY_STEP, 0], ArrowRight: [-KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[event.key];
     if (!step) return;
     event.preventDefault();
@@ -615,10 +617,6 @@ function bindLightbox() {
     if (dom.lightbox.classList.contains('hidden')) return;
     if (event.key === 'Escape') { event.preventDefault(); closeLightbox(); return; }
     if (event.key === 'Tab') trapFocus(event);
-  });
-  dom.grid.addEventListener('click', event => {
-    const tile = event.target.closest('.library-tile');
-    if (tile) openLightbox(tile.dataset.id, tile);
   });
 }
 
