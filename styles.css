@@ -9,6 +9,14 @@
 
 /* Aktiv Grotesk */
 @font-face {
+  font-family: 'Fragment Mono';
+  src: url('fonts/FragmentMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Aktiv Grotesk';
   src: url('fonts/AktivGrotesk_W_Th.woff2') format('woff2'), url('fonts/AktivGrotesk_W_Th.woff') format('woff');
   font-weight: 100;
@@ -532,6 +540,23 @@ img {
 .header-nav-logo img {
   height: 24px;
   width: auto;
+}
+
+/* The app's mark stands in for the lockup on a phone, where the bar has to hold the mode switch
+   and the account control too. */
+.header-nav-logo-mark {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .header-nav-logo-lockup {
+    display: none;
+  }
+
+  .header-nav-logo-mark {
+    display: block;
+    height: 28px;
+  }
 }
 
 .text-content-tertiary {
@@ -6245,13 +6270,6 @@ position: absolute;
   background: var(--content-background-base);
 }
 
-/* The header is already tight on a phone, and the tray says whether it is connected anyway. */
-@media (max-width: 900px) {
-  .offerlab-account-wrap {
-    display: none;
-  }
-}
-
 /* A recommended brand with no team in the demo environment yet. Sits with the domain rather than
    in the actions, because it qualifies what the brand is, not what the button does.
 
@@ -6270,13 +6288,6 @@ position: absolute;
   font-weight: 600;
   line-height: 1.25;
   white-space: nowrap;
-}
-
-/* The header is tight on a phone, and the tray already says whether it is connected. */
-@media (max-width: 900px) {
-  .offerlab-account-wrap {
-    display: none;
-  }
 }
 
 /* "Bundles built": drafts this pair already has, above the generated pitch so the copy below can
@@ -6642,5 +6653,961 @@ position: absolute;
   /* A pair of long brand names runs past the pill on its own */
   .picker-tray-summary span {
     display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Mode switch: Create | Showcase, centered in the dark bar
+   -------------------------------------------------------------------------- */
+/* The app's segmented control. Equal tracks (an inline grid sizes every track to the widest), and
+   the selected pill is its own layer that slides one track per index. Absolutely centered rather
+   than a third flex item, so it holds the middle whether or not the account control is showing. */
+.mode-switch {
+  --mode-switch-pad: 3px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: var(--mode-switch-pad);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-overlay-inverse);
+}
+
+.mode-switch-indicator {
+  position: absolute;
+  top: var(--mode-switch-pad);
+  bottom: var(--mode-switch-pad);
+  left: var(--mode-switch-pad);
+  width: calc((100% - 2 * var(--mode-switch-pad)) / 2);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.mode-switch-btn {
+  position: relative;
+  z-index: 1;
+  height: calc(var(--nav-control-h) - 2 * var(--mode-switch-pad));
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-primary-inverse);
+  font-family: var(--font-family);
+  /* label-md */
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  font-weight: 600;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.2s ease, color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-switch-btn:hover {
+  opacity: 1;
+}
+
+.mode-switch-btn[aria-pressed="true"] {
+  color: var(--content-primary);
+  opacity: 1;
+}
+
+/* Centered on a phone too; the lockup gives way to the mark so there is room. */
+@media (max-width: 900px) {
+  .mode-switch-btn {
+    padding: 0 12px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Collabs library
+   -------------------------------------------------------------------------- */
+/* Fills the sheet. The viewport is the crop; the board inside it is unbounded and moves under it.
+   The wall is the viewport's, so it stays put while the shelves pan. Geometry comes from
+   library.js as --lib-* so the two cannot drift. */
+.library-section {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #cdcdcd;
+}
+
+.library-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  background: linear-gradient(180deg, #d4d4d4, #c3c3c3);
+}
+
+.library-viewport:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--content-primary);
+}
+
+.library-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.library-viewport.is-dragging .library-tile {
+  pointer-events: none;
+}
+
+.library-board {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.library-grid {
+  display: none;
+}
+
+/* A shelf row is one continuous plank: the tiles standing on it, the glow on the wall behind them
+   and the shadow the row throws down the wall. library.js positions all of it and stretches the
+   plank, glow and shadow across whatever the viewport can see. */
+.library-shelf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: var(--lib-shelf);
+}
+
+.library-shelf-glow {
+  position: absolute;
+  top: 0;
+  bottom: var(--lib-plank);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5) 55%, rgba(255, 255, 255, 0.62) 100%);
+  pointer-events: none;
+}
+
+/* The row's shadow on the wall below: hard at the plank's underside, gone by the next shelf. */
+.library-shelf-shadow {
+  position: absolute;
+  top: var(--lib-shelf);
+  height: 260px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.44), rgba(0, 0, 0, 0.3) 14%, rgba(0, 0, 0, 0.2) 28%, rgba(0, 0, 0, 0.11) 45%, rgba(0, 0, 0, 0.05) 65%, rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+
+/* A white slab seen from just above: a top face, a hairline of light along the front edge, and a
+   front face a shade cooler. */
+.library-shelf-slab {
+  position: absolute;
+  bottom: 0;
+  height: var(--lib-plank);
+  background: linear-gradient(180deg, #f1f1f1 0, #f6f6f6 50%, #fbfbfb calc(50% + 1px), #ebebeb calc(50% + 2px), #e6e6e6 100%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+
+/* Each cover stands on the top face. Its own shadow is the short one it throws onto the plank
+   and the wall right behind it; the long fall down the wall belongs to the row. The transform is
+   the earn-back card's: library.js writes --rx/--ry/--scale from the pointer, and the rest state
+   eases back over 0.6s. */
+.library-tile {
+  position: absolute;
+  bottom: var(--lib-plank);
+  width: var(--lib-tile);
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: var(--content-background-elevated);
+  border-radius: 28px;
+  cursor: pointer;
+  z-index: 1;
+  transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--scale, 1));
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 16px 36px -16px rgba(0, 0, 0, 0.18);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, opacity 0.32s ease;
+  outline: none;
+}
+
+/* The contact shadow: the cover's base darkens the plank's top face just behind it, fading out
+   to the sides as well as forward so it has no edge of its own. */
+.library-tile::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--lib-plank);
+  background: radial-gradient(48% 100% at 50% 0%, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+}
+
+.library-tile:hover,
+.library-tile:focus-visible {
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.16),
+    0 24px 44px -16px rgba(0, 0, 0, 0.32);
+  z-index: 2;
+}
+
+/* While the pointer is on it, follow with only a hair of smoothing, on its own layer. */
+.library-tile.is-tilting {
+  transition: transform 0.15s ease-out, box-shadow 0.25s ease, opacity 0.32s ease;
+  will-change: transform;
+}
+
+.library-tile.is-lifted {
+  visibility: hidden;
+}
+
+.library-tile:hover::after,
+.library-tile:focus-visible::after {
+  opacity: 0.5;
+}
+
+.library-tile:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--content-background-elevated),
+    0 0 0 5px var(--content-primary),
+    8px 22px 36px -8px rgba(0, 0, 0, 0.4);
+}
+
+.library-tile-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--content-background-base);
+}
+
+/* The earn-back card's glare: a soft white radial under the pointer, soft-light so it reads as
+   light catching the print rather than a white blob. */
+.library-tile-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.35) 18%, rgba(255, 255, 255, 0) 55%);
+  mix-blend-mode: soft-light;
+  opacity: var(--glare, 0);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.library-tile:focus-visible .library-tile-cover::after {
+  opacity: 1;
+}
+
+.library-tile-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The name rides along the bottom of the cover on hover, on a scrim that is the cover's own colors
+   blurred and darkened and that fades to nothing well before the top of the cover. Built like the
+   app's scrim gradients: layers the full height of the tile, each masked to fade out upward, so
+   there is room to fade. The layers are blurred copies of the cover (the same cached file), not
+   backdrop filters: Chromium allows one backdrop filter per root and blurs the whole tile past it. */
+.library-tile-scrim {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+
+/* Oversized so the blur's soft edge never shows inside the tile. */
+.library-tile-scrim img {
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+}
+
+.library-tile-scrim-soft {
+  filter: blur(6px) saturate(1.3);
+  mask-image: linear-gradient(to top, #000 18%, transparent 46%);
+  -webkit-mask-image: linear-gradient(to top, #000 18%, transparent 46%);
+}
+
+.library-tile-scrim-deep {
+  filter: blur(18px) saturate(1.3);
+  mask-image: linear-gradient(to top, #000 8%, transparent 30%);
+  -webkit-mask-image: linear-gradient(to top, #000 8%, transparent 30%);
+}
+
+/* The darkening, on top of the blur, fading up the same way. */
+.library-tile-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(24, 20, 16, 0.6) 0%, rgba(24, 20, 16, 0.4) 18%, rgba(24, 20, 16, 0.16) 36%, rgba(24, 20, 16, 0) 52%);
+}
+
+.library-tile-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 20px 18px;
+  color: var(--content-primary-inverse);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.library-tile:hover .library-tile-name,
+.library-tile:focus-visible .library-tile-name,
+.library-tile.is-bare .library-tile-name {
+  opacity: 1;
+}
+
+.library-tile:hover .library-tile-scrim,
+.library-tile:focus-visible .library-tile-scrim {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease;
+}
+
+.library-tile.is-bare .library-tile-cover img {
+  display: none;
+}
+
+.library-tile.is-bare .library-tile-name {
+  top: 0;
+  padding-top: 16px;
+  color: var(--content-primary);
+}
+
+.library-tile.is-bare .library-tile-scrim {
+  display: none;
+}
+
+/* Empty result: the shelves stay up, dealt with glass placeholders, and the message sits on a
+   blur that is strongest behind it and fades out radially, so it needs no surface of its own. */
+.library-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.library-empty-blur {
+  position: absolute;
+  inset: 0;
+}
+
+/* Concentric ellipses of backdrop blur, each stronger and tighter than the last, read as one blur
+   that ramps up toward the middle. Ellipses rather than masks: a mask does not clip a backdrop
+   filter here, a border-radius does. */
+.library-empty-blur > i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--w);
+  height: var(--h);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+
+.library-empty-blur > i:nth-child(1) { --w: 72%; --h: 90%; --blur: 1px; }
+.library-empty-blur > i:nth-child(2) { --w: 65%; --h: 81%; --blur: 2px; }
+.library-empty-blur > i:nth-child(3) { --w: 58%; --h: 72%; --blur: 3px; }
+.library-empty-blur > i:nth-child(4) { --w: 51%; --h: 63%; --blur: 5px; }
+.library-empty-blur > i:nth-child(5) { --w: 44%; --h: 54%; --blur: 8px; }
+.library-empty-blur > i:nth-child(6) { --w: 37%; --h: 45%; --blur: 12px; }
+.library-empty-blur > i:nth-child(7) { --w: 30%; --h: 36%; --blur: 17px; }
+.library-empty-blur > i:nth-child(8) { --w: 23%; --h: 28%; --blur: 24px; }
+
+.library-empty-message {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 420px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.library-empty-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--content-primary);
+  overflow-wrap: anywhere;
+}
+
+.library-empty-copy {
+  margin: 0 0 14px;
+  color: var(--content-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+/* The placeholder a shelf holds when nothing matches: frosted glass, the wall showing through. */
+.library-tile--ghost {
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.3));
+  backdrop-filter: blur(3px) saturate(1.2);
+  -webkit-backdrop-filter: blur(3px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    0 14px 30px -10px rgba(0, 0, 0, 0.28);
+}
+
+.library-tile--ghost::after {
+  opacity: 0.35;
+}
+
+/* The omnibox, anchored to the bottom of the viewport. The pill is the finder's own; only the
+   anchoring and the count belong to the library. */
+.library-omni {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-dropdown);
+  padding: 0 var(--page-gutter) 20px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(195, 195, 195, 0.92) 10%, rgba(195, 195, 195, 0.5) 60%, transparent);
+}
+
+.library-omni .omni-ai-box-container--library {
+  position: relative;
+  left: auto;
+  transform: none;
+  margin: 0 auto;
+  max-width: 640px;
+  pointer-events: auto;
+}
+
+.library-omni .search-input {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  letter-spacing: -0.0125em;
+  text-align: left;
+  padding-right: 60px;
+}
+
+/* Tucked under the pill's top edge, the way the picker tray's Clear is: out of flow, behind the
+   pill's surface (the container isolates, so z-index -1 lands under the pill and not the page),
+   with 2px of its bottom hidden under the pill. */
+.library-eyebrow {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: calc(100% - 2px);
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 36px;
+  padding: 0 8px 2px 14px;
+  border-radius: 20px 20px 0 0;
+  background: var(--content-background-base);
+  color: var(--content-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  pointer-events: auto;
+}
+
+.library-eyebrow-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.library-eyebrow-count {
+  flex: none;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.library-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--content-border-neutral);
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.library-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: none;
+  color: var(--content-secondary);
+  cursor: pointer;
+}
+
+.library-chip-remove:hover {
+  background: var(--content-background-overlay);
+  color: var(--content-primary);
+}
+
+.library-chip--more {
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.library-chip--more:hover {
+  background: var(--content-background-base);
+}
+
+.library-chip--clear {
+  gap: 4px;
+  padding: 0 6px 0 10px;
+  cursor: pointer;
+}
+
+.library-chip--clear:hover {
+  background: var(--content-background-base);
+}
+
+.library-chip--clear svg {
+  color: var(--content-secondary);
+}
+
+/* The filter trigger is the pill's own submit disc, wearing the filter icon and neutral colors. */
+.library-filter-btn {
+  background: var(--content-background-base);
+  color: var(--content-primary);
+  box-shadow: 0 0 0 1px var(--content-border-neutral) inset;
+}
+
+.library-filter-btn:hover {
+  background: var(--content-background-overlay);
+}
+
+.library-filter-btn.is-active {
+  background: var(--content-primary);
+  color: var(--content-primary-inverse);
+  box-shadow: none;
+}
+
+/* The structured filters, a popover rising off the pill. Same surface as the brand card popover. */
+.library-filters {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: var(--z-popover);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 14px;
+  border-radius: var(--rounded-3xl);
+  background: var(--content-background-elevated);
+  box-shadow: var(--shadow-md);
+  animation: popoverFadeIn 0.2s ease;
+}
+
+.library-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.library-filter-field > span {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--content-tertiary);
+}
+
+.library-filter-field select {
+  height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--content-border-neutral);
+  border-radius: var(--rounded-lg);
+  background: var(--content-background-base) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23342e26' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m20 9-8 8-8-8'/></svg>") no-repeat right 10px center;
+  color: var(--content-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.library-filter-field select:focus-visible {
+  outline: none;
+  border-color: var(--content-primary);
+}
+
+/* The lightbox: the board blurs away and the cover comes forward, then one action opens the
+   live page. Mirrors the Editions zoom without a scene behind it. */
+.library-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* The scrim and blur fade on their own layer, so the card is solid from its first frame and
+   takes the lifted tile's place without a gap. */
+.library-lightbox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.library-lightbox.is-open::before {
+  opacity: 1;
+}
+
+.library-lightbox-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(280px, 460px) minmax(280px, 400px);
+  gap: 40px;
+  align-items: center;
+  width: min(100%, 900px);
+  max-height: calc(100vh - 48px);
+  transform-origin: 0 0;
+  transform: scale(0.94) translateY(12px);
+  transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
+}
+
+/* On desktop the card starts where the clicked cover stood, turned away, and flies forward as it
+   turns to face you (library.js sets the start on the card). The details follow it in. */
+.library-lightbox.is-open .library-lightbox-card {
+  transform: none;
+}
+
+.library-lightbox-body {
+  opacity: 0;
+  transition: opacity 0.3s ease 0.3s;
+}
+
+.library-lightbox.is-open .library-lightbox-body {
+  opacity: 1;
+}
+
+.library-lightbox.is-closing .library-lightbox-body {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+/* Anchored to the viewport, not the card. */
+.library-lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: var(--page-gutter);
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.library-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.library-lightbox-cover {
+  aspect-ratio: 1;
+  border-radius: 36px;
+  overflow: hidden;
+  background: var(--content-background-base);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
+}
+
+.library-lightbox-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-lightbox-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 48px 8px 0;
+  color: #fff;
+}
+
+/* The collaboration: each brand's avatar and name, in the marketing site's mono. */
+.library-lightbox-collab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: 'Fragment Mono', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* The brands' avatars, stacked and slightly offset, the first on top. */
+.library-lightbox-stack {
+  flex: none;
+  display: inline-flex;
+}
+
+.library-lightbox-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid #fff;
+  border-radius: var(--rounded-full);
+  overflow: hidden;
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--content-primary);
+}
+
+.library-lightbox-avatar + .library-lightbox-avatar {
+  margin-left: -12px;
+}
+
+.library-lightbox-avatar:nth-child(1) { z-index: 6; }
+.library-lightbox-avatar:nth-child(2) { z-index: 5; }
+.library-lightbox-avatar:nth-child(3) { z-index: 4; }
+.library-lightbox-avatar:nth-child(4) { z-index: 3; }
+.library-lightbox-avatar:nth-child(5) { z-index: 2; }
+.library-lightbox-avatar:nth-child(6) { z-index: 1; }
+
+.library-lightbox-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+.library-lightbox-title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.library-lightbox-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-lightbox-chips li {
+  padding: 5px 11px;
+  border-radius: var(--rounded-full);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.library-lightbox-products {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.library-lightbox-open {
+  margin-top: 10px;
+  gap: 8px;
+  align-self: flex-start;
+}
+
+/* The white elevated button: the app's surface with its shadow, for standing on the scrim. */
+.btn--elevated {
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.32);
+}
+
+.btn--elevated:hover {
+  background: var(--content-background-base);
+}
+
+/* On a phone the board is a grid you scroll, not a picture you drag. Same tiles, same omnibox. */
+@media (max-width: 900px) {
+  .library-section,
+  .library-viewport {
+    background: var(--content-background-base);
+  }
+
+  .library-viewport {
+    overflow: auto;
+    cursor: default;
+    touch-action: auto;
+    user-select: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 120px;
+  }
+
+  .library-board {
+    display: none;
+  }
+
+  .library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 20px 16px 0;
+  }
+
+  .library-tile {
+    position: relative;
+    bottom: auto;
+    width: auto;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 10px 22px -12px rgba(0, 0, 0, 0.3);
+  }
+
+  .library-tile::after {
+    display: none;
+  }
+
+  .library-tile:hover,
+  .library-tile:focus-visible {
+    transform: none;
+  }
+
+  .library-tile-name,
+  .library-tile-scrim {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .library-omni {
+    position: fixed;
+    padding: 0 16px 16px;
+  }
+
+  .library-filters {
+    grid-template-columns: 1fr;
+  }
+
+  /* The cover and details start at the top of the view; Open and Close are pinned to the bottom. */
+  .library-lightbox {
+    padding: 0;
+    align-items: flex-start;
+  }
+
+  /* The card scrolls under a fixed row of Open and Close along the bottom, so its own bottom
+     padding is that row's height plus its 24px stand-off, plus room to breathe. */
+  .library-lightbox-card {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    width: 100%;
+    height: 100vh;
+    padding: 20px 16px calc(24px + 48px + 24px);
+    align-content: start;
+    overflow: auto;
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+  }
+
+  .library-lightbox-body {
+    padding: 0;
+  }
+
+  .library-lightbox-close {
+    top: auto;
+    bottom: 24px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .library-lightbox-open {
+    position: fixed;
+    left: 16px;
+    right: calc(16px + 48px + 8px);
+    bottom: 24px;
+    z-index: 2;
+    justify-content: center;
+    margin: 0;
+  }
+
+  .library-lightbox.is-open .library-lightbox-card {
+    opacity: 1;
+  }
+
+  .library-lightbox-cover {
+    aspect-ratio: 1;
+    border-radius: 28px;
   }
 }

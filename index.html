@@ -39,8 +39,14 @@
 <body>
   <header class="header-nav" id="siteHeader">
     <a href="/" class="header-nav-logo" aria-label="OfferLab home" id="siteHeaderLogo">
-      <img src="assets/logo/offerlab-lockup-shine-white.svg" alt="OfferLab" width="108" height="24">
+      <img class="header-nav-logo-lockup" src="assets/logo/offerlab-lockup-shine-white.svg" alt="OfferLab" width="108" height="24">
+      <img class="header-nav-logo-mark" src="assets/logo/offerlab-mark.svg" alt="OfferLab" width="28" height="28">
     </a>
+    <div class="mode-switch" id="modeSwitch" role="group" aria-label="Mode">
+      <span class="mode-switch-indicator" id="modeSwitchIndicator" aria-hidden="true"></span>
+      <button type="button" class="mode-switch-btn" data-mode="finder" aria-pressed="true">Create</button>
+      <button type="button" class="mode-switch-btn" data-mode="library" aria-pressed="false">Showcase</button>
+    </div>
     <div class="offerlab-account-wrap hidden" id="offerlabAccountWrap">
       <button type="button" class="offerlab-account" id="offerlabAccount" aria-haspopup="true" aria-expanded="false">
         <span class="offerlab-account-badge" id="offerlabAccountBadge" aria-hidden="true"></span>
@@ -303,6 +309,63 @@
           <h2 class="error-title">Something went wrong</h2>
           <p class="error-message" id="errorMessage">Please try again in a moment.</p>
           <button class="try-again-btn" id="errorRetryBtn">Retry</button>
+        </div>
+      </section>
+
+      <!-- The collabs library: shelves that run forever in every direction on desktop, a plain
+           grid on a phone, an omnibox anchored to the bottom, and a lightbox. Reads
+           library/snapshot.json only; library.js builds every shelf. -->
+      <section class="library-section hidden" id="librarySection" aria-label="Collabs library">
+        <div class="library-viewport" id="libraryViewport" tabindex="0" aria-label="Bundle shelves. Drag or use the arrow keys to move around.">
+          <div class="library-board" id="libraryBoard"></div>
+          <div class="library-grid" id="libraryGrid"></div>
+          <div class="library-empty hidden" id="libraryEmpty">
+            <div class="library-empty-blur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="library-empty-message">
+              <p class="library-empty-title" id="libraryEmptyTitle">Nothing on the shelf for that</p>
+              <p class="library-empty-copy">Try a brand, a product or a category, or start over.</p>
+              <button type="button" class="btn btn--md btn--primary" data-action="library-clear">Clear search</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="library-omni">
+          <div class="omni-ai-box-container omni-ai-box-container--library">
+            <form class="search-form" id="libraryForm" role="search">
+              <div class="search-input-wrapper">
+                <input type="search" class="search-input" id="libraryInput" placeholder="Find a bundle by brand, product or category" autocomplete="off" spellcheck="false" aria-label="Search the library">
+                <div class="submit-button-wrapper">
+                  <button type="button" class="search-button library-filter-btn" id="libraryFilterBtn" aria-label="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="libraryFilters">
+                    <span data-icon="settings-slider-filter" data-icon-size="16"></span>
+                  </button>
+                </div>
+              </div>
+            </form>
+            <!-- What narrowed the shelves, as chips, tucked under the pill's top edge. -->
+            <div class="library-eyebrow hidden" id="libraryEyebrow" aria-live="polite">
+              <div class="library-eyebrow-chips" id="libraryEyebrowChips"></div>
+              <button type="button" class="library-chip library-chip--clear" data-action="library-clear">Clear <span data-icon="close-clear-x-circled-filled" data-icon-size="14"></span></button>
+            </div>
+            <div class="library-filters hidden" id="libraryFilters">
+              <label class="library-filter-field">
+                <span>Category</span>
+                <select id="libraryCategory" data-filter="category"></select>
+              </label>
+              <label class="library-filter-field">
+                <span>Brand</span>
+                <select id="libraryBrand" data-filter="brand"></select>
+              </label>
+              <label class="library-filter-field" id="libraryStoreField">
+                <span>Store</span>
+                <select id="libraryStore" data-filter="store"></select>
+              </label>
+              <button type="button" class="btn btn--md btn--ghost library-filters-clear" data-action="library-clear">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="library-lightbox hidden" id="libraryLightbox" role="dialog" aria-modal="true" aria-labelledby="libraryLightboxTitle">
+          <div class="library-lightbox-card"></div>
         </div>
       </section>
     </main>

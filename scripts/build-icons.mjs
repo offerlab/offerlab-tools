@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join, basename } from 'path';
 
 const root = new URL('..', import.meta.url).pathname;
-const sources = ['index.html', 'app.js', 'picker.js'].map(f => readFileSync(join(root, f), 'utf8')).join('\n');
+const sources = ['index.html', 'app.js', 'picker.js', 'library.js'].map(f => readFileSync(join(root, f), 'utf8')).join('\n');
 
 const used = new Set();
 for (const m of sources.matchAll(/icon\(\s*'([a-z0-9-]+)'/g)) used.add(m[1]);

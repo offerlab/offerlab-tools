@@ -1,0 +1,17 @@
+# Cloudflare Pages headers. The page, its modules and its stylesheet always revalidate, so a
+# deploy never leaves a browser holding new HTML against old JS or CSS; ETags make that cheap.
+# Fonts, images and the snapshot's logos are content that only changes with a new file name.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=604800
+
+/brand-tile-media/*
+  Cache-Control: public, max-age=604800
+
+/library/logos/*
+  Cache-Control: public, max-age=604800

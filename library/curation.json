@@ -1,0 +1,5 @@
+{
+  "_": "Handles, by store product handle. exclude beats pin beats the junk rule in scripts/build-library.mjs.",
+  "pin": [],
+  "exclude": []
+}
