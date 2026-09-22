@@ -9,6 +9,7 @@ import {
 } from './app.js';
 import { icon } from './icons.js';
 import * as offerlab from './offerlab.js';
+import { looksLikeDomain, resolveBrand } from './resolve.js';
 
 const PICK_PARAM = 'pick';
 const CONCEPT_MODEL = 'gemini-2.5-flash';
@@ -1481,20 +1482,31 @@ async function onUrlSubmit(e) {
   const input = form.querySelector('input');
   const button = form.querySelector('button[type="submit"]');
   const error = form.querySelector('.picker-url-error');
-  const domain = extractDomain(input.value.trim());
-  if (!domain) {
-    error.textContent = 'Enter a brand website, like graza.co.';
+  const typed = input.value.trim();
+  if (!typed) {
+    error.textContent = 'Enter a brand name or website, like graza.co.';
     return;
   }
-  if (entryFor(domain) && domain !== state.swapDomain) {
-    hideUrlDialog();
-    scrollToColumn(domain);
-    return;
-  }
+  if (button.disabled) return;
   button.disabled = true;
-  button.textContent = 'Fetching catalog';
   error.textContent = '';
   try {
+    // A name resolves to its site the way the omnibar does; an address goes straight through.
+    let domain = looksLikeDomain(typed) ? extractDomain(typed) : null;
+    if (!domain) {
+      button.textContent = 'Finding site';
+      domain = await resolveBrand(typed);
+    }
+    if (!domain) {
+      error.textContent = `Couldn't find a site for “${typed}”. Enter its web address, like graza.co.`;
+      return;
+    }
+    if (entryFor(domain) && domain !== state.swapDomain) {
+      hideUrlDialog();
+      scrollToColumn(domain);
+      return;
+    }
+    button.textContent = 'Fetching catalog';
     const catalog = await fetchCatalog(domain);
     if (!catalog.products.length) {
       error.textContent = catalog.status === 'error'
