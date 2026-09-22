@@ -2471,8 +2471,10 @@ position: relative;
   object-fit: cover;
 }
 
+/* Without a cover the card is its content alone; a blank column would only say something was
+   missing. The visit control, which stands on the cover on a phone, moves back into the header. */
 .searched-brand-card-image.no-image {
-  background: var(--content-background-base);
+  display: none;
 }
 
 .searched-brand-card-content {
@@ -2600,6 +2602,21 @@ position: relative;
 
   .searched-brand-card-description {
     -webkit-line-clamp: 2;
+  }
+
+  /* The visit control sits on the cover, in its top left corner, so the header keeps its width
+     for the name. The card is the positioned ancestor and the cover is flush with its corner. */
+  .searched-brand-card-link-slot {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    margin: 0;
+    z-index: 1;
+  }
+
+  .searched-brand-card:has(.searched-brand-card-image.no-image) .searched-brand-card-link-slot {
+    position: static;
+    margin-left: auto;
   }
 }
 
