@@ -62,6 +62,11 @@ export function saveSearch(domain, record) {
   return attempt(null, () => call(`searches/${encodeURIComponent(domain)}`, { method: 'PUT', body: record }));
 }
 
+/** Brands whose own search recommended this domain; empty when there are none or no store. */
+export function loadKnownPartners(domain) {
+  return attempt([], () => call(`partners/${encodeURIComponent(domain)}`));
+}
+
 /* -------------------------------------------------------------------------- */
 /* Search history                                                              */
 /* -------------------------------------------------------------------------- */
