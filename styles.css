@@ -6918,17 +6918,33 @@ position: absolute;
   background: none;
 }
 
-/* Empty result, centered in the viewport where the board would be. */
+/* Empty result: a card in the middle of the viewport, the empty shelves still up behind it. */
 .library-empty {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.library-empty-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 6px;
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 32px 28px;
+  border-radius: 28px;
+  background: var(--content-background-elevated);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    6px 10px 24px -6px rgba(0, 0, 0, 0.28);
   text-align: center;
-  padding: 24px;
+  pointer-events: auto;
 }
 
 .library-empty-title {
@@ -6937,12 +6953,14 @@ position: absolute;
   font-weight: 600;
   letter-spacing: -0.014em;
   color: var(--content-primary);
+  overflow-wrap: anywhere;
 }
 
 .library-empty-copy {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   color: var(--content-secondary);
   font-size: var(--font-size-sm);
+  line-height: 1.5;
 }
 
 /* The omnibox, anchored to the bottom of the viewport. The pill is the finder's own; only the

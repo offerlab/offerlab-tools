@@ -2,13 +2,25 @@
  * The collabs library: every published demo bundle on shelves that run forever in every direction,
  * from library/snapshot.json and nothing else (OL-3832, OL-4032). No OfferLab calls, no account.
  *
- * The board is virtual. A cell (row, column) maps to a bundle through a stable hash, so the grid
- * is unbounded, a bundle recurs across it, and a shared link lays out the same way twice. Only the
- * cells near the viewport exist in the DOM; panning creates and drops them.
+ * The board is virtual. Each row deals the bundles in a shuffle seeded by its row number and
+ * repeats it, so the grid is unbounded, a bundle recurs across it, and a shared link lays out the
+ * same way twice. Only the cells near the viewport exist in the DOM; panning creates and drops them.
  */
 import { icon } from './icons.js';
 
 const SNAPSHOT_URL = 'library/snapshot.json';
+
+// Words a booth visitor types around the thing they mean, and the words they use for ours.
+const STOPWORDS = new Set(('a an and or for with of to in on my me our some something that this is are i want need looking ' +
+  'show find who someone anything any bundle bundles collab collabs kit box set brand brands like what do you have got').split(' '));
+const SYNONYMS = {
+  spirits: 'alcohol', liquor: 'alcohol', booze: 'alcohol', cocktail: 'alcohol', cocktails: 'alcohol',
+  vitamins: 'supplements', vitamin: 'supplements', workout: 'fitness', gym: 'fitness', exercise: 'fitness',
+  puppy: 'dog', pets: 'pet', toddler: 'kids', kid: 'kids', children: 'kids', child: 'kids',
+  beverage: 'drink', beverages: 'drink', drinks: 'drink', makeup: 'beauty', cosmetics: 'beauty',
+  haircare: 'hair', skincare: 'skin', grocery: 'food', groceries: 'food', healthy: 'clean',
+  men: 'him', man: 'him', guys: 'him'
+};
 const MOBILE = window.matchMedia('(max-width: 900px)');
 const PARAMS = { query: 'lq', category: 'cat', brand: 'brand', store: 'store' };
 
@@ -61,6 +73,7 @@ export async function initLibrary() {
   dom.eyebrow = document.getElementById('libraryEyebrow');
   dom.eyebrowText = document.getElementById('libraryEyebrowText');
   dom.empty = document.getElementById('libraryEmpty');
+  dom.emptyTitle = document.getElementById('libraryEmptyTitle');
   dom.lightbox = document.getElementById('libraryLightbox');
 
   const geometry = { tile: TILE, gap: GAP, plank: PLANK_H, air: AIR, shelf: SHELF_H };
@@ -100,9 +113,9 @@ async function load() {
   const snapshot = await response.json();
   state.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
-    // One lowercased haystack per bundle, built once, so typing filters without re-joining.
-    haystack: [bundle.name, bundle.anchorBrand, ...bundle.brands, ...bundle.products, bundle.category.replace(/-/g, ' ')]
-      .join(' • ').toLowerCase()
+    // Every word of the bundle, stemmed once, so a query is a set lookup per term.
+    tokens: new Set(words([bundle.name, bundle.anchorBrand, ...bundle.brands, ...bundle.products,
+      bundle.category.replace(/-/g, ' '), bundle.description].join(' ')).map(stem))
   }));
   state.categories = snapshot.categories.filter(c => state.bundles.some(b => b.category === c));
   renderFilterOptions();
@@ -166,16 +179,23 @@ function mix(row, col) {
 }
 
 /**
- * Which bundle a cell holds. A hash rather than a shuffle so that any cell, however far out, has
- * an answer without a table, and the same answer on the next visit. A cell that would repeat its
- * left or upper neighbor takes the next bundle instead.
+ * Each row deals the visible bundles in its own shuffled order and repeats it, so a bundle shows
+ * up once per lap of the row and never twice in a row. The shuffle is seeded by the row number,
+ * so any row, however far out, deals the same way on the next visit.
  */
-function bundleAt(row, col) {
-  const n = state.visible.length;
-  let i = mix(row, col) % n;
-  if (n > 2 && (i === mix(row, col - 1) % n || i === mix(row - 1, col) % n)) i = (i + 1) % n;
-  return state.visible[i];
+function orderFor(row) {
+  if (row.order?.length === state.visible.length) return row.order;
+  const order = state.visible.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = mix(row.r, i) % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  row.order = order;
+  return order;
 }
+
+const mod = (a, b) => ((a % b) + b) % b;
+const bundleAt = (row, c) => state.visible[orderFor(row)[mod(c, state.visible.length)]];
 
 const rowOffset = r => (r & 1 ? COL_W / 2 : 0);
 
@@ -196,7 +216,7 @@ function rowFor(r) {
 
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 function render() {
-  if (MOBILE.matches || !state.visible.length) return;
+  if (MOBILE.matches) return;
   const view = dom.viewport.getBoundingClientRect();
   const x0 = -state.pan.x - COL_W, x1 = -state.pan.x + view.width + COL_W;
   const r0 = Math.floor(-state.pan.y / SHELF_H) - 1, r1 = Math.ceil((-state.pan.y + view.height) / SHELF_H) + 1;
@@ -208,12 +228,13 @@ function render() {
       part.style.left = `${x0}px`;
       part.style.width = `${x1 - x0}px`;
     }
+    if (!state.visible.length) continue;
     const c0 = Math.floor((x0 - rowOffset(r)) / COL_W), c1 = Math.floor((x1 - rowOffset(r)) / COL_W);
     for (let c = c0; c <= c1; c++) {
       const key = `${r}:${c}`;
       keep.add(key);
       if (state.cells.has(key)) continue;
-      const tile = makeTile(bundleAt(r, c));
+      const tile = makeTile(bundleAt(row, c));
       tile.style.left = `${c * COL_W + rowOffset(r) + GAP / 2}px`;
       state.cells.set(key, tile);
       row.el.appendChild(tile);
@@ -240,29 +261,41 @@ function clearBoard() {
 /* Filtering                                                                   */
 /* -------------------------------------------------------------------------- */
 
-function matches(bundle) {
-  const { query, category, brand, store } = state.filters;
+const words = text => text.toLowerCase().replace(/[’'"“”]/g, '').split(/[^a-z0-9+-]+/).filter(Boolean);
+const stem = word => word.replace(/ies$/, 'y').replace(/(sses|shes|ches|xes)$/, m => m.slice(0, -2)).replace(/([^s])s$/, '$1');
+const queryTerms = query => [...new Set(words(query).filter(w => !STOPWORDS.has(w)).map(w => SYNONYMS[w] || w).map(stem))];
+
+function matchesFilters(bundle) {
+  const { category, brand, store } = state.filters;
   if (category && bundle.category !== category) return false;
   if (store && bundle.store !== store) return false;
   if (brand && !bundle.brands.some(b => b.toLowerCase() === brand.toLowerCase())) return false;
-  if (query) {
-    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.every(term => bundle.haystack.includes(term))) return false;
-  }
   return true;
 }
 
+/**
+ * The bundles that match the most of the query's terms: all of them when any bundle does, else
+ * the best partial match, so "cold and flu" still finds the cold-season shelf. Nothing matching
+ * even one term is the empty state.
+ */
+function search(bundles, query) {
+  const terms = queryTerms(query);
+  if (!terms.length) return bundles;
+  const scored = bundles.map(bundle => ({ bundle, hits: terms.filter(term => bundle.tokens.has(term)).length }));
+  const best = Math.max(0, ...scored.map(s => s.hits));
+  return best ? scored.filter(s => s.hits === best).map(s => s.bundle) : [];
+}
+
 function apply() {
-  state.visible = state.bundles.filter(matches);
+  state.visible = search(state.bundles.filter(matchesFilters), state.filters.query);
   const n = state.visible.length;
   renderEyebrow(n);
-  dom.empty.classList.toggle('hidden', n > 0);
+  renderEmpty(n);
   dom.filterBtn.classList.toggle('is-active', !!(state.filters.category || state.filters.brand || state.filters.store));
   writeFiltersToUrl();
 
   clearBoard();
   dom.grid.replaceChildren();
-  if (!n) return;
   if (MOBILE.matches) {
     // A phone scrolls the visible bundles once each, no repeats.
     dom.grid.replaceChildren(...state.visible.map(makeTile));
@@ -279,12 +312,23 @@ function apply() {
   render();
 }
 
+const narrowedBy = () => {
+  const { query, category, brand, store } = state.filters;
+  return [category && label(category), brand, store, query && `“${query}”`].filter(Boolean);
+};
+
 /** Only while something narrows the shelves: the count, then each filter, then Clear. */
 function renderEyebrow(n) {
-  const { query, category, brand, store } = state.filters;
-  const parts = [category && label(category), brand, store, query && `“${query}”`].filter(Boolean);
+  const parts = narrowedBy();
   dom.eyebrow.classList.toggle('hidden', !parts.length);
   dom.eyebrowText.textContent = [`${n} of ${state.bundles.length}`, ...parts].join(' · ');
+}
+
+/** Empty shelves stay up behind it; the card names what came up empty. */
+function renderEmpty(n) {
+  dom.empty.classList.toggle('hidden', n > 0);
+  if (n) return;
+  dom.emptyTitle.textContent = `Nothing on the shelf for ${narrowedBy().join(' · ')}`;
 }
 
 function readFiltersFromUrl() {

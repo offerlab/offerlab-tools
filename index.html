@@ -319,9 +319,11 @@
           <div class="library-board" id="libraryBoard"></div>
           <div class="library-grid" id="libraryGrid"></div>
           <div class="library-empty hidden" id="libraryEmpty">
-            <p class="library-empty-title">No bundles match</p>
-            <p class="library-empty-copy">Try another word, or clear the filters.</p>
-            <button type="button" class="btn btn--md btn--secondary" data-action="library-clear">Clear filters</button>
+            <div class="library-empty-card">
+              <p class="library-empty-title" id="libraryEmptyTitle">Nothing on the shelf for that</p>
+              <p class="library-empty-copy">Try a brand, a product or a category, or start over.</p>
+              <button type="button" class="btn btn--md btn--primary" data-action="library-clear">Clear search</button>
+            </div>
           </div>
         </div>
 
