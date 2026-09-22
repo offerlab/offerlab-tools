@@ -17,6 +17,7 @@ const REQUEST_TIMEOUT_MS = 30000;
  * set rather than one name, so a rename downgrades nobody silently.
  */
 export const ADMIN_TOOLS = [
+  'build_bundle_from_storefronts',
   'bulk_create_team_collaborations', 'create_sample_team_from_urls', 'extract_brand_dna',
   'generate_bundle_recommendations', 'generate_product_anchored_bundle_recommendations',
   'generate_stack_bundle_media', 'get_action_status', 'publish_stack_media_to_shopify',
@@ -25,6 +26,17 @@ export const ADMIN_TOOLS = [
 
 export function isDeveloper(toolNames) {
   return ADMIN_TOOLS.some(name => toolNames?.includes(name));
+}
+
+/**
+ * The one tool the handoff calls. Gated on separately from developer access: a token can be a
+ * developer on an OfferLab that has not deployed this yet, and hiding the button is a better
+ * answer than a failure at the click.
+ */
+export const BUILD_TOOL = 'build_bundle_from_storefronts';
+
+export function canBuildBundles(toolNames) {
+  return !!toolNames?.includes(BUILD_TOOL);
 }
 
 /**
@@ -40,8 +52,7 @@ export function endpoints(host = DEFAULT_OFFERLAB_HOST) {
     authorize: `${base}/oauth/authorize`,
     token: `${base}/oauth/token`,
     register: `${base}/oauth/register`,
-    mcp: `${base}/api/mcp`,
-    brand: (domain) => `${base}/demo/brands/${encodeURIComponent(domain)}`
+    mcp: `${base}/api/mcp`
   };
 }
 
@@ -94,28 +105,6 @@ export function registerClient({ redirectUri, clientName, host, fetchImpl = fetc
 /** Authorization code exchange and refresh both land here; the caller supplies the grant. */
 export function exchangeToken({ params, host, fetchImpl = fetch }) {
   return post(endpoints(host).token, { fetchImpl, form: true, body: params });
-}
-
-/**
- * Provisions a brand the demo environment has never seen.
- *
- * The provisioning endpoint is unauthenticated on QA hosts, so it is never reachable from the
- * browser: the caller's token is checked for developer access here first (OL-3986). The external
- * ids are the products the bundle actually needs. The endpoint ignores them today and imports the
- * whole catalog; OL-3996 makes it import these first.
- */
-export async function provisionBrand({ token, domain, externalIds = [], host, fetchImpl = fetch }) {
-  const tools = await callMcp({
-    token, host, fetchImpl,
-    payload: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }
-  });
-  if (tools.status === 401) return { status: 401, data: { error: 'Not connected to OfferLab' } };
-
-  const names = (tools.data?.result?.tools || []).map(tool => tool.name);
-  if (!isDeveloper(names)) {
-    return { status: 403, data: { error: 'Creating a brand in the demo environment needs a developer account' } };
-  }
-  return post(endpoints(host).brand(domain), { fetchImpl, body: { external_ids: externalIds.map(String) } });
 }
 
 /** One JSON-RPC call. The endpoint is stateless — no initialize handshake, no session header. */

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 32 32">
+  <g class="logo/offerlab/app-icon" clip-path="url(#a)">
+    <path fill="#FFED84" d="M0 8a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H8a8 8 0 0 1-8-8V8Z" class="square-shine"/>
+    <mask id="b" width="32" height="32" x="0" y="0" class="b" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+      <path fill="#FFED84" d="M0 8a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v16a8 8 0 0 1-8 8H8a8 8 0 0 1-8-8V8Z" class="square-mask"/>
+    </mask>
+    <g mask="url(#b)">
+      <path fill="#4D2F06" fill-rule="evenodd" d="M11.782 32H0V20.217l6.741-13.45h14.906a3.586 3.586 0 0 1 3.587 3.585V25.24L11.782 32Zm10.932-9.054H9.054V9.286h12.512c.633 0 1.148.514 1.148 1.147v12.513Z" class="ol-mark" clip-rule="evenodd"/>
+    </g>
+  </g>
+  <defs>
+    <clipPath id="a" class="a">
+      <path fill="#fff" d="M0 0h32v32H0z"/>
+    </clipPath>
+  </defs>
+</svg>

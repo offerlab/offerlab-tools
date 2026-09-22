@@ -9,7 +9,7 @@ import { dirname, join } from 'path';
 import { config } from 'dotenv';
 import { fetchShopifyCatalog } from './shared/catalog.js';
 import { fetchSocials } from './shared/socials.js';
-import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp, provisionBrand } from './shared/offerlab.js';
+import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp } from './shared/offerlab.js';
 
 config(); // Load .env
 
@@ -243,24 +243,6 @@ app.post('/api/offerlab/token', express.json(), async (req, res) => {
   } catch (err) {
     console.error('[OfferLab] token error:', err);
     res.status(502).json({ error: 'Could not reach OfferLab to exchange the code' });
-  }
-});
-
-// The demo endpoint is unauthenticated on QA hosts, so the developer check happens here, not
-// in the browser, and the browser never learns the provisioning url.
-app.post('/api/offerlab/provision', express.json(), async (req, res) => {
-  const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  if (!token) return res.status(401).json({ error: 'Missing bearer token' });
-  if (!req.body?.domain) return res.status(400).json({ error: 'Missing domain' });
-  try {
-    const { status, data } = await provisionBrand({
-      token, domain: req.body.domain, externalIds: req.body.external_ids || [], host: offerlabHost
-    });
-    console.log(`[OfferLab] provision ${req.body.domain} -> ${status}`);
-    res.status(status).json(data);
-  } catch (err) {
-    console.error('[OfferLab] provision error:', err);
-    res.status(502).json({ error: 'Could not reach OfferLab to provision that brand' });
   }
 });
 
