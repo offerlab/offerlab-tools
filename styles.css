@@ -1727,13 +1727,16 @@ body.showing-results .main-content {
   50% { opacity: 0; }
 }
 
+/* The right padding is the two discs, their gap and the wrapper's padding: the text stops at
+   the camera instead of running under it. */
 .search-input {
   flex: 1;
+  min-width: 0;
   flex-direction: row;
   font-size: var(--font-size-lg);
   color: var(--content-primary);
   background: transparent;
-  padding: 4px 92px 4px 20px;
+  padding: 4px 102px 4px 20px;
   text-align: left;
 }
 
@@ -3242,7 +3245,7 @@ position: relative;
   }
 
   .search-input {
-    padding: 16px 8px;
+    padding: 16px 102px 16px 16px;
     font-size: var(--font-size-base);
   }
 
