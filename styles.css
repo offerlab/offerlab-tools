@@ -3426,8 +3426,9 @@ position: relative;
     border-radius: var(--rounded-2xl) var(--rounded-2xl) 0 0;
   }
 
-  /* Room at the end of the scroll for the footer that stands over it. */
-  .sheet-scroll::after {
+  /* Room at the end of the scroll for the results footer that stands over it, and only then:
+     the Showcase fills the sheet and keeps its own room for its own footer. */
+  .main-content:has(> .omni-footer:not(.hidden)) .sheet-scroll::after {
     content: "";
     flex: none;
     height: 104px;
@@ -7901,10 +7902,12 @@ position: relative;
   /* The shelves stand still and the viewport scrolls down through them; each shelf's rail scrolls
      sideways on its own. The rail runs one air's height past its plank so a cover's shadow is
      not cut at the shelf's edge; below it is only the next shelf's air, which holds nothing. */
+  /* Isolated, so the shelves' own stacking never rises over the footer. */
   .library-viewport {
     overflow: hidden auto;
     touch-action: auto;
     cursor: auto;
+    isolation: isolate;
   }
 
   .library-board {
@@ -7950,7 +7953,7 @@ position: relative;
   }
 
   .library-omni {
-    padding: 24px 16px 24px;
+    padding: 24px 16px 16px;
     background: linear-gradient(
       to bottom,
       transparent,
