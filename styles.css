@@ -6646,7 +6646,7 @@ position: absolute;
 }
 
 /* --------------------------------------------------------------------------
-   Mode switch: Create | Shelf, centered in the dark bar
+   Mode switch: Create | Showcase, centered in the dark bar
    -------------------------------------------------------------------------- */
 /* The app's segmented control. Equal tracks (an inline grid sizes every track to the widest), and
    the selected pill is its own layer that slides one track per index. Absolutely centered rather

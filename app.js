@@ -505,7 +505,7 @@ function showSection(sectionName) {
 }
 
 /* --------------------------------------------------------------------------
-   Mode switch: Create | Shelf
+   Mode switch: Create | Showcase
    -------------------------------------------------------------------------- */
 const MODE_PARAM = 'view';
 const MODES = ['finder', 'library'];
