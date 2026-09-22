@@ -2582,9 +2582,11 @@ position: relative;
     flex-direction: column;
   }
 
+  /* Stretch, not start: a started item takes its max-content width, and the description and the
+     thumbnail strip inside it then run past the card instead of wrapping and scrolling. */
   .searched-brand-card-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .searched-brand-card-image {
