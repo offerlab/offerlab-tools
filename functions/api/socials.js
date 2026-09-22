@@ -5,14 +5,13 @@
  * again; `?refresh=1` forces the crawl. Without a DB binding it just proxies.
  */
 import { fetchSocials } from '../../shared/socials.js';
-import { getSocials, putSocials, isFresh, SOCIALS_TTL_MS } from '../../shared/db.js';
+import { readThrough, getSocials, putSocials, SOCIALS_TTL_MS } from '../../shared/db.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const domain = url.searchParams.get('domain');
   const refresh = url.searchParams.get('refresh') === '1';
-  const db = env.DB || null;
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -33,18 +32,12 @@ export async function onRequest(context) {
   }
 
   try {
-    if (db && !refresh) {
-      const stored = await getSocials(db, domain).catch(err => {
-        console.warn('[Socials Proxy] Store read failed:', err.message);
-        return null;
-      });
-      if (isFresh(stored, SOCIALS_TTL_MS)) return json({ ...stored, cached: true });
-    }
-
-    const result = await fetchSocials(domain);
-    if (db) {
-      context.waitUntil(putSocials(db, domain, result).catch(err => console.warn('[Socials Proxy] Store write failed:', err.message)));
-    }
+    const result = await readThrough({
+      db: env.DB || null, domain, refresh,
+      get: getSocials, put: putSocials, ttl: SOCIALS_TTL_MS,
+      crawl: fetchSocials,
+      defer: promise => context.waitUntil(promise)
+    });
     return json(result, 200, refresh ? 'no-store' : 'public, max-age=3600');
   } catch (err) {
     console.error('[Socials Proxy] Error:', err);

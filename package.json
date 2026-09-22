@@ -25,5 +25,8 @@
     "@tailwindcss/cli": "^4.1.18",
     "tailwindcss": "^4.1.18",
     "wrangler": "^4.62.0"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

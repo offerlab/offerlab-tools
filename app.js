@@ -243,7 +243,7 @@ function extractDomain(url) {
     const urlStr = url.trim();
     const fullUrl = urlStr.startsWith('http') ? urlStr : 'https://' + urlStr;
     const urlObj = new URL(fullUrl);
-    return urlObj.hostname.replace('www.', '');
+    return urlObj.hostname.replace(/^www\./, '');
   } catch {
     return normalizeUrl(url);
   }
@@ -333,8 +333,14 @@ function getSearchHistory() {
   return searchHistory;
 }
 
+// Refreshes can overlap (the dropdown opening while an add settles); only the latest one lands.
+let historyRefresh = 0;
+
 async function refreshSearchHistory() {
+  const request = ++historyRefresh;
   const fresh = await store.loadHistory(CONFIG.MAX_SEARCH_HISTORY);
+  // No answer from the store keeps what is on screen; a refresh that was overtaken is dropped.
+  if (!fresh || request !== historyRefresh) return searchHistory;
   const same = fresh.length === searchHistory.length && fresh.every((item, i) => item.domain === searchHistory[i].domain);
   if (same) return searchHistory;
   searchHistory = fresh;
@@ -833,6 +839,13 @@ async function attachCatalogs(brands, onCatalog) {
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONFIG.CATALOG_CONCURRENCY, brands.length) }, worker));
+}
+
+/** A catalog that needs no Google Shopping search: Shopify, or a fresh SERP result from the store. */
+function hasCatalog(catalog) {
+  if (!catalog) return false;
+  if (catalog.status === 'shopify') return true;
+  return catalog.status === 'serp' && (catalog.products?.length || 0) > 0 && !catalog.stale;
 }
 
 // A Shopify catalog is already in the store from the crawl that fetched it, so only what the
@@ -1490,7 +1503,7 @@ async function renderBundlesBuilt(searchedDomain, partnerDomain) {
       `<li class="pitch-bundle-item">${escapeHtml(product.title)} <span class="pitch-bundle-item-brand">by ${escapeHtml(product.brand)}</span></li>`
     ).join('');
     return `
-      <div class="pitch-bundle" data-stack-id="${draft.stackId}">
+      <div class="pitch-bundle" data-stack-id="${escapeHtml(String(draft.stackId))}">
         <div class="pitch-bundle-name">${escapeHtml(draft.name)}</div>
         ${items ? `<ul class="pitch-bundle-items">${items}</ul>` : ''}
         <div class="pitch-bundle-links">
@@ -1521,7 +1534,7 @@ async function fillPublishedLinks(searchedDomain) {
       if (!url) continue;
       offerlab.rememberPublishedUrl(searchedDomain, draft.stackId, url);
       draft.publishedUrl = url;
-      const link = elements.pitchBundlesBuilt?.querySelector(`[data-stack-id="${draft.stackId}"] .pitch-bundle-link--pdp`);
+      const link = elements.pitchBundlesBuilt?.querySelector(`[data-stack-id="${CSS.escape(String(draft.stackId))}"] .pitch-bundle-link--pdp`);
       if (link) {
         link.href = url;
         link.hidden = false;
@@ -1891,7 +1904,7 @@ function renderBrandIntelligenceSection(intelligence) {
 
 /* --- Pitch Modal Open/Close --- */
 
-function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
+async function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
   currentPitchBrand = brand;
 
   // brand1 = searched brand (pitched TO), brand2 = recommended brand (collab WITH)
@@ -1917,7 +1930,7 @@ function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
 
   // Render quick links card for both brands
   renderQuickLinksCard(searchedBrand, brand);
-  renderBundlesBuilt(searchedDomain, partnerDomain);
+  const bundlesBuilt = renderBundlesBuilt(searchedDomain, partnerDomain);
 
   // Show modal
   elements.pitchModalOverlay.classList.remove('hidden');
@@ -1929,6 +1942,9 @@ function openPitchModal(brand, { skipUrlUpdate = false } = {}) {
     url.searchParams.set('pitch', brand.name);
     history.pushState(null, '', url.toString());
   }
+
+  // The pitch prompt names the bundles already built for this pair, so they are in before it runs.
+  await bundlesBuilt;
 
   // Check pitch cache — if we already generated this pitch, render instantly
   const cacheKey = `${currentPitchBrand1}|${currentPitchBrand2}`;
@@ -2177,7 +2193,9 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onC
     // ========================================
     // PHASE 4: Google Shopping only for brands without a public catalog (paid, 1 search per brand)
     // ========================================
-    const fallbackBrands = brands.filter(b => b.catalog?.status !== 'shopify').slice(0, CONFIG.SERP_FALLBACK_BRANDS);
+    // A brand whose Google Shopping catalog the store served fresh is not searched again; a stale
+    // one is, so it gets refreshed.
+    const fallbackBrands = brands.filter(b => !hasCatalog(b.catalog)).slice(0, CONFIG.SERP_FALLBACK_BRANDS);
     let serpApiOutOfCredits = false;
     if (fallbackBrands.length > 0) {
       console.log(`[Discovery] PHASE 4: SERP fallback for ${fallbackBrands.length} brands without a catalog`);

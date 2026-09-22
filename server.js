@@ -12,7 +12,6 @@ import { fetchSocials } from './shared/socials.js';
 import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp } from './shared/offerlab.js';
 import { mkdirSync } from 'fs';
 import * as store from './shared/db.js';
-import { openLocalD1, applyMigrations } from './shared/sqlite-d1.js';
 import { handleDataRequest } from './shared/data-api.js';
 
 config(); // Load .env
@@ -22,12 +21,26 @@ const app = express();
 const PORT = process.env.PORT || 5500;
 const SERPAPI_TIMEOUT_MS = 15000;
 
-// The data store: the D1 schema in a SQLite file, so shared/db.js runs here unchanged.
-const DATA_DIR = join(__dirname, '.data');
-mkdirSync(DATA_DIR, { recursive: true });
-const db = openLocalD1(join(DATA_DIR, 'collab-finder.sqlite'));
-const migrated = await applyMigrations(db, join(__dirname, 'migrations'));
-if (migrated.length) console.log(`[Data] Applied migrations: ${migrated.join(', ')}`);
+/**
+ * The data store: the D1 schema in a SQLite file, so shared/db.js runs here unchanged. It rides
+ * on Node's built-in SQLite (22.13+); on an older Node the server still starts, only without
+ * persistence, the way a Pages deploy with no DB binding does.
+ */
+async function openStore() {
+  try {
+    const { openLocalD1, applyMigrations } = await import('./shared/sqlite-d1.js');
+    const dataDir = join(__dirname, '.data');
+    mkdirSync(dataDir, { recursive: true });
+    const client = openLocalD1(join(dataDir, 'collab-finder.sqlite'));
+    const migrated = await applyMigrations(client, join(__dirname, 'migrations'));
+    if (migrated.length) console.log(`[Data] Applied migrations: ${migrated.join(', ')}`);
+    return client;
+  } catch (err) {
+    console.warn(`[Data] No local data store, running without persistence (${err.message}). Node 22.13+ has the built-in SQLite this needs.`);
+    return null;
+  }
+}
+const db = await openStore();
 
 // OpenGraph proxy - API key stays server-side
 /**
@@ -210,20 +223,16 @@ app.get('/api/catalog', async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid domain parameter' });
   }
   try {
-    if (req.query.refresh !== '1') {
-      const stored = await store.getCatalog(db, domain);
-      if (store.isFresh(stored, store.CATALOG_TTL_MS)) {
-        console.log(`[Catalog Proxy] ${domain}: ${stored.status} (${stored.count} products, stored)`);
-        return res.json({ ...stored, cached: true });
-      }
-    }
-    const catalog = await fetchShopifyCatalog(domain);
-    console.log(`[Catalog Proxy] ${domain}: ${catalog.status} (${catalog.count} products)`);
+    const catalog = await store.readThrough({
+      db, domain, refresh: req.query.refresh === '1',
+      get: store.getCatalog, put: store.putCatalog, ttl: store.CATALOG_TTL_MS, keep: store.keepStoredSerp,
+      crawl: fetchShopifyCatalog
+    });
+    console.log(`[Catalog Proxy] ${domain}: ${catalog.status} (${catalog.count} products${catalog.cached ? ', stored' : ''})`);
     res.json(catalog);
-    await store.putCatalog(db, domain, catalog);
   } catch (err) {
     console.error('[Catalog Proxy] Error:', err);
-    if (!res.headersSent) res.status(500).json({ error: 'Failed to fetch catalog' });
+    res.status(500).json({ error: 'Failed to fetch catalog' });
   }
 });
 
@@ -234,20 +243,16 @@ app.get('/api/socials', async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid domain parameter' });
   }
   try {
-    if (req.query.refresh !== '1') {
-      const stored = await store.getSocials(db, domain);
-      if (store.isFresh(stored, store.SOCIALS_TTL_MS)) {
-        console.log(`[Socials Proxy] ${domain}: ${stored.status} (stored)`);
-        return res.json({ ...stored, cached: true });
-      }
-    }
-    const result = await fetchSocials(domain);
-    console.log(`[Socials Proxy] ${domain}: ${result.status} (${Object.keys(result.socials).join(', ') || 'none'})`);
+    const result = await store.readThrough({
+      db, domain, refresh: req.query.refresh === '1',
+      get: store.getSocials, put: store.putSocials, ttl: store.SOCIALS_TTL_MS,
+      crawl: fetchSocials
+    });
+    console.log(`[Socials Proxy] ${domain}: ${result.status} (${Object.keys(result.socials).join(', ') || 'none'}${result.cached ? ', stored' : ''})`);
     res.json(result);
-    await store.putSocials(db, domain, result);
   } catch (err) {
     console.error('[Socials Proxy] Error:', err);
-    if (!res.headersSent) res.status(500).json({ error: 'Failed to fetch socials' });
+    res.status(500).json({ error: 'Failed to fetch socials' });
   }
 });
 
@@ -257,6 +262,7 @@ app.all('/api/data/*', express.json({ limit: '4mb' }), async (req, res) => {
     method: req.method,
     segments: String(req.params[0] || '').split('/').filter(Boolean),
     query: req.query,
+    contentType: req.get('content-type') || '',
     body: req.body && Object.keys(req.body).length ? req.body : null,
     db
   });

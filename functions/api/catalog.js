@@ -6,14 +6,13 @@
  * again; `?refresh=1` forces the crawl. Without a DB binding it just proxies.
  */
 import { fetchShopifyCatalog } from '../../shared/catalog.js';
-import { getCatalog, putCatalog, isFresh, CATALOG_TTL_MS } from '../../shared/db.js';
+import { readThrough, getCatalog, putCatalog, keepStoredSerp, CATALOG_TTL_MS } from '../../shared/db.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   const domain = url.searchParams.get('domain');
   const refresh = url.searchParams.get('refresh') === '1';
-  const db = env.DB || null;
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -34,18 +33,12 @@ export async function onRequest(context) {
   }
 
   try {
-    if (db && !refresh) {
-      const stored = await getCatalog(db, domain).catch(err => {
-        console.warn('[Catalog Proxy] Store read failed:', err.message);
-        return null;
-      });
-      if (isFresh(stored, CATALOG_TTL_MS)) return json({ ...stored, cached: true });
-    }
-
-    const catalog = await fetchShopifyCatalog(domain);
-    if (db) {
-      context.waitUntil(putCatalog(db, domain, catalog).catch(err => console.warn('[Catalog Proxy] Store write failed:', err.message)));
-    }
+    const catalog = await readThrough({
+      db: env.DB || null, domain, refresh,
+      get: getCatalog, put: putCatalog, ttl: CATALOG_TTL_MS, keep: keepStoredSerp,
+      crawl: fetchShopifyCatalog,
+      defer: promise => context.waitUntil(promise)
+    });
     return json(catalog, 200, refresh ? 'no-store' : 'public, max-age=3600');
   } catch (err) {
     console.error('[Catalog Proxy] Error:', err);

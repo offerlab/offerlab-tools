@@ -17,7 +17,7 @@ function warnOnce(err) {
   console.warn('[Store] Data store unavailable; this session is not being persisted:', err?.message || err);
 }
 
-async function call(path, { method = 'GET', body, query } = {}) {
+async function call(path, { method = 'GET', body, query, notFoundOk = false } = {}) {
   const url = new URL(`${BASE}/${path}`, window.location.origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -29,7 +29,8 @@ async function call(path, { method = 'GET', body, query } = {}) {
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  if (response.status === 404) return null;
+  // Only a lookup by key may answer 404; anywhere else it means the route itself is missing.
+  if (response.status === 404 && notFoundOk) return null;
   if (!response.ok) throw new Error(`${method} ${path} -> HTTP ${response.status}`);
   if (response.status === 204) return true;
   return response.json();
@@ -53,7 +54,7 @@ async function attempt(fallback, work) {
  * per brand; a brand with more has `catalog.truncated` set, and /api/catalog serves the rest.
  */
 export function loadSearch(domain, { products } = {}) {
-  return attempt(null, () => call(`searches/${encodeURIComponent(domain)}`, { query: { products } }));
+  return attempt(null, () => call(`searches/${encodeURIComponent(domain)}`, { query: { products }, notFoundOk: true }));
 }
 
 /** Stores a finished search: `{ type, searchId, searchedBrand, brands, serpApiOutOfCredits, errorMessage }`. */
@@ -65,8 +66,9 @@ export function saveSearch(domain, record) {
 /* Search history                                                              */
 /* -------------------------------------------------------------------------- */
 
+/** The recent searches, or null when the store did not answer, so a caller can keep what it has. */
 export function loadHistory(limit) {
-  return attempt([], async () => (await call('history', { query: { limit } })) || []);
+  return attempt(null, () => call('history', { query: { limit } }));
 }
 
 export function addHistory(domain) {
@@ -98,7 +100,7 @@ export function addFeedback({ searchId, inputUrl, rating, results }) {
 /* -------------------------------------------------------------------------- */
 
 export function loadDrafts(searchedDomain) {
-  return attempt([], async () => (await call(`drafts/${encodeURIComponent(searchedDomain)}`)) || []);
+  return attempt([], async () => (await call(`drafts/${encodeURIComponent(searchedDomain)}`, { notFoundOk: true })) || []);
 }
 
 /** Remembers a draft and answers with the brand's drafts, newest first. */
