@@ -3348,7 +3348,7 @@ position: relative;
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 24px 16px 24px;
+    padding: 24px 16px 16px;
     background: linear-gradient(
       to bottom,
       transparent,
@@ -3366,16 +3366,18 @@ position: relative;
     flex: none;
   }
 
-  /* The pill takes the rest of the row. Its form wears the ring's padding, so the negative
-     margins put the pill's own edge, not the ring's, 6px from the back control and on the gutter. */
+  /* The pill takes the rest of the row. Its ring (the form's spread shadow and outline) is drawn
+     outside the form's box, so the slot keeps a ring's width in from each side: the ring's outer
+     edge, not the form's, is what stands 6px from the back control and on the gutter. */
   .omni-footer .header-nav-search {
+    --pill-ring: 4.5px;
     --pill-max: 100%;
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    margin: 0 calc(-1 * var(--pill-pad));
+    margin: 0 var(--pill-ring);
   }
 
   /* While the box is being typed in, the back control pops out of the way and the pill takes the
