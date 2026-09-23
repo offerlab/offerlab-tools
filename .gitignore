@@ -30,3 +30,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# SvelteKit
+/.svelte-kit/
+/build/
+/test-results/
+/playwright-report/
+/qa/tmp/

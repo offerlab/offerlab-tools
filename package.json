@@ -1,33 +1,40 @@
 {
   "name": "brand-collab-finder",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "AI-powered brand collaboration finder",
   "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "serve": "npx serve -l 5500 .",
-    "build:css": "npx @tailwindcss/cli -i ./src/input.css -o ./tailwind.css",
-    "watch:css": "npx @tailwindcss/cli -i ./src/input.css -o ./tailwind.css --watch",
-    "deploy": "wrangler pages deploy . --project-name=collab-finder",
-    "deploy:preview": "wrangler pages deploy . --project-name=collab-finder --branch=preview",
-    "build:icons": "node scripts/build-icons.mjs",
-    "build:library": "node scripts/build-library.mjs",
-    "dev:pages": "wrangler pages dev . --port 5500",
+    "dev": "vite dev",
+    "build": "vite build && node scripts/wrap-worker.mjs",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "check": "svelte-kit sync && svelte-check",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "db:migrate": "wrangler d1 migrations apply offerlab-tools --remote",
     "db:migrate:local": "wrangler d1 migrations apply offerlab-tools --local",
+    "build:icons": "node scripts/build-icons.mjs",
+    "build:library": "node scripts/build-library.mjs",
     "crawl": "node scripts/crawl.mjs"
   },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.21.0"
-  },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.18",
-    "tailwindcss": "^4.1.18",
-    "wrangler": "^4.62.0"
+    "@playwright/test": "^1.63.0",
+    "@sveltejs/adapter-cloudflare": "^7.2.9",
+    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "miniflare": "^4.20260730.0",
+    "svelte": "^5.57.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.136.3"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "svelte-check": "^4.7.6"
   }
 }

@@ -1,0 +1,161 @@
+<script>
+  /**
+   * The search pill: the field, the photo and submit controls, and the dropdown that holds the
+   * search history or, as a name is typed, brand suggestions (resolve.js). Two variants: the
+   * landing page's, and the results bar's, which shows the searched brand as favicon + domain
+   * whenever it is not being edited and swaps its submit for a stop control while a search runs.
+   */
+  import { onMount } from 'svelte';
+  import Icon from './Icon.svelte';
+  import { app } from '$lib/client/state.svelte.js';
+  import { getFaviconUrl, CONFIG } from '$lib/client/util.js';
+  import { attachBrandSuggestions } from '$lib/client/resolve.js';
+  import { createTypingAnimation } from '$lib/client/actions/typing.js';
+  import { historyList, renderHistoryRows } from '$lib/client/actions/history_list.js';
+  import { refreshSearchHistory, removeFromSearchHistory } from '$lib/client/history.svelte.js';
+  import { performSearch, submitSearch, cancelSearch, registerOmnibar } from '$lib/client/search.svelte.js';
+
+  let { variant = 'landing' } = $props();
+  // The variant is fixed for the life of the bar; the ids below are set once from it.
+  // svelte-ignore state_referenced_locally
+  const results = variant === 'results';
+  const ids = results
+    ? { form: 'resultsSearchForm', input: 'resultsSearchInput', dropdown: 'resultsSearchHistoryDropdown', list: 'resultsHistoryList', button: 'resultsSearchButton', placeholder: 'resultsTypingPlaceholder' }
+    : { form: 'searchForm', input: 'searchInput', dropdown: 'searchHistoryDropdown', list: 'historyList', button: 'searchButton', placeholder: 'typingPlaceholder' };
+
+  let form, input, dropdown, list, placeholderEl;
+  let suggest = null;
+  let typing = null;
+  let focused = $state(false);
+  let value = $state('');
+  let dropdownOpen = $state(false);
+
+  // The header composer shows the searched brand as favicon + domain, centered, whenever it is
+  // not being edited. Focus reveals the plain input so typing reads left-aligned.
+  const showingDisplay = $derived(results && value.trim() !== '' && !focused);
+  let displayFailed = $state(false);
+
+  function showHistory() {
+    renderHistoryRows(list, app.history);
+    refreshSearchHistory();
+    dropdownOpen = true;
+  }
+
+  function hideHistory() {
+    dropdownOpen = false;
+  }
+
+  function onFocus() {
+    focused = true;
+    showHistory();
+    suggest?.sync();
+  }
+
+  function onBlur() {
+    focused = false;
+    setTimeout(() => {
+      if (!dropdown.contains(document.activeElement)) hideHistory();
+    }, 200);
+  }
+
+  function onSubmit(e) {
+    e.preventDefault();
+    submitSearch(input, suggest);
+  }
+
+  function choose(domain) {
+    value = domain;
+    hideHistory();
+    performSearch(domain);
+  }
+
+  $effect(() => {
+    // Re-rendered whenever history changes (unless suggestions hold the list).
+    renderHistoryRows(list, app.history);
+  });
+
+  $effect(() => {
+    if (value.trim() !== '') displayFailed = false;
+  });
+
+  onMount(() => {
+    suggest = attachBrandSuggestions({
+      input, dropdown, list,
+      history: () => app.history.map(item => item.domain),
+      showHistory: () => { renderHistoryRows(list, app.history); refreshSearchHistory(); },
+      favicon: getFaviconUrl
+    });
+    typing = createTypingAnimation(placeholderEl, input);
+    if (!results) typing?.start();
+    // Results placeholder starts hidden (results page not visible); it starts on blur if empty.
+
+    const unregister = registerOmnibar(variant, {
+      setValue(next) { value = next; },
+      getValue() { return input.value; },
+      focus() { input.focus(); },
+      hideHistory,
+      hidePlaceholder() { typing?.hide(); }
+    });
+    return () => {
+      unregister();
+      typing?.destroy();
+    };
+  });
+</script>
+
+<form class="search-form" id={ids.form} class:dropdown-open={dropdownOpen} bind:this={form} onsubmit={onSubmit}>
+  <div class="search-input-wrapper" class:showing-display={showingDisplay}>
+    <span class="typing-placeholder" class:typing-placeholder-results={results} class:hidden={results} id={ids.placeholder} bind:this={placeholderEl} aria-hidden="true"></span>
+    {#if results}
+      <span class="search-display" class:hidden={!showingDisplay} id="resultsSearchDisplay" aria-hidden="true">
+        {#if showingDisplay}
+          <span class="search-display-avatar">
+            <img alt="" src={displayFailed ? CONFIG.FAVICON_FALLBACK(value.trim()) : getFaviconUrl(value.trim())} onerror={() => { displayFailed = true; }}>
+          </span>{value.trim()}
+        {/if}
+      </span>
+    {/if}
+    <input
+      type="text"
+      class="search-input"
+      class:focused
+      id={ids.input}
+      placeholder="Brand name or website"
+      autocomplete="off"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      data-placeholder-focus="Brand name or website"
+      bind:this={input}
+      bind:value
+      onfocus={onFocus}
+      onblur={onBlur}
+    >
+    <div class="submit-button-wrapper">
+      <input type="file" class="photo-input" id="photoInput-{variant}" accept="image/*" hidden>
+      <button type="button" class="photo-button" id="photoButton-{variant}" aria-label="Search by photo of a product" title="Search by photo">
+        <Icon name="camera-1" size={20} />
+      </button>
+      <!-- Normal search button (visible when not loading) -->
+      <button type="submit" class="search-button" id={ids.button}>
+        <Icon name="arrow-up" class="search-icon" />
+      </button>
+      {#if results}
+        <!-- Stop button (visible during loading) -->
+        <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search" onclick={cancelSearch}>
+          <Icon name="spinner" class="spinner-ring" />
+          <Icon name="stop-filled" class="stop-icon" />
+        </button>
+      {/if}
+    </div>
+  </div>
+  <!-- A tap inside the dropdown must not blur the input: on a phone the blur dismisses the
+       keyboard, the viewport reflows under the finger, and the tap's click lands on whatever
+       moved there. Refusing the mousedown keeps the focus where it was. -->
+  <div class="search-history-dropdown" class:visible={dropdownOpen} id={ids.dropdown} bind:this={dropdown} onmousedown={(e) => e.preventDefault()}>
+    <div class="history-header">
+      <span>Search history</span>
+    </div>
+    <ul class="history-list" id={ids.list} bind:this={list} use:historyList={{ onChoose: choose, onRemove: removeFromSearchHistory }}></ul>
+  </div>
+</form>

@@ -9,9 +9,9 @@ import { config } from 'dotenv';
 config();
 
 const root = new URL('..', import.meta.url).pathname;
-const STORES = JSON.parse(readFileSync(join(root, 'library/stores.json'), 'utf8'));
-const CURATION = JSON.parse(readFileSync(join(root, 'library/curation.json'), 'utf8'));
-const OUT = join(root, 'library/snapshot.json');
+const STORES = JSON.parse(readFileSync(join(root, 'static/library/stores.json'), 'utf8'));
+const CURATION = JSON.parse(readFileSync(join(root, 'static/library/curation.json'), 'utf8'));
+const OUT = join(root, 'static/library/snapshot.json');
 
 const MODEL = 'gemini-2.5-flash';
 // Bumped when the fields written per bundle change, so every bundle is classified again once.

@@ -1,0 +1,34 @@
+// The finder as one Cloudflare Worker: SvelteKit's server (built by adapter-cloudflare into
+// .svelte-kit/cloudflare/, where `npm run build` wraps it with src/worker.js to add the crawl
+// cron), the static assets next to it, and the D1 store.
+//
+// Secrets are set with `wrangler secret put <NAME>`, never here: GEMINI_API_KEY, SERP_API_KEY,
+// OPENGRAPH_API_KEY, TYPESAFE_API_KEY, CRAWL_SECRET, and OFFERLAB_HOST if not the default.
+// Locally they go in .dev.vars (git-ignored); see .dev.vars.example.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "collab-finder",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_als"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".svelte-kit/cloudflare"
+  },
+  "observability": { "enabled": true },
+  // The finder's data store: searches, crawled catalogs and socials, history, feedback, drafts,
+  // the crawl queue and moderation. Schema in migrations/, applied with `npm run db:migrate`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "offerlab-tools",
+      "database_id": "10833831-1ee4-48b2-8a1b-36a207cd2579",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // The crawl: every minute the Worker's scheduled() handler drains the queue in-process
+  // (src/worker.js). This replaces the separate crawl-scheduler Worker.
+  "triggers": {
+    "crons": ["* * * * *"]
+  }
+}
