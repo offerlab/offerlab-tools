@@ -1387,7 +1387,7 @@ function renderTray() {
         <span${state.draft.status === 'error' ? ' class="picker-tray-problem"' : ''}>${escapeHtml(trayNote(split))}</span>
       </div>
       <div class="picker-tray-actions">
-        <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection">${icon('cross-large', { size: 14 })}<span class="picker-tray-action-label">Clear</span></button>
+        ${state.draft.status === 'working' ? '' : `<button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection">${icon('cross-large', { size: 14 })}<span class="picker-tray-action-label">Clear</span></button>`}
         ${trayPrimary()}
       </div>
     </div>
@@ -1405,13 +1405,13 @@ function trayNote(brands) {
 
 function trayPrimary() {
   const { status } = state.draft;
-  // Still the primary button to look at, with nothing to press: no action, and the app's three
-  // dots looping in place of a label until the draft is ready.
+  // Still the primary button to look at, with nothing to press: no action, the app's three dots
+  // looping beside a shimmering label until the draft is ready.
   if (status === 'working') {
-    return `<button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="ol-loader" aria-hidden="true"></span></button>`;
+    return `<button type="button" class="btn btn--md btn--primary picker-tray-busy" aria-busy="true"><span class="ol-loader" aria-hidden="true"></span><span class="text-shimmer-ink">Bundling</span></button>`;
   }
   if (status === 'done') {
-    return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>`;
+    return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Let\u2019s go ${icon('arrow-up-right', { size: 16 })}</button>`;
   }
   if (offerlab.isEnabled() && !offerlab.isConnected()) {
     return `<button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>`;
