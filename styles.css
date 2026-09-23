@@ -1160,13 +1160,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 /* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
 .view-header .search-input {
+  padding-left: 8px;
   padding-right: calc(2 * var(--pill-btn) + 2 * var(--pill-pad) + 6px);
   text-align: left;
 }
 
 /* The domain reads from the left, where the caret is, now that two discs take the right. */
 .view-header .search-display {
-  left: 20px;
+  left: 8px;
   transform: translateY(-50%);
   max-width: calc(100% - 2 * var(--pill-btn) - 2 * var(--pill-pad) - 26px);
 }
