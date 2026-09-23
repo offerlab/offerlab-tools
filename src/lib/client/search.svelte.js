@@ -6,7 +6,7 @@
  */
 import { tick } from 'svelte';
 import * as search from '$lib/shared/search.js';
-import { catalogForStore } from '$lib/shared/search.js';
+import { catalogForStore, httpApi } from '$lib/shared/search.js';
 import { app, showSection } from './state.svelte.js';
 import * as store from './store.js';
 import * as offerlab from './offerlab.js';
@@ -28,6 +28,11 @@ export const LOADING_MESSAGES = [
 ];
 
 const EMPTY_SEARCH_EXPIRATION_MS = 72 * 60 * 60 * 1000;
+
+// Shown when a step has been quiet for this long: the recommender can take a minute, and a
+// screen that says nothing for that long reads as hung.
+const SLOW_SEARCH_NOTICE_MS = 45000;
+const SLOW_SEARCH_NOTICE = 'Still working. Researching a brand from scratch can take a minute or two...';
 
 // Brands with no team in the demo environment yet, by domain (markBrandsNotSetUp).
 export const notSetUp = $state({});
@@ -122,10 +127,11 @@ async function markBrandsNotSetUp(brands) {
   }
 }
 
-function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog }) {
+// `signal` cancels every request the search makes, so leaving the search stops it.
+function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog, signal }) {
   return Promise.all([getFeedbackHistory(), store.loadKnownPartners(extractDomain(url))]).then(([feedback, knownPartners]) =>
     search.discoverComplementaryBrands(url, {
-      api: searchApi,
+      api: signal ? httpApi('', undefined, { signal }) : searchApi,
       feedback,
       knownPartners,
       onProgress: (step) => onProgress(LOADING_MESSAGES[step] ?? LOADING_MESSAGES[0]),
@@ -207,9 +213,22 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
   let brandsShown = false;
   const searchId = app.searchId;
 
+  // A step that stays quiet gets a note that the search is still going.
+  let slowNotice = null;
+  const armSlowNotice = () => {
+    if (slowNotice) clearTimeout(slowNotice);
+    slowNotice = setTimeout(() => { if (!isSearchCancelled) app.loading.text = SLOW_SEARCH_NOTICE; }, SLOW_SEARCH_NOTICE_MS);
+  };
+  armSlowNotice();
+
   try {
     const results = await discoverComplementaryBrands(url, {
-      onProgress: (text) => { if (!isSearchCancelled) app.loading.text = text; },
+      signal: searchAbortController.signal,
+      onProgress: (text) => {
+        if (isSearchCancelled) return;
+        app.loading.text = text;
+        armSlowNotice();
+      },
       // Called as soon as brands are ready: the results page shows at once, catalogs to follow.
       onBrandsReady: ({ searchedBrand, brands }) => {
         if (isSearchCancelled) return;
@@ -250,13 +269,15 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
       searchId
     });
   } catch (error) {
-    if (isSearchCancelled) return;
+    if (isSearchCancelled || error?.name === 'AbortError') return;
     console.error('Search failed:', error);
     const errorMessage = error.message || 'Please try again in a moment.';
     store.saveSearch(domain, { type: 'error', errorMessage, searchId });
     app.errorMessage = errorMessage;
     if (!fromUrlRestore) updateUrlForSearch(domain);
     showSection('error');
+  } finally {
+    if (slowNotice) clearTimeout(slowNotice);
   }
 }
 
