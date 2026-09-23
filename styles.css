@@ -3461,7 +3461,22 @@ button.social-link:disabled {
 
   /* The pill takes the rest of the row. Its ring (the form's spread shadow and outline) is drawn
      outside the form's box, so the slot keeps a ring's width in from each side: the ring's outer
-     edge, not the form's, is what stands 6px from the back control and on the gutter. */
+     edge, not the form's, is what stands 6px from the back control and on the gutter. Inside, the
+     discs stand 4px from the box's edges and fill the rest of its height, at rest and in focus. */
+  .omni-footer .header-nav-search,
+  .omni-footer .header-nav-search:focus-within {
+    --pill-pad: 4px;
+    --pill-btn: var(--pill-row);
+  }
+
+  .omni-footer .search-input {
+    padding-left: 16px;
+  }
+
+  .omni-footer .search-display {
+    left: 16px;
+  }
+
   .omni-footer .header-nav-search {
     --pill-ring: 4.5px;
     --pill-max: 100%;
@@ -6837,6 +6852,30 @@ button.social-link:disabled {
   gap: 6px;
   flex-shrink: 0;
   margin-inline-start: calc(32px - var(--tray-item-gap));
+}
+
+/* The app's three-dot loader (connected_integrations/oauth_redirect), in the button's own color. */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 1em;
+}
+
+.loading-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: loadingDotPulse 1.5s ease-in-out infinite;
+}
+
+.loading-dots i:nth-child(2) { animation-delay: 0.3s; }
+.loading-dots i:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes loadingDotPulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
 }
 
 .picker-tray-actions .btn {
