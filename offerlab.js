@@ -69,7 +69,7 @@ let refreshing = null;
  * thing that ends a demo. Concurrent callers share one in-flight refresh: the pipeline makes
  * several calls in a row, and each spending the same refresh token would invalidate the others.
  */
-async function freshToken() {
+export async function freshToken() {
   const grant = read(sessionStorage, KEY.token);
   if (!grant?.access_token) return null;
   if (!grant.refresh_token || !grant.expiresAt) return grant.access_token;

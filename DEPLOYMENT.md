@@ -83,3 +83,18 @@ Setup, once:
 1. `npm run db:migrate` applies the queue table.
 2. In the Pages project, set `CRAWL_SECRET` (any long random string) and `TYPESAFE_API_KEY`.
 3. `cd workers/crawl-scheduler && npx wrangler deploy && npx wrangler secret put CRAWL_SECRET`.
+
+## Moderation
+
+OfferLab developers, signed in to the finder, get two actions in each result card's "⋯" menu:
+
+- **Wrong products** hides the brand's products everywhere: its stored catalog is cleared, served
+  empty from then on, and never searched for again. For a Google Shopping search that matched
+  another brand's products.
+- **Remove from results** drops the brand from that one search; the search leaves it out if it
+  runs again. Other searches keep it.
+
+Both go through `POST /api/moderation`, which asks OfferLab which tools the caller's token grants
+and refuses anyone who is not a developer. Corrections live in the `moderation` table
+(`migrations/0003_moderation.sql`); `{ action: 'show-products', domain }` undoes a hide. Until the
+migration is applied the finder reads as if nothing were moderated, and moderating fails.

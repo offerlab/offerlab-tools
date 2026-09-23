@@ -62,6 +62,21 @@ export function saveSearch(domain, record) {
   return attempt(null, () => call(`searches/${encodeURIComponent(domain)}`, { method: 'PUT', body: record }));
 }
 
+/**
+ * Applies a staff correction: `{ action, domain, searchDomain }` with the caller's OfferLab token.
+ * Unlike the rest of this module it throws, because the person who clicked needs to know.
+ */
+export async function moderate(body, offerlabToken) {
+  const response = await fetch('/api/moderation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${offerlabToken}` },
+    body: JSON.stringify(body)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || `Moderation failed: HTTP ${response.status}`);
+  return result;
+}
+
 /** Brands whose own search recommended this domain; empty when there are none or no store. */
 export function loadKnownPartners(domain) {
   return attempt([], () => call(`partners/${encodeURIComponent(domain)}`));
