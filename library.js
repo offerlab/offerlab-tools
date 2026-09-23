@@ -34,11 +34,15 @@ const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
 const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20, perShelf: 8, gutter: 16 };
 // The board zooms like a map: the gesture scales what is there, and when it settles the board is
 // dealt again at the new size around the point under the pointer or between the fingers.
-const ZOOM = { min: 0.5, max: 2.4, key: 1.25, wheel: 0.01, notch: 25, settle: 140 };
+// A key press or a mouse notch eases over `tween` ms rather than jumping a whole step in a frame.
+const ZOOM = { min: 0.5, max: 2.4, key: 1.25, wheel: 0.01, notch: 25, settle: 140, tween: 160, dealPerFrame: 16 };
 const G = {};
 
 function measure() {
-  const width = dom.viewport.getBoundingClientRect().width || window.innerWidth;
+  const rect = dom.viewport.getBoundingClientRect();
+  const width = rect.width || window.innerWidth;
+  // Cached so the hot paths (render, a zoom frame) never read layout.
+  state.size = { width, height: rect.height || window.innerHeight };
   const z = state.zoom;
   if (MOBILE.matches) {
     G.colW = Math.round(width / (PHONE.columns / z));
@@ -122,7 +126,7 @@ export async function initLibrary() {
   bindOmnibox();
   bindLightbox();
   // A new size means new cell positions, so the board is dealt again where it stands.
-  const remeasure = () => { measure(); if (state.loaded) { clearBoard(); render(); } };
+  const remeasure = () => { commitZoom(); measure(); if (state.loaded) { clearBoard(); render(); } };
   window.addEventListener('resize', remeasure);
   MOBILE.addEventListener('change', remeasure);
 }
@@ -130,6 +134,7 @@ export async function initLibrary() {
 /** Called by app.js when the mode switches in; loads on first use. */
 export async function showLibrary() {
   dom.section.classList.remove('hidden');
+  measure();
   if (!state.loaded) await load();
   readFiltersFromUrl();
   apply();
@@ -262,7 +267,8 @@ function rowFor(r) {
   if (row) return row;
   const el = document.createElement('div');
   el.className = 'library-shelf';
-  el.style.transform = `translate3d(0, ${r * G.shelfH}px, 0)`;
+  // 2D, so a row is not a composited layer of its own that re-rasters at every step of a zoom.
+  el.style.transform = `translate(0, ${r * G.shelfH}px)`;
   // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
   el.style.zIndex = String(r + 1e6);
   el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div><div class="library-shelf-rail"></div>';
@@ -275,16 +281,26 @@ function rowFor(r) {
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 function render() {
   if (MOBILE.matches) return renderShelves();
-  const view = dom.viewport.getBoundingClientRect();
-  const x0 = -state.pan.x - G.colW, x1 = -state.pan.x + view.width + G.colW;
-  const r0 = Math.floor(-state.pan.y / G.shelfH) - 1, r1 = Math.ceil((-state.pan.y + view.height) / G.shelfH) + 1;
+  // Mid-zoom the board is scaled on screen, so what it must hold is the viewport seen through it.
+  const { width, height } = state.size;
+  const { x: tx, y: ty, k } = state.zooming || { ...state.pan, k: 1 };
+  const x0 = -tx / k - G.colW, x1 = (width - tx) / k + G.colW;
+  const r0 = Math.floor(-ty / k / G.shelfH) - 1, r1 = Math.ceil((height - ty) / k / G.shelfH) + 1;
   const keep = new Set();
+  // Mid-zoom a frame deals at most a few new cells, so a fast pinch out never stalls one frame.
+  let budget = state.zooming ? ZOOM.dealPerFrame : Infinity;
 
   for (let r = r0; r <= r1; r++) {
     const row = rowFor(r);
-    for (const part of row.furniture) {
-      part.style.left = `${x0}px`;
-      part.style.width = `${x1 - x0}px`;
+    // The plank runs past the view in whole blocks of columns and is only rewritten when the view
+    // leaves them, since every rewrite repaints the row.
+    const block = G.colW * 4, left = Math.floor(x0 / block) * block, right = Math.ceil(x1 / block) * block;
+    if (row.span !== `${left}:${right}`) {
+      row.span = `${left}:${right}`;
+      for (const part of row.furniture) {
+        part.style.left = `${left}px`;
+        part.style.width = `${right - left}px`;
+      }
     }
     const c0 = Math.floor((x0 - rowOffset(r)) / G.colW), c1 = Math.floor((x1 - rowOffset(r)) / G.colW);
     for (let c = c0; c <= c1; c++) {
@@ -293,17 +309,34 @@ function render() {
       const bundle = state.visible.length ? bundleAt(row, c) : null;
       const current = state.cells.get(key);
       if (current && current.dataset.id === (bundle?.id ?? '')) continue;
+      if (budget-- <= 0) { state.zooming.dealing = true; continue; }
       const tile = bundle ? makeTile(bundle) : makeGhost();
-      const left = c * G.colW + rowOffset(r) + G.gap / 2;
+      const left = cellLeft(r, c);
       tile.style.left = `${left}px`;
       state.cells.set(key, tile);
-      if (current) crossfade(current, tile, (left + state.pan.x) / view.width);
+      if (current) crossfade(current, tile, (left + state.pan.x) / width);
       row.rail.appendChild(tile);
     }
   }
 
+  // A gesture only adds cells, so pinching in and back out does not deal the same covers twice.
+  if (state.zooming) return;
   for (const [key, tile] of state.cells) if (!keep.has(key)) { tile.remove(); state.cells.delete(key); }
   for (const [r, row] of state.rows) if (r < r0 || r > r1) { row.el.remove(); state.rows.delete(r); }
+}
+
+const cellLeft = (r, c) => (MOBILE.matches ? c * G.colW + G.gap / 2 + G.inset : c * G.colW + rowOffset(r) + G.gap / 2);
+
+/** After a zoom: every row and cell already dealt moves to the new geometry, keeping its cover. */
+function relayout() {
+  for (const [r, row] of state.rows) {
+    row.el.style.transform = `translate(0, ${r * G.shelfH}px)`;
+    row.span = null;
+  }
+  for (const [key, tile] of state.cells) {
+    const [r, c] = key.split(':').map(Number);
+    tile.style.left = `${cellLeft(r, c)}px`;
+  }
 }
 
 /**
@@ -313,7 +346,7 @@ function render() {
  * With nothing to show, enough shelves of glass to fill the viewport stand under the message.
  */
 function renderShelves() {
-  const view = dom.viewport.getBoundingClientRect();
+  const view = state.size;
   const n = state.visible.length;
   const perShelf = n ? PHONE.perShelf : Math.ceil(PHONE.columns) + 1;
   const shelves = n ? Math.ceil(n / perShelf) : Math.ceil(view.height / G.shelfH) + 1;
@@ -335,7 +368,7 @@ function renderShelves() {
       const current = state.cells.get(key);
       if (current && current.dataset.id === (bundle?.id ?? '')) continue;
       const tile = bundle ? makeTile(bundle, true) : makeGhost();
-      const left = c * G.colW + G.gap / 2 + G.inset;
+      const left = cellLeft(r, c);
       tile.style.left = `${left}px`;
       state.cells.set(key, tile);
       if (current) crossfade(current, tile, left / view.width);
@@ -551,6 +584,7 @@ function bindViewport() {
   view.addEventListener('pointerdown', event => {
     if (event.button !== 0 || MOBILE.matches) return;
     if (event.target.closest('.library-omni, .library-lightbox')) return;
+    commitZoom();
     state.dragging = true;
     state.moved = false;
     state.suppressClick = false;
@@ -623,25 +657,30 @@ function bindViewport() {
     if (MOBILE.matches) return;
     event.preventDefault();
     if (event.ctrlKey || event.metaKey) {
-      const rect = view.getBoundingClientRect();
-      // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once and is held to a step.
+      const { rect } = startZoom();
+      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once, held to a step and eased.
       const delta = Math.max(-ZOOM.notch, Math.min(ZOOM.notch, event.deltaY));
-      zoomBy(Math.exp(-delta * ZOOM.wheel), { x: event.clientX - rect.left, y: event.clientY - rect.top });
+      const factor = Math.exp(-delta * ZOOM.wheel);
+      if (event.deltaMode || Math.abs(event.deltaY) >= 50) tweenZoom(factor, anchor);
+      else zoomBy(factor, anchor);
       return;
     }
+    commitZoom();
     setPan(state.pan.x - event.deltaX, state.pan.y - event.deltaY);
   }, { passive: false });
 
   view.addEventListener('keydown', event => {
     if (event.key === '=' || event.key === '+' || event.key === '-' || event.key === '_') {
       event.preventDefault();
-      const rect = view.getBoundingClientRect();
-      zoomBy(event.key === '-' || event.key === '_' ? 1 / ZOOM.key : ZOOM.key, { x: rect.width / 2, y: rect.height / 2 }, { settle: 0 });
+      const { rect } = startZoom();
+      tweenZoom(event.key === '-' || event.key === '_' ? 1 / ZOOM.key : ZOOM.key, { x: rect.width / 2, y: rect.height / 2 });
       return;
     }
     const step = { ArrowLeft: [KEY_STEP, 0], ArrowRight: [-KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[event.key];
     if (!step || MOBILE.matches) return;
     event.preventDefault();
+    commitZoom();
     setPan(state.pan.x + step[0], state.pan.y + step[1]);
   });
 
@@ -655,79 +694,148 @@ function bindViewport() {
 const clampZoom = z => Math.min(ZOOM.max, Math.max(ZOOM.min, z));
 
 /**
- * Scales the board on screen by `factor` about `anchor` (viewport coordinates), on top of any
- * zoom still in flight, and arranges for the board to be dealt again once the gesture rests.
+ * A gesture scales the board on screen as `translate(x, y) scale(k)` from its top-left, one write
+ * per frame, and deals nothing until it rests. The rects are read once here, at the start.
  */
-function zoomBy(factor, anchor, { settle = ZOOM.settle } = {}) {
-  const live = state.zooming || { from: state.zoom, to: state.zoom, anchor, timer: 0, scroll: null };
-  live.to = clampZoom(live.to * factor);
-  live.anchor = anchor;
-  if (!live.scroll && MOBILE.matches) {
-    // What the viewport and each rail were scrolled to when the pinch began, so the commit can
-    // put the same point back under the fingers.
+function startZoom() {
+  if (state.zooming) return state.zooming;
+  const rect = dom.viewport.getBoundingClientRect();
+  const live = { from: state.zoom, k: 1, x: 0, y: 0, rect, base: { x: 0, y: 0 }, factor: 1, shift: { x: 0, y: 0 }, anchor: null, frame: 0, timer: 0 };
+  if (MOBILE.matches) {
+    // The board sits in the scrolling viewport; its transform is relative to where it lies.
+    const board = dom.board.getBoundingClientRect();
+    live.base = { x: board.left - rect.left, y: board.top - rect.top };
     live.scroll = { top: dom.viewport.scrollTop, rails: [...state.rows].map(([r, row]) => [r, row.rail.scrollLeft]) };
+  } else {
+    live.x = state.pan.x;
+    live.y = state.pan.y;
   }
   state.zooming = live;
-  const k = live.to / live.from;
-  if (MOBILE.matches) {
-    const board = dom.board.getBoundingClientRect();
-    const view = dom.viewport.getBoundingClientRect();
-    dom.board.style.transformOrigin = `${anchor.x + view.left - board.left}px ${anchor.y + view.top - board.top}px`;
-    dom.board.style.transform = `scale(${k})`;
-  } else {
-    dom.board.style.transformOrigin = '0 0';
-    dom.board.style.transform = `translate3d(${Math.round(anchor.x - (anchor.x - state.pan.x) * k)}px, ${Math.round(anchor.y - (anchor.y - state.pan.y) * k)}px, 0) scale(${k})`;
-  }
-  clearTimeout(live.timer);
-  if (settle) live.timer = setTimeout(commitZoom, settle);
-  else commitZoom();
+  dom.board.style.transformOrigin = '0 0';
+  // Flattens a phone's tiles into the board's one layer for the gesture (see styles.css).
+  dom.viewport.classList.add('is-zooming');
+  return live;
 }
 
-/** The gesture has rested: the board takes the new size for real, about the same anchor. */
+/**
+ * Queues a scale by `factor` about `anchor` (viewport coordinates), plus a `shift` for fingers
+ * that move together, for the next frame. `settle` is how long a pause commits the zoom; null
+ * leaves the commit to the caller.
+ */
+function zoomBy(factor, anchor, { settle = ZOOM.settle, shift = null } = {}) {
+  const live = startZoom();
+  live.factor *= factor;
+  live.anchor = anchor;
+  if (shift) { live.shift.x += shift.x; live.shift.y += shift.y; }
+  if (!live.frame) live.frame = requestAnimationFrame(zoomFrame);
+  clearTimeout(live.timer);
+  if (settle != null) live.timer = setTimeout(commitZoom, settle);
+}
+
+/** A key press or a mouse notch: the same factor, spread over a few frames with an ease-out. */
+function tweenZoom(factor, anchor) {
+  const start = performance.now();
+  let applied = 1;
+  const step = now => {
+    if (!state.zooming) return;
+    const t = Math.min(1, (now - start) / ZOOM.tween);
+    const target = factor ** (1 - (1 - t) ** 3);
+    zoomBy(target / applied, anchor);
+    applied = target;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/** Everything queued since the last frame, as one transform. Sub-pixel: rounding here jitters. */
+function applyZoom(live) {
+  live.frame = 0;
+  const current = live.from * live.k;
+  const f = clampZoom(current * live.factor) / current;
+  const ax = live.anchor.x - live.base.x, ay = live.anchor.y - live.base.y;
+  live.x = ax + (live.x - ax) * f + live.shift.x;
+  live.y = ay + (live.y - ay) * f + live.shift.y;
+  live.k *= f;
+  live.factor = 1;
+  live.shift = { x: 0, y: 0 };
+  dom.board.style.transform = `translate3d(${live.x}px, ${live.y}px, 0) scale(${live.k})`;
+}
+
+function zoomFrame() {
+  const live = state.zooming;
+  if (!live) return;
+  applyZoom(live);
+  if (MOBILE.matches) return;
+  // Zooming out shows more of the board than was dealt; fill it in as it comes into view, over
+  // as many frames as it takes.
+  live.dealing = false;
+  render();
+  if (live.dealing && !live.frame) live.frame = requestAnimationFrame(zoomFrame);
+}
+
+/**
+ * The gesture has rested: the board takes the new size for real. The tiles already dealt keep
+ * their covers and move to the new geometry, and the point under the anchor stays put, measured
+ * in columns and shelves so the whole-pixel geometry cannot drift it.
+ */
 function commitZoom() {
   const live = state.zooming;
   if (!live) return;
-  state.zooming = null;
+  cancelAnimationFrame(live.frame);
   clearTimeout(live.timer);
-  const k = live.to / live.from;
-  state.zoom = live.to;
-  dom.board.style.transformOrigin = '';
-  dom.board.style.transform = '';
+  if (live.anchor && (live.factor !== 1 || live.shift.x || live.shift.y)) applyZoom(live);
+  state.zooming = null;
+  if (!live.anchor) {
+    dom.viewport.classList.remove('is-zooming');
+    dom.board.style.transformOrigin = '';
+    return;
+  }
+  const ax = live.anchor.x - live.base.x, ay = live.anchor.y - live.base.y;
+  // The board point under the anchor, in the old geometry.
+  const bx = (ax - live.x) / live.k, by = (ay - live.y) / live.k;
+  const old = { colW: G.colW, shelfH: G.shelfH };
+  state.zoom = clampZoom(live.from * live.k);
   measure();
-  clearBoard();
+  const sx = G.colW / old.colW, sy = G.shelfH / old.shelfH;
+  dom.viewport.classList.remove('is-zooming');
+  dom.board.style.transformOrigin = '';
+  relayout();
   if (MOBILE.matches) {
+    dom.board.style.transform = '';
     render();
-    const { anchor, scroll } = live;
-    dom.viewport.scrollTop = (scroll.top + anchor.y) * k - anchor.y;
-    for (const [r, left] of scroll.rails) {
+    dom.viewport.scrollTop = live.scroll.top + by * sy - ay;
+    // A phone's gutter does not scale, so a rail's point is carried over counted from its first cell.
+    for (const [r, left] of live.scroll.rails) {
       const row = state.rows.get(r);
-      if (row) row.rail.scrollLeft = (left + anchor.x) * k - anchor.x;
+      if (row) row.rail.scrollLeft = G.inset + (bx + left - G.inset) * sx - ax;
     }
   } else {
-    setPan(live.anchor.x - (live.anchor.x - state.pan.x) * k, live.anchor.y - (live.anchor.y - state.pan.y) * k);
+    setPan(ax - bx * sx, ay - by * sy);
     render();
   }
 }
 
-/** Two fingers on a phone: the board scales between them, and is dealt again when they lift. */
+/** Two fingers: the board scales between them and follows them, and is dealt again when they lift. */
 function bindPinch(view) {
   let pinch = null;
   const span = touches => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-  const middle = touches => {
-    const rect = view.getBoundingClientRect();
-    return { x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left, y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top };
-  };
+  const middle = touches => ({ x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 });
   view.addEventListener('touchstart', event => {
     if (event.touches.length !== 2) return;
-    pinch = { span: span(event.touches) };
+    // On a desktop touchscreen the first finger started a drag; a pinch takes over from it.
+    state.dragging = false;
+    view.classList.remove('is-dragging');
+    pinch = { span: span(event.touches), middle: middle(event.touches) };
   }, { passive: true });
   view.addEventListener('touchmove', event => {
     if (!pinch || event.touches.length !== 2) return;
     event.preventDefault();
-    const now = span(event.touches);
+    const { rect } = startZoom();
+    const now = span(event.touches), mid = middle(event.touches);
+    const shift = { x: mid.x - pinch.middle.x, y: mid.y - pinch.middle.y };
     const factor = now / pinch.span;
-    pinch.span = now;
-    zoomBy(factor, middle(event.touches), { settle: 400 });
+    pinch = { span: now, middle: mid };
+    zoomBy(factor, { x: mid.x - rect.left - shift.x, y: mid.y - rect.top - shift.y }, { settle: null, shift });
   }, { passive: false });
   const end = event => {
     if (!pinch || event.touches.length >= 2) return;
@@ -764,7 +872,8 @@ function untilt() {
 
 function glide() {
   const tick = () => {
-    if (state.dragging) return;
+    // A zoom owns the board's transform until it settles, so it stops the glide.
+    if (state.dragging || state.zooming) return;
     state.velocity.x *= FRICTION;
     state.velocity.y *= FRICTION;
     if (Math.abs(state.velocity.x) < 0.2 && Math.abs(state.velocity.y) < 0.2) return;
