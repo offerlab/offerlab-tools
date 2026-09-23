@@ -15,20 +15,30 @@ export const SEARCH_DEFAULTS = {
   serpFallbackBrands: 5
 };
 
-/** The /api/* proxies as the search calls them. Every method answers with a fetch Response. */
-export function httpApi(base = '', fetchImpl = (...args) => fetch(...args)) {
+// One Gemini attempt may run this long before it is given up and retried. The grounded
+// recommendations call answers in 25-100s on a normal day; a connection Gemini never answers on
+// used to hold the search (and the person's screen) open indefinitely.
+export const GEMINI_ATTEMPT_TIMEOUT_MS = 150_000;
+
+/**
+ * The /api/* proxies as the search calls them. Every method answers with a fetch Response.
+ * `signal` cancels every call the api makes, so a search abandoned in the browser stops here.
+ */
+export function httpApi(base = '', fetchImpl = (...args) => fetch(...args), { signal } = {}) {
   const at = (path) => `${base}${path}`;
+  const get = (path) => fetchImpl(at(path), signal ? { signal } : undefined);
   return {
     gemini: (body, model) => fetchWithRetry(at(`/api/gemini${model ? `?model=${encodeURIComponent(model)}` : ''}`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }, 3, fetchImpl),
-    serp: (params) => fetchImpl(at(`/api/serpapi?${params}`)),
+      body: JSON.stringify(body),
+      signal
+    }, 3, fetchImpl, { timeoutMs: GEMINI_ATTEMPT_TIMEOUT_MS }),
+    serp: (params) => get(`/api/serpapi?${params}`),
     // `refresh` crawls the storefront now rather than serving the stored catalog (a day old at most).
-    catalog: (domain, { refresh = false } = {}) => fetchImpl(at(`/api/catalog?domain=${encodeURIComponent(domain)}${refresh ? '&refresh=1' : ''}`)),
-    socials: (domain) => fetchImpl(at(`/api/socials?domain=${encodeURIComponent(domain)}`)),
-    opengraph: (url) => fetchImpl(at(`/api/opengraph?url=${encodeURIComponent(url)}`))
+    catalog: (domain, { refresh = false } = {}) => get(`/api/catalog?domain=${encodeURIComponent(domain)}${refresh ? '&refresh=1' : ''}`),
+    socials: (domain) => get(`/api/socials?domain=${encodeURIComponent(domain)}`),
+    opengraph: (url) => get(`/api/opengraph?url=${encodeURIComponent(url)}`)
   };
 }
 
@@ -724,33 +734,83 @@ function sleep(ms) {
 // ============================================
 // UTILITY: Fetch with Retry (for rate limiting)
 // ============================================
-export async function fetchWithRetry(url, options, maxRetries = 3, fetchImpl = fetch) {
+// Responses worth another attempt: rate limiting, and the proxy or Gemini failing outright.
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/**
+ * A signal for one attempt: aborts when the caller's `signal` does, or after `timeoutMs`.
+ * `release` drops the timer and listener once the attempt is over.
+ */
+function attemptSignal(signal, timeoutMs) {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(signal.reason);
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    else signal.addEventListener('abort', onAbort, { once: true });
+  }
+  const timer = timeoutMs
+    ? setTimeout(() => controller.abort(new DOMException(`Timed out after ${Math.round(timeoutMs / 1000)}s`, 'TimeoutError')), timeoutMs)
+    : null;
+  return {
+    signal: controller.signal,
+    release() {
+      if (timer) clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onAbort);
+    }
+  };
+}
+
+function isTimeout(err) {
+  return err?.name === 'TimeoutError';
+}
+
+/**
+ * fetch with retries. Retries a network failure, a per-attempt timeout (`timeoutMs`) and a
+ * retryable status (429 and 5xx), with backoff; a cancellation through `options.signal` is
+ * never retried. After the last attempt the last response comes back, or the last error is
+ * thrown, so callers see what went wrong.
+ */
+export async function fetchWithRetry(url, options = {}, maxRetries = 3, fetchImpl = fetch, { timeoutMs = 0 } = {}) {
+  const { signal, ...rest } = options || {};
   let lastError;
-  
+  let lastResponse;
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Request cancelled', 'AbortError');
+    const attemptAbort = attemptSignal(signal, timeoutMs);
     try {
-      const response = await fetchImpl(url, options);
-      
-      // If rate limited (429), wait and retry
-      if (response.status === 429) {
-        const waitTime = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
-        console.log(`[API] Rate limited, waiting ${waitTime/1000}s before retry ${attempt + 1}/${maxRetries}...`);
-        await sleep(waitTime);
+      const response = await fetchImpl(url, { ...rest, signal: attemptAbort.signal });
+
+      if (RETRYABLE_STATUS.has(response.status)) {
+        lastResponse = response;
+        if (attempt < maxRetries - 1) {
+          const waitTime = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+          console.log(`[API] HTTP ${response.status}, waiting ${waitTime / 1000}s before retry ${attempt + 1}/${maxRetries}...`);
+          await sleep(waitTime);
+        }
         continue;
       }
-      
+
       return response;
     } catch (err) {
+      // The caller gave up: stop here, whatever the attempt was doing.
+      if (signal?.aborted) throw err;
       lastError = err;
-      console.warn(`[API] Request failed (attempt ${attempt + 1}):`, err.message);
-      
+      console.warn(`[API] Request ${isTimeout(err) ? 'timed out' : 'failed'} (attempt ${attempt + 1}/${maxRetries}):`, err.message);
+
       if (attempt < maxRetries - 1) {
         const waitTime = Math.pow(2, attempt) * 1000;
         await sleep(waitTime);
       }
+    } finally {
+      attemptAbort.release();
     }
   }
-  
+
+  if (lastResponse) return lastResponse;
+  if (isTimeout(lastError)) {
+    throw new Error(`The request timed out ${maxRetries} times (${Math.round(timeoutMs / 1000)}s each). Please try again in a moment.`);
+  }
   throw lastError || new Error('Request failed after retries');
 }
 

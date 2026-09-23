@@ -182,6 +182,9 @@ app.get('/api/serpapi', async (req, res) => {
 });
 
 // Gemini API proxy - API key stays server-side
+// Same ceiling as the Pages proxy: the browser retries an attempt before this fires.
+const GEMINI_UPSTREAM_TIMEOUT_MS = 180_000;
+
 app.post('/api/gemini', express.json({ limit: '12mb' }), async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -199,6 +202,7 @@ app.post('/api/gemini', express.json({ limit: '12mb' }), async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body),
+      signal: AbortSignal.timeout(GEMINI_UPSTREAM_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -212,6 +216,10 @@ app.post('/api/gemini', express.json({ limit: '12mb' }), async (req, res) => {
     console.log(`[Gemini Proxy] Success - ${parts.length} parts, keys: ${parts.map(p => Object.keys(p).join('+')).join(', ')}`);
     res.json(data);
   } catch (err) {
+    if (err?.name === 'TimeoutError') {
+      console.warn(`[Gemini Proxy] No answer from Gemini within ${GEMINI_UPSTREAM_TIMEOUT_MS / 1000}s`);
+      return res.status(504).json({ error: 'Gemini did not answer in time' });
+    }
     console.error('[Gemini Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to process Gemini request' });
   }
