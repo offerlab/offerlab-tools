@@ -152,8 +152,14 @@ export function initPicker() {
   });
 }
 
+/**
+ * Only a brand with a public storefront catalog can be built with: the build imports each pick
+ * from its storefront, and a Google Shopping result has no storefront to import from (every
+ * such build failed with "google.com: no public catalog found"). Those brands can still be
+ * pitched; they just have no Create bundle and are not offered on the rail.
+ */
 export function canBuildWith(brand) {
-  return (brand?.catalog?.products?.length || 0) > 0;
+  return brand?.catalog?.status === 'shopify' && (brand.catalog.products?.length || 0) > 0;
 }
 
 export function isPickerOpen() {
