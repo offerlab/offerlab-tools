@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const DOMAIN = 'smoke-brand.test';
+// One stored search per project: the desktop and phone runs seed and read at the same time.
+const domainFor = (project) => `smoke-brand-${project}.test`;
 
 // A catalog with one Shopify product: that is what makes a result card buildable.
 function catalog(host) {
@@ -10,16 +11,16 @@ function catalog(host) {
   };
 }
 
-const STORED_SEARCH = {
+const storedSearch = (domain) => ({
   type: 'results',
   searchId: 'smoke-search',
-  searchedBrand: { name: 'Smoke Brand', url: `https://${DOMAIN}`, description: 'A brand for the smoke test.', catalog: catalog(DOMAIN) },
+  searchedBrand: { name: 'Smoke Brand', url: `https://${domain}`, description: 'A brand for the smoke test.', catalog: catalog(domain) },
   brands: [
     { name: 'Partner One', url: 'https://partner-one.test', reasons: ['Same kitchen moment', 'Same customer'], bundleIdea: 'A starter box', catalog: catalog('partner-one.test') },
     { name: 'Partner Two', url: 'https://partner-two.test', reasons: ['Same gift occasion'], bundleIdea: 'A gift set', catalog: catalog('partner-two.test') }
   ],
   serpApiOutOfCredits: false
-};
+});
 
 test('the landing page renders', async ({ page }) => {
   await page.goto('/');
@@ -34,14 +35,15 @@ test('the showcase renders its tiles', async ({ page }) => {
   await expect(page.locator('.library-tile').first()).toBeVisible();
 });
 
-test('a stored search renders results and opens the picker', async ({ page, request }) => {
-  const stored = await request.put(`/api/data/searches/${encodeURIComponent(DOMAIN)}`, {
+test('a stored search renders results and opens the picker', async ({ page, request }, testInfo) => {
+  const domain = domainFor(testInfo.project.name);
+  const stored = await request.put(`/api/data/searches/${encodeURIComponent(domain)}`, {
     headers: { 'Content-Type': 'application/json' },
-    data: STORED_SEARCH
+    data: storedSearch(domain)
   });
   expect(stored.ok(), await stored.text()).toBeTruthy();
 
-  await page.goto(`/?q=${encodeURIComponent(DOMAIN)}`);
+  await page.goto(`/?q=${encodeURIComponent(domain)}`);
   await expect(page.locator('#resultsSection')).toBeVisible();
   await expect(page.locator('.result-card')).toHaveCount(2);
 

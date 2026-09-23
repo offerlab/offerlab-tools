@@ -12,7 +12,8 @@ const TRAILING_CLICK_MS = 700;
 
 export function bindTouchTap(root, selector) {
   let down = null;
-  let tappedAt = 0;
+  // No tap yet: -Infinity, so a click in the page's first 700ms is not mistaken for a tap's trailing click.
+  let tappedAt = -Infinity;
 
   const onDown = (e) => {
     const el = e.pointerType === 'touch' ? e.target.closest(selector) : null;

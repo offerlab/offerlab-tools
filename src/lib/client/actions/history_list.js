@@ -33,7 +33,7 @@ export function renderHistoryRows(list, history) {
 export function historyList(list, params) {
   let handlers = params;
   let down = null;
-  let chosenAt = 0;
+  let chosenAt = -Infinity;
 
   const choose = (item) => {
     chosenAt = performance.now();
