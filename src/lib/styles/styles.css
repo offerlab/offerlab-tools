@@ -2380,22 +2380,37 @@ position: relative;
   text-wrap: balance;
 }
 
+/* The sheen is a mask sweeping over ordinary ink, not a gradient clipped to the glyphs. Safari has
+   a long list of cases where background-clip: text paints nothing or stops repainting (WebKit bug
+   169125 and its relatives), and with the ink set transparent for it, any of them left the status
+   line invisible on a phone. A mask fails safe: the text stays readable in its own colour. The
+   band runs the same course the gradient did: 32% ink at the edges, full ink at the peak. */
 .loading-text-shimmer {
-  background: var(--agent-task-grady, linear-gradient(90deg, var(--content-text-placeholder, rgba(52, 46, 38, 0.32)) 0%, var(--content-primary, #342E26) 50%, var(--content-text-placeholder, rgba(52, 46, 38, 0.32)) 100%));
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: var(--content-primary);
+  -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.32) 0%, #000 50%, rgba(0, 0, 0, 0.32) 100%);
+  mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.32) 0%, #000 50%, rgba(0, 0, 0, 0.32) 100%);
+  -webkit-mask-size: 200% 100%;
+  mask-size: 200% 100%;
   animation: loadingTextShimmer 5s linear infinite;
 }
 
 @keyframes loadingTextShimmer {
   0% {
-    background-position: 200% 0;
+    -webkit-mask-position: 200% 0;
+    mask-position: 200% 0;
   }
   100% {
-    background-position: -200% 0;
+    -webkit-mask-position: -200% 0;
+    mask-position: -200% 0;
+  }
+}
+
+/* No sweep: plain ink at full strength, so the line still reads as the current step. */
+@media (prefers-reduced-motion: reduce) {
+  .loading-text-shimmer {
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
