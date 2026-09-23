@@ -15,6 +15,7 @@
     EYEBROW_CHIPS, TYPING_MS, label, load, narrowedBy, readFiltersFromUrl, showcase, visibleBundles, writeFiltersToUrl
   } from '$lib/client/showcase.svelte.js';
   import { G, board, clearBoard, initBoard, isMobile, measure, render, setPan } from '$lib/client/showcase-board.js';
+  import { commitZoom } from '$lib/client/showcase-zoom.js';
   import { viewportGestures } from '$lib/client/actions/showcase-viewport.js';
 
   let section;
@@ -54,6 +55,7 @@
   async function show() {
     if (!showcase.loaded) await load();
     if (app.view !== 'library') return;
+    measure();
     readFiltersFromUrl();
     queryText = showcase.filters.query;
     apply();
@@ -65,6 +67,7 @@
   }
 
   function remeasure() {
+    commitZoom();
     measure();
     if (showcase.loaded) { clearBoard(); render(); }
   }

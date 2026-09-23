@@ -4,7 +4,7 @@
  * click on a tile (never the one that ends a drag) hands the tile to `onTile`.
  */
 import { board, isMobile, setPan } from '$lib/client/showcase-board.js';
-import { commitZoom, glide, tiltFrame, untilt, ZOOM, zoomBy } from '$lib/client/showcase-zoom.js';
+import { commitZoom, glide, startZoom, tiltFrame, tweenZoom, untilt, ZOOM, zoomBy } from '$lib/client/showcase-zoom.js';
 
 const KEY_STEP = 160;
 const DRAG_THRESHOLD = 6;
@@ -21,6 +21,7 @@ export function viewportGestures(view, options) {
   on('pointerdown', event => {
     if (event.button !== 0 || isMobile()) return;
     if (event.target.closest('.library-omni, .library-lightbox')) return;
+    commitZoom();
     board.dragging = true;
     board.moved = false;
     board.suppressClick = false;
@@ -93,25 +94,30 @@ export function viewportGestures(view, options) {
     if (isMobile()) return;
     event.preventDefault();
     if (event.ctrlKey || event.metaKey) {
-      const rect = view.getBoundingClientRect();
-      // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once and is held to a step.
+      const { rect } = startZoom();
+      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once, held to a step and eased.
       const delta = Math.max(-ZOOM.notch, Math.min(ZOOM.notch, event.deltaY));
-      zoomBy(Math.exp(-delta * ZOOM.wheel), { x: event.clientX - rect.left, y: event.clientY - rect.top });
+      const factor = Math.exp(-delta * ZOOM.wheel);
+      if (event.deltaMode || Math.abs(event.deltaY) >= 50) tweenZoom(factor, anchor);
+      else zoomBy(factor, anchor);
       return;
     }
+    commitZoom();
     setPan(board.pan.x - event.deltaX, board.pan.y - event.deltaY);
   }, { passive: false });
 
   on('keydown', event => {
     if (event.key === '=' || event.key === '+' || event.key === '-' || event.key === '_') {
       event.preventDefault();
-      const rect = view.getBoundingClientRect();
-      zoomBy(event.key === '-' || event.key === '_' ? 1 / ZOOM.key : ZOOM.key, { x: rect.width / 2, y: rect.height / 2 }, { settle: 0 });
+      const { rect } = startZoom();
+      tweenZoom(event.key === '-' || event.key === '_' ? 1 / ZOOM.key : ZOOM.key, { x: rect.width / 2, y: rect.height / 2 });
       return;
     }
     const step = { ArrowLeft: [KEY_STEP, 0], ArrowRight: [-KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[event.key];
     if (!step || isMobile()) return;
     event.preventDefault();
+    commitZoom();
     setPan(board.pan.x + step[0], board.pan.y + step[1]);
   });
 
@@ -125,25 +131,27 @@ export function viewportGestures(view, options) {
   };
 }
 
-/** Two fingers on a phone: the board scales between them, and is dealt again when they lift. */
+/** Two fingers: the board scales between them and follows them, and is dealt again when they lift. */
 function bindPinch(view, on) {
   let pinch = null;
   const span = touches => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-  const middle = touches => {
-    const rect = view.getBoundingClientRect();
-    return { x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left, y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top };
-  };
+  const middle = touches => ({ x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 });
   on('touchstart', event => {
     if (event.touches.length !== 2) return;
-    pinch = { span: span(event.touches) };
+    // On a desktop touchscreen the first finger started a drag; a pinch takes over from it.
+    board.dragging = false;
+    view.classList.remove('is-dragging');
+    pinch = { span: span(event.touches), middle: middle(event.touches) };
   }, { passive: true });
   on('touchmove', event => {
     if (!pinch || event.touches.length !== 2) return;
     event.preventDefault();
-    const now = span(event.touches);
+    const { rect } = startZoom();
+    const now = span(event.touches), mid = middle(event.touches);
+    const shift = { x: mid.x - pinch.middle.x, y: mid.y - pinch.middle.y };
     const factor = now / pinch.span;
-    pinch.span = now;
-    zoomBy(factor, middle(event.touches), { settle: 400 });
+    pinch = { span: now, middle: mid };
+    zoomBy(factor, { x: mid.x - rect.left - shift.x, y: mid.y - rect.top - shift.y }, { settle: null, shift });
   }, { passive: false });
   const end = event => {
     if (!pinch || event.touches.length >= 2) return;
