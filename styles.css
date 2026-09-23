@@ -6996,6 +6996,19 @@ button.social-link:disabled {
   padding-inline: 12px;
 }
 
+/* The shimmer on the dark primary button: paper-toned, peaking at white. */
+.picker-tray-busy .text-shimmer-ink {
+  --shimmer-peak: #fff;
+  --shimmer-edge: rgba(255, 255, 255, 0);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker-tray-busy .text-shimmer-ink {
+    color: #fff;
+  }
+}
+
 .btn[disabled] {
   opacity: 0.5;
   cursor: default;
