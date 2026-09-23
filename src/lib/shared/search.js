@@ -25,7 +25,8 @@ export function httpApi(base = '', fetchImpl = (...args) => fetch(...args)) {
       body: JSON.stringify(body)
     }, 3, fetchImpl),
     serp: (params) => fetchImpl(at(`/api/serpapi?${params}`)),
-    catalog: (domain) => fetchImpl(at(`/api/catalog?domain=${encodeURIComponent(domain)}`)),
+    // `refresh` crawls the storefront now rather than serving the stored catalog (a day old at most).
+    catalog: (domain, { refresh = false } = {}) => fetchImpl(at(`/api/catalog?domain=${encodeURIComponent(domain)}${refresh ? '&refresh=1' : ''}`)),
     socials: (domain) => fetchImpl(at(`/api/socials?domain=${encodeURIComponent(domain)}`)),
     opengraph: (url) => fetchImpl(at(`/api/opengraph?url=${encodeURIComponent(url)}`))
   };
@@ -154,9 +155,9 @@ export async function discoverComplementaryBrands(url, {
 /* Catalogs and socials                                                        */
 /* -------------------------------------------------------------------------- */
 
-export async function fetchCatalog(api, domain) {
+export async function fetchCatalog(api, domain, options = {}) {
   try {
-    const response = await api.catalog(domain);
+    const response = await api.catalog(domain, options);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (err) {

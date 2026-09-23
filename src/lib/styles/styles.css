@@ -1160,13 +1160,14 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
 
 /* 1.5 is what the 18px input already computed to, so this only bites at the compact size. */
 .view-header .search-input {
+  padding-left: 8px;
   padding-right: calc(2 * var(--pill-btn) + 2 * var(--pill-pad) + 6px);
   text-align: left;
 }
 
 /* The domain reads from the left, where the caret is, now that two discs take the right. */
 .view-header .search-display {
-  left: 20px;
+  left: 8px;
   transform: translateY(-50%);
   max-width: calc(100% - 2 * var(--pill-btn) - 2 * var(--pill-pad) - 26px);
 }
@@ -3461,7 +3462,22 @@ button.social-link:disabled {
 
   /* The pill takes the rest of the row. Its ring (the form's spread shadow and outline) is drawn
      outside the form's box, so the slot keeps a ring's width in from each side: the ring's outer
-     edge, not the form's, is what stands 6px from the back control and on the gutter. */
+     edge, not the form's, is what stands 6px from the back control and on the gutter. Inside, the
+     discs stand 4px from the box's edges and fill the rest of its height, at rest and in focus. */
+  .omni-footer .header-nav-search,
+  .omni-footer .header-nav-search:focus-within {
+    --pill-pad: 4px;
+    --pill-btn: var(--pill-row);
+  }
+
+  .omni-footer .search-input {
+    padding-left: 16px;
+  }
+
+  .omni-footer .search-display {
+    left: 16px;
+  }
+
   .omni-footer .header-nav-search {
     --pill-ring: 4.5px;
     --pill-max: 100%;
@@ -4938,6 +4954,11 @@ button.social-link:disabled {
 .picker-concepts-layout:has(.picker-concepts--ready),
 .picker-concepts-layout:has(.picker-concepts--loading) {
   max-width: 100%;
+}
+
+/* Folded to its chip, the row sits flush to the top of the sheet. */
+.picker-concepts-layout:has(.picker-concepts.is-minimized) {
+  padding-block-start: 0;
 }
 
 /* Glow spans are siblings of the card, never children: the card isolates and paints an opaque
@@ -6839,6 +6860,133 @@ button.social-link:disabled {
   margin-inline-start: calc(32px - var(--tray-item-gap));
 }
 
+/* The app's loader (atelier/tailwind/buttons.css .ol-loader), verbatim: three dots out of one
+   element, ::before and ::after LEFT and RIGHT, the element's own background CENTER, in the
+   button's own color. Regenerated in the app from lib/assets/loader; not hand-tuned here. */
+.ol-loader {
+  width: 16px;
+  aspect-ratio: 1;
+  position: relative;
+  flex-shrink: 0;
+  background: no-repeat radial-gradient(circle closest-side, currentColor 100%, transparent);
+  background-size: 14.2857% 14.2857%;
+  animation:
+    ol-loader-spin 11.533s infinite linear,
+    ol-loader-center 11.533s infinite linear;
+}
+
+.ol-loader::before,
+.ol-loader::after {
+  content: "";
+  position: absolute;
+  width: 14.2857%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: currentColor;
+  margin: -7.14286% 0 0 -7.14286%;
+}
+
+.ol-loader::before {
+  animation: ol-loader-left 11.533s infinite linear;
+}
+
+.ol-loader::after {
+  animation: ol-loader-right 11.533s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ol-loader {
+    animation: ol-loader-center 11.533s infinite linear;
+  }
+}
+
+@keyframes ol-loader-spin {
+  0% { transform: rotate(0deg); animation-timing-function: linear; }
+  27.706% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.435, 0.000, 0.566, 1.000); }
+  33.911% { transform: rotate(-120deg); animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { transform: rotate(-120deg); animation-timing-function: cubic-bezier(0.274, 0.000, 0.226, 1.000); }
+  77.345% { transform: rotate(-360deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes ol-loader-left {
+  0.000% { left: 26.429%; top: 63.371%; animation-timing-function: cubic-bezier(0.243, 0.609, 0.559, 1.000); }
+  1.732% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  6.926% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  12.121% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  17.316% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  22.511% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.667, 1.000); }
+  27.706% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  33.911% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  38.672% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.340, 1.000); }
+  75.613% { left: 26.429%; top: 32.143%; animation-timing-function: linear; }
+  77.345% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.005, 0.340, 1.000); }
+  80.808% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  86.003% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  91.198% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  96.392% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.601, 0.007, 0.576, 0.694); }
+  100% { left: 26.429%; top: 63.371%; }
+}
+
+@keyframes ol-loader-right {
+  0.000% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  5.195% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  10.390% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  15.584% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  20.779% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  25.974% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  33.911% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.667, 1.000); }
+  38.672% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.500, 1.000); }
+  77.345% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  84.271% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  89.466% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  94.661% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  100% { left: 73.571%; top: 32.143%; }
+}
+
+@keyframes ol-loader-center {
+  0.000% { background-position: 50.000% 37.654%; animation-timing-function: cubic-bezier(0.313, 0.367, 0.468, 1.000); }
+  3.463% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  8.658% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  13.853% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  19.048% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  24.242% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.833, 0.833); }
+  29.437% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.167, 0.167, 0.667, 1.000); }
+  33.911% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  38.672% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.500, 1.000); }
+  75.325% { background-position: 50.000% 29.167%; animation-timing-function: linear; }
+  77.345% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  82.540% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  87.735% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  92.929% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  98.124% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.435, 0.000, 0.744, 0.413); }
+  100% { background-position: 50.000% 37.654%; }
+}
+
+/* A product with no price cannot be picked: shown so the catalog reads whole, but quiet. */
+.picker-product.is-unpriced {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .picker-tray-actions .btn {
   height: 44px;
   padding: 0 20px;
@@ -7813,10 +7961,15 @@ button.social-link:disabled {
   transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
 }
 
-/* On desktop the card starts where the clicked cover stood, turned away, and flies forward as it
-   turns to face you (library.js sets the start on the card). The details follow it in. */
+/* On desktop the card starts where the clicked cover stood, at its size, and flies forward
+   turning a full circle as it grows (library.js sets the start on the card). The details follow
+   it in. Closing is plainer and quicker: it scales straight back onto the shelf. */
 .library-lightbox.is-open .library-lightbox-card {
   transform: none;
+}
+
+.library-lightbox.is-closing .library-lightbox-card {
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .library-lightbox-body {
@@ -7833,7 +7986,8 @@ button.social-link:disabled {
   transition-delay: 0s;
 }
 
-/* Anchored to the viewport, not the card. */
+/* Beside the card, anchored to the viewport. The last thing in: it pops from its corner once the
+   card has landed, and goes at once on close. */
 .library-lightbox-close {
   position: fixed;
   top: 20px;
@@ -7844,6 +7998,15 @@ button.social-link:disabled {
   padding: 0;
   color: #fff;
   background: rgba(255, 255, 255, 0.14);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.library-lightbox.is-open .library-lightbox-close {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.2s ease 0.6s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
 }
 
 .library-lightbox-close:hover {
@@ -7888,7 +8051,7 @@ button.social-link:disabled {
   line-height: 20px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff;
 }
 
 /* The brands' avatars, stacked and slightly offset, the first on top. */
@@ -7967,7 +8130,7 @@ button.social-link:disabled {
 
 .library-lightbox-products {
   margin: 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff;
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
@@ -8105,6 +8268,13 @@ button.social-link:disabled {
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
   }
 
+  /* The card's own width, not the desktop's 640: on a phone the cover is as wide as the card. */
+  .library-lightbox-cover {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
   .library-lightbox-body {
     padding: 0;
   }
@@ -8115,6 +8285,11 @@ button.social-link:disabled {
     right: 16px;
     width: 48px;
     height: 48px;
+  }
+
+  /* The phone card lands in 0.3s, so the close control follows sooner. */
+  .library-lightbox.is-open .library-lightbox-close {
+    transition-delay: 0.3s;
   }
 
   .library-lightbox-open {

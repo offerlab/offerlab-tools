@@ -26,7 +26,9 @@ const TEAM_PAGE_SIZE = 100;
 const BUILD_TIMEOUT_MS = 300000;
 const BUILD_POLL_MS = 2000;
 
-export const state = { account: null, tools: null };
+const BUILD_TOOL = 'build_bundle_from_storefronts';
+
+export const state = { account: null, tools: null, buildTakesSpecs: false };
 
 /** The OfferLab handoff shows for everyone; signing in is what needs an account. */
 export function isEnabled() {
@@ -368,6 +370,9 @@ export async function loadAccount() {
 
   const tools = await rpc('tools/list', {});
   state.tools = (tools?.tools || []).map(tool => tool.name);
+  // What the build tool takes, so a pick with no storefront is offered only where it can be built.
+  const build = (tools?.tools || []).find(tool => tool.name === BUILD_TOOL);
+  state.buildTakesSpecs = Boolean(build?.inputSchema?.properties?.products);
 
   try {
     const teams = await callTool('list_teams', { per_page: 1 });
@@ -388,6 +393,14 @@ export async function loadAccount() {
  */
 export function canCreateDrafts() {
   return state.tools === null ? null : canBuildBundles(state.tools);
+}
+
+/**
+ * Whether the build can be handed a product as a description (name, price, picture) rather than a
+ * storefront URL, which is what a Google Shopping product is. Null until loadAccount has run.
+ */
+export function buildTakesSpecs() {
+  return state.tools === null ? null : Boolean(state.buildTakesSpecs);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -481,7 +494,8 @@ function buildFailure(status, result) {
   if (failures.length) {
     const [first] = failures;
     const rest = failures.length > 1 ? ` (and ${failures.length - 1} more)` : '';
-    const who = first.brand ? `${first.brand}: ` : '';
+    // The reason usually names the brand already.
+    const who = first.brand && !String(first.reason || '').startsWith(first.brand) ? `${first.brand}: ` : '';
     return `${who}${first.reason || 'could not be set up'}${rest}`;
   }
   return status?.error_message || 'OfferLab could not build that bundle';
@@ -521,10 +535,18 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
   const ordered = presentingOrder(picks, presentingDomain);
 
   onProgress('Starting the build');
-  const started = await callTool('build_bundle_from_storefronts', {
-    product_urls: ordered.map(pick => pick.product.url),
-    name
-  });
+  // Every pick goes as a description with its storefront URL where it has one: the build takes
+  // the storefront's product when the storefront lists it and creates it from the description
+  // when it does not (unlisted since the crawl, or found through Google Shopping). An OfferLab
+  // that takes only URLs gets only those, and cannot be given a Google Shopping pick at all.
+  const specs = state.buildTakesSpecs;
+  const fromStorefront = pick => pick.storefront !== false;
+  if (!specs && ordered.some(pick => !fromStorefront(pick))) {
+    throw new OfferLabError('This OfferLab cannot build from Google Shopping products yet');
+  }
+  const started = await callTool(BUILD_TOOL, specs
+    ? { products: ordered.map(specFor), name }
+    : { product_urls: ordered.map(pick => pick.product.url), name });
   if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
 
   const result = await awaitBuild(started.action_id, onProgress);
@@ -544,4 +566,18 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
 
 function labelFor(picks, domain) {
   return picks.find(pick => pick.domain === domain)?.brandName || domain;
+}
+
+/** A pick as the build's spec: the brand's site, the product, and its storefront URL if it has one. */
+function specFor(pick) {
+  const { product } = pick;
+  const price = Number(product.price);
+  return {
+    website: `https://${pick.domain}`,
+    name: product.title,
+    url: pick.storefront === false ? undefined : product.url,
+    price: Number.isFinite(price) && price > 0 ? price : undefined,
+    image_url: product.image || undefined,
+    description: product.description || undefined
+  };
 }
