@@ -90,6 +90,8 @@ const state = {
   deal: { r: 0 },
   zoom: 1,
   zooming: null,
+  gesture: null,
+  gestureQuietUntil: 0,
   dragging: false,
   moved: false,
   suppressClick: false,
@@ -657,6 +659,8 @@ function bindViewport() {
     if (MOBILE.matches) return;
     event.preventDefault();
     if (event.ctrlKey || event.metaKey) {
+      // Safari may send a pinch as gesture events and ctrl+wheel both; the gesture owns it.
+      if (state.gesture || performance.now() < state.gestureQuietUntil) return;
       const { rect } = startZoom();
       const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       // A trackpad pinch arrives in small deltas; a mouse notch is 100 at once, held to a step and eased.
@@ -820,7 +824,9 @@ function bindPinch(view) {
   let pinch = null;
   const span = touches => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
   const middle = touches => ({ x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 });
+  let touching = 0;
   view.addEventListener('touchstart', event => {
+    touching = event.touches.length;
     if (event.touches.length !== 2) return;
     // On a desktop touchscreen the first finger started a drag; a pinch takes over from it.
     state.dragging = false;
@@ -838,12 +844,38 @@ function bindPinch(view) {
     zoomBy(factor, { x: mid.x - rect.left - shift.x, y: mid.y - rect.top - shift.y }, { settle: null, shift });
   }, { passive: false });
   const end = event => {
+    touching = event.touches.length;
     if (!pinch || event.touches.length >= 2) return;
     pinch = null;
     commitZoom();
   };
   view.addEventListener('touchend', end);
   view.addEventListener('touchcancel', end);
+
+  // Safari on a Mac sends a trackpad pinch as gesture events, not ctrl+wheel, and zooms the page
+  // unless they are cancelled. `scale` runs from 1 at the start of the gesture. A phone, or any
+  // pinch with fingers on the glass, is the touch path's.
+  const ownsGesture = () => !MOBILE.matches && !touching;
+  view.addEventListener('gesturestart', event => {
+    if (!ownsGesture()) return;
+    event.preventDefault();
+    state.gesture = { scale: 1 };
+  });
+  view.addEventListener('gesturechange', event => {
+    if (!state.gesture || !ownsGesture()) return;
+    event.preventDefault();
+    const { rect } = startZoom();
+    const factor = event.scale / state.gesture.scale;
+    state.gesture.scale = event.scale;
+    zoomBy(factor, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+  });
+  view.addEventListener('gestureend', event => {
+    if (!state.gesture) return;
+    event.preventDefault();
+    state.gesture = null;
+    // The ctrl+wheel tail of the same pinch, if this Safari sends one, is not a second zoom.
+    state.gestureQuietUntil = performance.now() + 150;
+  });
 }
 
 function tiltFrame() {
