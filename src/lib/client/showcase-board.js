@@ -15,6 +15,8 @@ const DESKTOP = { tile: 220, gap: 32, plank: 18, air: 64, radius: 28 };
 export const PHONE = { columns: 2.25, gap: 10, plank: 14, air: 44, radius: 20, perShelf: 8, gutter: 16 };
 export const G = {};
 
+// Mid-zoom a frame deals at most this many new cells, so a fast pinch out never stalls one frame.
+const DEAL_PER_FRAME = 16;
 const FADE_MS = 320;
 const SWEEP_MS = 200;
 const SEED = 0x9e3779b1;
@@ -33,6 +35,9 @@ export const board = {
   deal: { r: 0 },
   zoom: 1,
   zooming: null,
+  gesture: null,
+  gestureQuietUntil: 0,
+  size: { width: 0, height: 0 },
   dragging: false,
   moved: false,
   suppressClick: false,
@@ -53,7 +58,10 @@ export function initBoard({ section, viewport, el }) {
 }
 
 export function measure() {
-  const width = board.viewport.getBoundingClientRect().width || window.innerWidth;
+  const rect = board.viewport.getBoundingClientRect();
+  const width = rect.width || window.innerWidth;
+  // Cached so the hot paths (render, a zoom frame) never read layout.
+  board.size = { width, height: rect.height || window.innerHeight };
   const z = board.zoom;
   if (isMobile()) {
     G.colW = Math.round(width / (PHONE.columns / z));
@@ -140,7 +148,8 @@ function rowFor(r) {
   if (row) return row;
   const el = document.createElement('div');
   el.className = 'library-shelf';
-  el.style.transform = `translate3d(0, ${r * G.shelfH}px, 0)`;
+  // 2D, so a row is not a composited layer of its own that re-rasters at every step of a zoom.
+  el.style.transform = `translate(0, ${r * G.shelfH}px)`;
   // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
   el.style.zIndex = String(r + 1e6);
   el.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div><div class="library-shelf-rail"></div>';
@@ -153,16 +162,25 @@ function rowFor(r) {
 /** Creates what the viewport can see plus one cell of margin, drops the rest. */
 export function render() {
   if (isMobile()) return renderShelves();
-  const view = board.viewport.getBoundingClientRect();
-  const x0 = -board.pan.x - G.colW, x1 = -board.pan.x + view.width + G.colW;
-  const r0 = Math.floor(-board.pan.y / G.shelfH) - 1, r1 = Math.ceil((-board.pan.y + view.height) / G.shelfH) + 1;
+  // Mid-zoom the board is scaled on screen, so what it must hold is the viewport seen through it.
+  const { width, height } = board.size;
+  const { x: tx, y: ty, k } = board.zooming || { ...board.pan, k: 1 };
+  const x0 = -tx / k - G.colW, x1 = (width - tx) / k + G.colW;
+  const r0 = Math.floor(-ty / k / G.shelfH) - 1, r1 = Math.ceil((height - ty) / k / G.shelfH) + 1;
   const keep = new Set();
+  let budget = board.zooming ? DEAL_PER_FRAME : Infinity;
 
   for (let r = r0; r <= r1; r++) {
     const row = rowFor(r);
-    for (const part of row.furniture) {
-      part.style.left = `${x0}px`;
-      part.style.width = `${x1 - x0}px`;
+    // The plank runs past the view in whole blocks of columns and is only rewritten when the view
+    // leaves them, since every rewrite repaints the row.
+    const block = G.colW * 4, left = Math.floor(x0 / block) * block, right = Math.ceil(x1 / block) * block;
+    if (row.span !== `${left}:${right}`) {
+      row.span = `${left}:${right}`;
+      for (const part of row.furniture) {
+        part.style.left = `${left}px`;
+        part.style.width = `${right - left}px`;
+      }
     }
     const c0 = Math.floor((x0 - rowOffset(r)) / G.colW), c1 = Math.floor((x1 - rowOffset(r)) / G.colW);
     for (let c = c0; c <= c1; c++) {
@@ -171,17 +189,34 @@ export function render() {
       const bundle = board.visible.length ? bundleAt(row, c) : null;
       const current = board.cells.get(key);
       if (current && current.dataset.id === (bundle?.id ?? '')) continue;
+      if (budget-- <= 0) { board.zooming.dealing = true; continue; }
       const tile = bundle ? makeTile(bundle) : makeGhost();
-      const left = c * G.colW + rowOffset(r) + G.gap / 2;
+      const left = cellLeft(r, c);
       tile.style.left = `${left}px`;
       board.cells.set(key, tile);
-      if (current) crossfade(current, tile, (left + board.pan.x) / view.width);
+      if (current) crossfade(current, tile, (left + board.pan.x) / width);
       row.rail.appendChild(tile);
     }
   }
 
+  // A gesture only adds cells, so pinching in and back out does not deal the same covers twice.
+  if (board.zooming) return;
   for (const [key, tile] of board.cells) if (!keep.has(key)) { tile.remove(); board.cells.delete(key); }
   for (const [r, row] of board.rows) if (r < r0 || r > r1) { row.el.remove(); board.rows.delete(r); }
+}
+
+const cellLeft = (r, c) => (isMobile() ? c * G.colW + G.gap / 2 + G.inset : c * G.colW + rowOffset(r) + G.gap / 2);
+
+/** After a zoom: every row and cell already dealt moves to the new geometry, keeping its cover. */
+export function relayout() {
+  for (const [r, row] of board.rows) {
+    row.el.style.transform = `translate(0, ${r * G.shelfH}px)`;
+    row.span = null;
+  }
+  for (const [key, tile] of board.cells) {
+    const [r, c] = key.split(':').map(Number);
+    tile.style.left = `${cellLeft(r, c)}px`;
+  }
 }
 
 /**
@@ -191,7 +226,7 @@ export function render() {
  * With nothing to show, enough shelves of glass to fill the viewport stand under the message.
  */
 function renderShelves() {
-  const view = board.viewport.getBoundingClientRect();
+  const view = board.size;
   const n = board.visible.length;
   const perShelf = n ? PHONE.perShelf : Math.ceil(PHONE.columns) + 1;
   const shelves = n ? Math.ceil(n / perShelf) : Math.ceil(view.height / G.shelfH) + 1;
@@ -213,7 +248,7 @@ function renderShelves() {
       const current = board.cells.get(key);
       if (current && current.dataset.id === (bundle?.id ?? '')) continue;
       const tile = bundle ? makeTile(bundle, true) : makeGhost();
-      const left = c * G.colW + G.gap / 2 + G.inset;
+      const left = cellLeft(r, c);
       tile.style.left = `${left}px`;
       board.cells.set(key, tile);
       if (current) crossfade(current, tile, left / view.width);

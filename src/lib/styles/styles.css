@@ -8193,6 +8193,18 @@ button.social-link:disabled {
     will-change: auto;
   }
 
+  /* Mid-pinch the board is one layer the compositor scales. The tiles' resting transform is 3D,
+     which makes each a layer of its own, re-rastered at every step of the pinch; at rest it draws
+     the same as none. */
+  .library-viewport.is-zooming .library-board {
+    will-change: transform;
+  }
+
+  .library-viewport.is-zooming .library-tile:not(.is-tilting) {
+    transform: none;
+    transition: none;
+  }
+
   .library-shelf {
     width: 100%;
   }
