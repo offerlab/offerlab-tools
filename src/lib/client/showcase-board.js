@@ -35,6 +35,8 @@ export const board = {
   deal: { r: 0 },
   zoom: 1,
   zooming: null,
+  gesture: null,
+  gestureQuietUntil: 0,
   size: { width: 0, height: 0 },
   dragging: false,
   moved: false,
