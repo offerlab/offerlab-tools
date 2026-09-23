@@ -4955,6 +4955,11 @@ button.social-link:disabled {
   max-width: 100%;
 }
 
+/* Folded to its chip, the row sits flush to the top of the sheet. */
+.picker-concepts-layout:has(.picker-concepts.is-minimized) {
+  padding-block-start: 0;
+}
+
 /* Glow spans are siblings of the card, never children: the card isolates and paints an opaque
    surface, so a child ring would land on top of it instead of behind. Six spans required. */
 .picker-concepts-shell {

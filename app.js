@@ -818,6 +818,15 @@ function createSearchedBrandCard(searchedBrand) {
     </div>
   `;
 
+  // A stored cover can rot: Shopify serves og:image from a theme asset path that changes when
+  // the theme is republished. A cover that fails to load gives way to the first catalog product,
+  // now if the catalog is here, or when it arrives.
+  const cover = card.querySelector('.searched-brand-card-image');
+  cover.querySelector('img').addEventListener('error', () => {
+    cover.classList.add('no-image');
+    coverFromCatalog(group, searchedBrand.catalog);
+  }, { once: true });
+
   group.append(card);
   return group;
 }
