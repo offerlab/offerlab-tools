@@ -7961,10 +7961,15 @@ button.social-link:disabled {
   transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
 }
 
-/* On desktop the card starts where the clicked cover stood, turned away, and flies forward as it
-   turns to face you (library.js sets the start on the card). The details follow it in. */
+/* On desktop the card starts where the clicked cover stood, at its size, and flies forward
+   turning a full circle as it grows (library.js sets the start on the card). The details follow
+   it in. Closing is plainer and quicker: it scales straight back onto the shelf. */
 .library-lightbox.is-open .library-lightbox-card {
   transform: none;
+}
+
+.library-lightbox.is-closing .library-lightbox-card {
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .library-lightbox-body {
@@ -7981,7 +7986,8 @@ button.social-link:disabled {
   transition-delay: 0s;
 }
 
-/* Anchored to the viewport, not the card. */
+/* Beside the card, anchored to the viewport. The last thing in: it pops from its corner once the
+   card has landed, and goes at once on close. */
 .library-lightbox-close {
   position: fixed;
   top: 20px;
@@ -7992,6 +7998,15 @@ button.social-link:disabled {
   padding: 0;
   color: #fff;
   background: rgba(255, 255, 255, 0.14);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.library-lightbox.is-open .library-lightbox-close {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.2s ease 0.6s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
 }
 
 .library-lightbox-close:hover {
@@ -8036,7 +8051,7 @@ button.social-link:disabled {
   line-height: 20px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff;
 }
 
 /* The brands' avatars, stacked and slightly offset, the first on top. */
@@ -8115,7 +8130,7 @@ button.social-link:disabled {
 
 .library-lightbox-products {
   margin: 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff;
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
@@ -8270,6 +8285,11 @@ button.social-link:disabled {
     right: 16px;
     width: 48px;
     height: 48px;
+  }
+
+  /* The phone card lands in 0.3s, so the close control follows sooner. */
+  .library-lightbox.is-open .library-lightbox-close {
+    transition-delay: 0.3s;
   }
 
   .library-lightbox-open {
