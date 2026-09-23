@@ -62,7 +62,8 @@
       <div class="picker-tray-actions">
         <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="cross-large" size={14} /><span class="picker-tray-action-label">Clear</span></button>
         {#if primary === 'working'}
-          <button type="button" class="btn btn--md btn--primary" disabled>Working</button>
+          <!-- Still the primary button to look at, with nothing to press: the app's loader in place of a label. -->
+          <button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="ol-loader" aria-hidden="true"></span></button>
         {:else if primary === 'done'}
           <button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>
         {:else if primary === 'connect'}

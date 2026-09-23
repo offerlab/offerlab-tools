@@ -35,14 +35,20 @@
   const showingDisplay = $derived(results && value.trim() !== '' && !focused);
   let displayFailed = $state(false);
 
+  // The suggestions (resolve.js) open and close the same dropdown imperatively, so the classes
+  // are set directly as well: a directive only acts when its own value changes.
   function showHistory() {
     renderHistoryRows(list, app.history);
     refreshSearchHistory();
     dropdownOpen = true;
+    dropdown.classList.add('visible');
+    form.classList.add('dropdown-open');
   }
 
   function hideHistory() {
     dropdownOpen = false;
+    dropdown?.classList.remove('visible');
+    form?.classList.remove('dropdown-open');
   }
 
   function onFocus() {
@@ -89,6 +95,10 @@
     if (!results) typing?.start();
     // Results placeholder starts hidden (results page not visible); it starts on blur if empty.
 
+    // Escape puts the dropdown away, whatever it holds, and leaves the text alone.
+    const onKeydown = (e) => { if (e.key === 'Escape') hideHistory(); };
+    document.addEventListener('keydown', onKeydown);
+
     const unregister = registerOmnibar(variant, {
       setValue(next) { value = next; },
       getValue() { return input.value; },
@@ -97,6 +107,7 @@
       hidePlaceholder() { typing?.hide(); }
     });
     return () => {
+      document.removeEventListener('keydown', onKeydown);
       unregister();
       typing?.destroy();
     };

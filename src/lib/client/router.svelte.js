@@ -5,7 +5,7 @@
  */
 import { app, showSection } from './state.svelte.js';
 import { modeFromUrl, getPitchFromUrl, pushUrl, MODE_PARAM } from './url.js';
-import { performSearch, searchFromUrl, goToLanding } from './search.svelte.js';
+import { performSearch, searchFromUrl, returnToLanding } from './search.svelte.js';
 import { resetTiles } from './tiles.svelte.js';
 import { libraryFilterParams } from './showcase.svelte.js';
 import { syncPickerWithUrl } from './picker.svelte.js';
@@ -66,7 +66,7 @@ export function onPopState() {
   if (domain) {
     performSearch(domain, { fromUrlRestore: true });
   } else if (!getSearchParam()) {
-    goToLanding();
+    returnToLanding();
   }
 }
 

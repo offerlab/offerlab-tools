@@ -2,6 +2,7 @@
  * The picker's selection: products toggled across the columns, or loaded from a concept.
  */
 import { picker, productKey, findProduct } from './picker-state.svelte.js';
+import { sellable } from './picker-prompt.js';
 
 // A finished or failed draft belongs to the selection it was made from.
 function afterSelectionChange() {
@@ -14,7 +15,7 @@ export function toggleProduct(domain, id) {
     picker.selection.delete(key);
   } else {
     const product = findProduct(domain, id);
-    if (!product) return;
+    if (!product || !sellable(product)) return;
     picker.selection.set(key, { domain, product, sequence: picker.sequence++ });
   }
   if (picker.activeConcept >= 0) syncActiveConceptToSelection();

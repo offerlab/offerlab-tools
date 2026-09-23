@@ -55,7 +55,7 @@
     <span class="offerlab-account-caret" id="offerlabAccountCaret" aria-hidden="true">{#if session.connected}<Icon name="chevron-bottom" size={12} />{/if}</span>
   </button>
   <div class="offerlab-account-menu" id="offerlabAccountMenu" role="menu" class:hidden={!session.menuOpen} onclick={onMenuClick}>
-    <div class="offerlab-account-menu-meta" id="offerlabAccountMeta" hidden={!limited}>No developer access, so bundles cannot be created</div>
+    {#if limited}<div class="offerlab-account-menu-meta" id="offerlabAccountMeta">No developer access, so bundles cannot be created</div>{/if}
     <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-switch"><Icon name="arrows-switch-swap" size={20} />Switch account</button>
     <button type="button" class="offerlab-account-menu-item" role="menuitem" data-action="offerlab-signout"><Icon name="arrow-box-left" size={20} />Sign out</button>
   </div>

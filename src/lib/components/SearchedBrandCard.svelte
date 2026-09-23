@@ -14,7 +14,11 @@
   const domain = $derived(extractDomain(brand?.url || ''));
   const fullUrl = $derived(fullUrlOf(brand?.url || ''));
   const catalogCover = $derived(brand.catalog?.products?.find(p => p.image)?.image || null);
-  const cover = $derived(brand.imageUrl || (catalogCover ? catalogThumbUrl(catalogCover, 900) : ''));
+  // A stored cover can rot: Shopify serves og:image from a theme asset path that changes when the
+  // theme is republished. A cover that fails to load gives way to the first catalog product, now
+  // if the catalog is here, or when it arrives.
+  let coverFailed = $state(false);
+  const cover = $derived((!coverFailed && brand.imageUrl) || (catalogCover ? catalogThumbUrl(catalogCover, 900) : ''));
   // No cover yet: the column waits, hidden, for the catalog's first product image.
   const imgSrc = $derived(cover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E");
   const hasProducts = $derived((brand.catalog?.products?.length || 0) > 0);
@@ -25,7 +29,7 @@
 <div class="searched-brand-card-group" data-catalog-domain={domain}>
   <a class="searched-brand-card" href={fullUrl} target="_blank" rel="noopener noreferrer" data-url={fullUrl}>
     <div class="searched-brand-card-image" class:no-image={!cover}>
-      <img src={imgSrc} alt={brand.name} loading="eager">
+      <img src={imgSrc} alt={brand.name} loading="eager" onerror={() => { if (!coverFailed && brand.imageUrl) coverFailed = true; }}>
     </div>
     <div class="searched-brand-card-content">
       <div class="searched-brand-card-main">

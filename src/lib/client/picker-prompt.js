@@ -25,11 +25,17 @@ const UNEXPECTED_ANGLES = ['subculture', 'trend-jack', 'odd-couple'];
 // model actually gets to see, so they never reach the prompt.
 const PROMPT_EXCLUDE_TITLE = /wholesale|case of \d|gift card|subscription|\bsample\b/i;
 
+/** OfferLab takes a product live only with a price, so this is what a pick needs. */
+export function sellable(product) {
+  return Number(product?.price) > 0;
+}
+
 function promptProducts(brand) {
   return (brand.catalog?.products || [])
     .filter(p => p.available)
     .filter(p => !(p.tags || []).some(t => /^hidden$/i.test(t)))
     .filter(p => !PROMPT_EXCLUDE_TITLE.test(p.title))
+    .filter(sellable)
     .slice(0, MAX_PRODUCTS_IN_PROMPT);
 }
 

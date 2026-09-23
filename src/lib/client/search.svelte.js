@@ -59,6 +59,13 @@ export function goToLanding() {
   tick().then(() => omnibars.landing?.focus());
 }
 
+/** Browser back to the landing page: the field keeps what was typed, and takes focus. */
+export function returnToLanding() {
+  showSection('landing');
+  resetTiles();
+  tick().then(() => omnibars.landing?.focus());
+}
+
 export function cancelSearch() {
   isSearchCancelled = true;
   if (searchAbortController) searchAbortController.abort();

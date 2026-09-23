@@ -102,8 +102,8 @@ export function catalogThumbUrl(src, width = 160) {
   return src;
 }
 
-export function fetchCatalog(domain) {
-  return search.fetchCatalog(searchApi, domain);
+export function fetchCatalog(domain, options) {
+  return search.fetchCatalog(searchApi, domain, options);
 }
 
 // Other modules parse Gemini output through the search's parser.

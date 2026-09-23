@@ -7,15 +7,18 @@ import { getResults } from './state.svelte.js';
 import { pushUrl, PICK_PARAM } from './url.js';
 import { picker, entryFor, sellerEntry, view, conceptsRendered } from './picker-state.svelte.js';
 import { refreshConceptsCopy } from './picker-concepts.js';
+import * as offerlab from './offerlab.js';
 
 /**
- * Only a brand with a public storefront catalog can be built with: the build imports each pick
- * from its storefront, and a Google Shopping result has no storefront to import from (every
- * such build failed with "google.com: no public catalog found"). Those brands can still be
- * pitched; they just have no Create bundle and are not offered on the rail.
+ * A brand with products can be built with. A public storefront's are imported by the build; a
+ * Google Shopping brand's are created from what the finder knows, which only an OfferLab that
+ * takes product descriptions can do, so those are offered unless it is known not to.
  */
 export function canBuildWith(brand) {
-  return brand?.catalog?.status === 'shopify' && (brand.catalog.products?.length || 0) > 0;
+  const products = brand?.catalog?.products?.length || 0;
+  if (!products) return false;
+  if (brand.catalog.status === 'shopify') return true;
+  return brand.catalog.status === 'serp' && offerlab.buildTakesSpecs() !== false;
 }
 
 // Every brand on the rail but the searched one, which the search itself names; when a partner

@@ -39,7 +39,12 @@ export async function createDraft(name) {
 
   const picks = [...picker.selection.values()]
     .sort((a, b) => a.sequence - b.sequence)
-    .map(pick => ({ domain: pick.domain, brandName: entryFor(pick.domain)?.brand.name, product: pick.product }));
+    .map(pick => ({
+      domain: pick.domain,
+      brandName: entryFor(pick.domain)?.brand.name,
+      product: pick.product,
+      storefront: entryFor(pick.domain)?.brand.catalog?.status === 'shopify'
+    }));
   if (!picks.length) return;
 
   setDraft('working', 'Connecting to OfferLab');

@@ -6,6 +6,7 @@
    */
   import { picker, sellerEntry, productKey } from '$lib/client/picker-state.svelte.js';
   import { money } from '$lib/client/picker-concepts.js';
+  import { sellable } from '$lib/client/picker-prompt.js';
   import { getFaviconUrl, catalogThumbUrl } from '$lib/client/util.js';
   import Icon from './Icon.svelte';
 
@@ -43,14 +44,17 @@
     {#each products as p}
       {@const key = productKey(domain, p.id)}
       {@const selected = picker.selection.has(key)}
-      <div class="picker-product" class:is-selected={selected} role="button" tabindex="0" aria-pressed={selected} data-action="toggle" data-domain={domain} data-id={String(p.id)} data-key={key} title={p.title}>
+      <!-- A product with no price cannot go live in OfferLab, so it cannot be picked: shown, so the
+           catalog reads whole, but quiet. (A free add-on is the usual case.) -->
+      {@const priced = sellable(p)}
+      <div class="picker-product" class:is-selected={selected} class:is-unpriced={!priced} role="button" tabindex={priced ? 0 : -1} aria-pressed={selected} aria-disabled={priced ? undefined : 'true'} data-action={priced ? 'toggle' : undefined} data-domain={domain} data-id={String(p.id)} data-key={key} title={p.title}>
         <div class="picker-product-art media-tile media-hairline">
           <img class="media-zoom" src={catalogThumbUrl(p.image, 320)} alt="" loading="lazy">
-          <span class="picker-product-add" aria-hidden="true"><Icon name="plus-to-check" /></span>
+          {#if priced}<span class="picker-product-add" aria-hidden="true"><Icon name="plus-to-check" /></span>{/if}
         </div>
         <div class="picker-product-caption">
           <p class="picker-product-title">{p.title}</p>
-          <p class="picker-product-price">{p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies'}</p>
+          <p class="picker-product-price">{priced ? money(p.price) : 'No price'}</p>
         </div>
       </div>
     {:else}
