@@ -439,7 +439,7 @@ function toggleProduct(domain, id) {
     state.selection.delete(key);
   } else {
     const product = findProduct(domain, id);
-    if (!product) return;
+    if (!product || !sellable(product)) return;
     state.selection.set(key, { domain, product, sequence: state.sequence++ });
   }
   if (state.activeConcept >= 0) syncActiveConceptToSelection();
@@ -790,6 +790,7 @@ function promptProducts(brand) {
     .filter(p => p.available)
     .filter(p => !(p.tags || []).some(t => /^hidden$/i.test(t)))
     .filter(p => !PROMPT_EXCLUDE_TITLE.test(p.title))
+    .filter(sellable)
     .slice(0, MAX_PRODUCTS_IN_PROMPT);
 }
 
@@ -988,6 +989,11 @@ function normalizeConcepts(raw, handles) {
 /* ---------------------------------------------------------------------------
    Rendering
    --------------------------------------------------------------------------- */
+
+/** OfferLab takes a product live only with a price, so this is what a pick needs. */
+function sellable(product) {
+  return Number(product?.price) > 0;
+}
 
 function money(value) {
   if (value === null || value === undefined) return '';
@@ -1326,13 +1332,16 @@ function renderColumnMarkup(domain) {
 function renderTile(domain, p) {
   const key = productKey(domain, p.id);
   const selected = state.selection.has(key);
-  const price = p.price !== null && p.price !== undefined ? money(p.price) : 'Price varies';
+  // A product with no price cannot go live in OfferLab, so it cannot be picked: shown, so the
+  // catalog reads whole, but quiet. (A free add-on is the usual case.)
+  const priced = sellable(p);
+  const price = priced ? money(p.price) : 'No price';
   const img = `<img class="media-zoom" src="${catalogThumbUrl(p.image, 320)}" alt="" loading="lazy">`;
   return `
-    <div class="picker-product${selected ? ' is-selected' : ''}" role="button" tabindex="0" aria-pressed="${selected}" data-action="toggle" data-domain="${escapeHtml(domain)}" data-id="${escapeHtml(String(p.id))}" data-key="${escapeHtml(key)}" title="${escapeHtml(p.title)}">
+    <div class="picker-product${selected ? ' is-selected' : ''}${priced ? '' : ' is-unpriced'}" role="button" tabindex="${priced ? 0 : -1}" aria-pressed="${selected}"${priced ? ' data-action="toggle"' : ' aria-disabled="true"'} data-domain="${escapeHtml(domain)}" data-id="${escapeHtml(String(p.id))}" data-key="${escapeHtml(key)}" title="${escapeHtml(p.title)}">
       <div class="picker-product-art media-tile media-hairline">
         ${img}
-        <span class="picker-product-add" aria-hidden="true">${icon('plus-to-check')}</span>
+        ${priced ? `<span class="picker-product-add" aria-hidden="true">${icon('plus-to-check')}</span>` : ''}
       </div>
       <div class="picker-product-caption">
         <p class="picker-product-title">${escapeHtml(p.title)}</p>
@@ -1401,7 +1410,7 @@ function trayPrimary() {
   // Still the primary button to look at, with nothing to press: no action, and the app's three
   // dots looping in place of a label until the draft is ready.
   if (status === 'working') {
-    return `<button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></span></button>`;
+    return `<button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="ol-loader" aria-hidden="true"></span></button>`;
   }
   if (status === 'done') {
     return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>`;
