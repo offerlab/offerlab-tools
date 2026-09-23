@@ -12,7 +12,7 @@ import * as store from './store.js';
 
 const KEY = {
   client: 'offerlab.client',       // the registered public client, stable for this origin
-  token: 'offerlab.token',         // session only: gone when the tab closes
+  token: 'offerlab.token',         // every tab and restart: OfferLab's own session outlives a tab
   pkce: 'offerlab.pkce',
   returnTo: 'offerlab.returnTo',
   master: 'offerlab.masterTeam'
@@ -53,8 +53,19 @@ function write(store, key, value) {
   } catch { /* private window, or storage disabled */ }
 }
 
+// The sign-in used to live in sessionStorage, so each new tab or restart started signed out while
+// OfferLab itself still had the operator signed in. A grant stored there by an older build moves over.
+function readGrant() {
+  const legacy = read(sessionStorage, KEY.token);
+  if (legacy) {
+    write(localStorage, KEY.token, legacy);
+    write(sessionStorage, KEY.token, null);
+  }
+  return read(localStorage, KEY.token);
+}
+
 export function token() {
-  return read(sessionStorage, KEY.token)?.access_token || null;
+  return readGrant()?.access_token || null;
 }
 
 // Refresh this long before expiry, so a call that starts just under the wire does not land just
@@ -70,7 +81,7 @@ let refreshing = null;
  * several calls in a row, and each spending the same refresh token would invalidate the others.
  */
 export async function freshToken() {
-  const grant = read(sessionStorage, KEY.token);
+  const grant = readGrant();
   if (!grant?.access_token) return null;
   if (!grant.refresh_token || !grant.expiresAt) return grant.access_token;
   if (Date.now() < grant.expiresAt - TOKEN_REFRESH_MARGIN_MS) return grant.access_token;
@@ -94,6 +105,9 @@ async function refresh(refreshToken) {
     storeGrant(granted);
     return granted.access_token;
   } catch (err) {
+    // Another tab may have spent this refresh token first; its fresh grant is ours too.
+    const current = readGrant();
+    if (current?.refresh_token && current.refresh_token !== refreshToken) return current.access_token;
     // A refused refresh is a dead session, not a retryable failure.
     console.warn('[OfferLab] refresh failed, disconnecting:', err.message);
     disconnect();
@@ -103,7 +117,7 @@ async function refresh(refreshToken) {
 
 // expires_in is seconds from now, which is only meaningful at the moment it arrives.
 function storeGrant(granted) {
-  write(sessionStorage, KEY.token, {
+  write(localStorage, KEY.token, {
     ...granted,
     expiresAt: granted.expires_in ? Date.now() + granted.expires_in * 1000 : null
   });
@@ -114,6 +128,7 @@ export function isConnected() {
 }
 
 export function disconnect() {
+  write(localStorage, KEY.token, null);
   write(sessionStorage, KEY.token, null);
   state.account = null;
   state.tools = null;
