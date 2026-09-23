@@ -65,6 +65,8 @@ const TYPING_MS = 120;
 const MAX_TILT = 9;
 const HOVER_SCALE = 1.04;
 const FLIP_MS = 650;
+// Closing is the plainer move: the card scales back onto the shelf, no turn.
+const CLOSE_MS = 380;
 const LIGHTBOX_COVER_WIDTH = 1200;
 const SEED = 0x9e3779b1;
 
@@ -785,8 +787,9 @@ function setPan(x, y) {
 /* -------------------------------------------------------------------------- */
 
 function bindLightbox() {
+  // Anywhere but the cover and the details is the backdrop, and the backdrop closes.
   dom.lightbox.addEventListener('click', event => {
-    if (event.target === dom.lightbox || event.target.closest('[data-action="library-close"]')) closeLightbox();
+    if (event.target.closest('[data-action="library-close"]') || !event.target.closest('.library-lightbox-cover, .library-lightbox-body')) closeLightbox();
   });
   document.addEventListener('keydown', event => {
     if (dom.lightbox.classList.contains('hidden')) return;
@@ -800,8 +803,12 @@ function openLightbox(id, tile) {
   if (!bundle) return;
   state.lastTile = tile;
   const card = dom.lightbox.querySelector('.library-lightbox-card');
+  // The close control lives beside the card, not in it: a transformed card is the containing
+  // block of anything fixed inside it, and the control would ride the flip, then jump.
+  if (!dom.lightbox.querySelector('.library-lightbox-close')) {
+    dom.lightbox.insertAdjacentHTML('beforeend', `<button type="button" class="icon-button library-lightbox-close" data-action="library-close" aria-label="Close">${icon('cross-large', { size: 16 })}</button>`);
+  }
   card.innerHTML = `
-    <button type="button" class="icon-button library-lightbox-close" data-action="library-close" aria-label="Close">${icon('cross-large', { size: 16 })}</button>
     <div class="library-lightbox-cover"><img src="${escape(coverUrl(bundle.cover, TILE_COVER_WIDTH))}" alt=""></div>
     <div class="library-lightbox-body">
       <p class="library-lightbox-collab">
@@ -821,15 +828,21 @@ function openLightbox(id, tile) {
   sharp.src = coverUrl(bundle.cover, LIGHTBOX_COVER_WIDTH);
   clearTimeout(state.closing);
   dom.lightbox.classList.remove('hidden', 'is-closing');
-  // The card starts where the cover stood, turned away, and flies forward as it turns to face you.
-  const from = liftOrigin(tile, card);
+  // The card starts at the tile's size where the cover stood and flies forward, turning a full
+  // circle as it grows; the close control pops in last, once the card has landed.
+  // Measured untransformed: the card's resting style is already scaled down.
+  card.style.transition = 'none';
+  card.style.transform = 'none';
+  const from = liftOrigin(tile, card, { turn: true });
   if (from) {
-    card.style.transition = 'none';
-    card.style.transform = from;
-    void card.offsetWidth;
-    card.style.transition = '';
+    card.style.transformOrigin = from.origin;
+    card.style.transform = from.transform;
     tile.classList.add('is-lifted');
+  } else {
+    card.style.transform = '';
   }
+  void card.offsetWidth;
+  card.style.transition = '';
   requestAnimationFrame(() => {
     dom.lightbox.classList.add('is-open');
     card.style.transform = '';
@@ -845,14 +858,24 @@ function brandMark(name) {
     : `<span class="library-lightbox-avatar">${escape(name.trim().charAt(0).toUpperCase())}</span>`;
 }
 
-/** The transform that puts the card's cover over the tile, turned 30° away, or null on a phone. */
-function liftOrigin(tile, card) {
+/**
+ * The transform that puts the card's cover over the tile at the tile's size, about the cover's
+ * center, and the origin that makes it so; turned a full circle away when `turn`. Null on a phone.
+ */
+function liftOrigin(tile, card, { turn = false } = {}) {
   if (MOBILE.matches || !tile?.isConnected) return null;
   const t = tile.getBoundingClientRect();
   const cover = card.querySelector('.library-lightbox-cover').getBoundingClientRect();
   const c = card.getBoundingClientRect();
   const scale = t.width / cover.width;
-  return `perspective(1400px) translate(${t.left - c.left}px, ${t.top - c.top}px) scale(${scale.toFixed(4)}) rotateY(-42deg)`;
+  const ox = cover.left - c.left + cover.width / 2;
+  const oy = cover.top - c.top + cover.height / 2;
+  const tx = t.left + t.width / 2 - (c.left + ox);
+  const ty = t.top + t.height / 2 - (c.top + oy);
+  return {
+    origin: `${ox.toFixed(1)}px ${oy.toFixed(1)}px`,
+    transform: `perspective(1400px) translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale.toFixed(4)})${turn ? ' rotateY(-360deg)' : ''}`
+  };
 }
 
 function closeLightbox() {
@@ -862,15 +885,19 @@ function closeLightbox() {
   const to = liftOrigin(tile, card);
   dom.lightbox.classList.remove('is-open');
   dom.lightbox.classList.add('is-closing');
-  if (to) card.style.transform = to;
+  if (to) {
+    card.style.transformOrigin = to.origin;
+    card.style.transform = to.transform;
+  }
   state.closing = setTimeout(() => {
     dom.lightbox.classList.add('hidden');
     dom.lightbox.classList.remove('is-closing');
     card.style.transform = '';
+    card.style.transformOrigin = '';
     tile?.classList.remove('is-lifted');
     // The tile may have been dropped out of the window while the lightbox was open.
     (tile?.isConnected ? tile : dom.viewport).focus();
-  }, to ? FLIP_MS : 250);
+  }, to ? CLOSE_MS : 250);
 }
 
 function trapFocus(event) {
