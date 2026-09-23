@@ -7802,10 +7802,10 @@ button.social-link:disabled {
 .library-lightbox-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(280px, 460px) minmax(280px, 400px);
+  grid-template-columns: minmax(280px, 640px) minmax(280px, 400px);
   gap: 40px;
   align-items: center;
-  width: min(100%, 900px);
+  width: min(100%, 1080px);
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
   transform-origin: 0 0;
@@ -7850,9 +7850,13 @@ button.social-link:disabled {
   background: rgba(255, 255, 255, 0.24);
 }
 
+/* Square, up to 640, and never taller than the viewport leaves for the card. */
 .library-lightbox-cover {
   aspect-ratio: 1;
-  border-radius: 36px;
+  width: min(640px, 100vh - 48px);
+  width: min(640px, 100dvh - 48px);
+  max-width: 100%;
+  border-radius: 32px;
   overflow: hidden;
   background: var(--content-background-base);
   box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6);
