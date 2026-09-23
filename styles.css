@@ -8105,6 +8105,13 @@ button.social-link:disabled {
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
   }
 
+  /* The card's own width, not the desktop's 640: on a phone the cover is as wide as the card. */
+  .library-lightbox-cover {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
   .library-lightbox-body {
     padding: 0;
   }
