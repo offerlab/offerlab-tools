@@ -1,14 +1,19 @@
 /**
- * The Showcase's data and filters: every published demo bundle from /library/snapshot.json and
- * nothing else (OL-3832, OL-4032). No OfferLab calls, no account.
+ * The Showcase's data and filters: every published demo bundle, read live from /api/library (the
+ * committed snapshot plus what the store lists since) with the snapshot standing in when that
+ * fails (OL-3832, OL-4032). No OfferLab calls, no account.
  *
  * `showcase` is the reactive part the omnibox renders from; the bundles themselves stay plain,
  * since the board deals them imperatively and never watches them.
  */
 import { param, replaceUrl } from '$lib/client/url.js';
 
+// The live read; the committed snapshot stands in when it fails.
+const LIBRARY_URL = '/api/library';
 const SNAPSHOT_URL = '/library/snapshot.json';
 const BRANDS_URL = '/library/brands.json';
+// A bundle put on the store's Online Store channel shows up within this while the Showcase is open.
+export const REFRESH_MS = 45000;
 
 // Words a booth visitor types around the thing they mean, and the words they use for ours.
 const STOPWORDS = new Set(('a an and or for with of to in on my me our some something that this is are i want need looking ' +
@@ -56,10 +61,28 @@ export const logoFor = name => data.logos[name.toLowerCase()];
 
 export async function load() {
   const [snapshot, logos] = await Promise.all([
-    fetch(SNAPSHOT_URL).then(r => r.json()),
+    fetchLibrary(),
     fetch(BRANDS_URL).then(r => (r.ok ? r.json() : {})).catch(() => ({}))
   ]);
   data.logos = logos;
+  take(snapshot);
+  showcase.loaded = true;
+}
+
+export async function fetchLibrary() {
+  try {
+    const response = await fetch(LIBRARY_URL, { cache: 'no-store' });
+    if (response.ok) return await response.json();
+  } catch { /* the snapshot below */ }
+  return fetch(SNAPSHOT_URL).then(r => r.json());
+}
+
+/** Whether a listing carries a different set of bundles from the one on the shelves. */
+export function changed(snapshot) {
+  return snapshot.bundles.map(bundle => bundle.id).join('\n') !== data.bundles.map(bundle => bundle.id).join('\n');
+}
+
+export function take(snapshot) {
   data.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
     // Every word of the bundle, stemmed once, so a query is a set lookup per term.
@@ -72,7 +95,6 @@ export async function load() {
     stores: [...new Set(data.bundles.map(b => b.store))]
   };
   showcase.total = data.bundles.length;
-  showcase.loaded = true;
 }
 
 export const label = slug => slug.replace(/-and-/g, ' & ').replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());

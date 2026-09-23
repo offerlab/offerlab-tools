@@ -9,7 +9,7 @@ import { Miniflare } from 'miniflare';
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../../migrations/', import.meta.url));
 
-export const TABLES = ['search_brands', 'searches', 'catalogs', 'socials', 'search_history', 'feedback', 'drafts', 'crawl_queue', 'moderation'];
+export const TABLES = ['search_brands', 'searches', 'catalogs', 'socials', 'search_history', 'feedback', 'drafts', 'crawl_queue', 'moderation', 'library_bundles'];
 
 // D1's exec() runs one statement per line, so each migration statement is collapsed to a line
 // with its comments stripped.

@@ -70,6 +70,10 @@
     lightbox.querySelector('.library-lightbox-open').focus();
   }
 
+  export function isOpen() {
+    return !lightbox.classList.contains('hidden');
+  }
+
   export function close() {
     if (lightbox.classList.contains('hidden') || lightbox.classList.contains('is-closing')) return;
     const tile = lastTile;

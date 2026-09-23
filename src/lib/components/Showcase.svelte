@@ -11,9 +11,7 @@
   import { app } from '$lib/client/state.svelte.js';
   import Icon from '$lib/components/Icon.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
-  import {
-    EYEBROW_CHIPS, TYPING_MS, label, load, narrowedBy, readFiltersFromUrl, showcase, visibleBundles, writeFiltersToUrl
-  } from '$lib/client/showcase.svelte.js';
+  import { EYEBROW_CHIPS, TYPING_MS, label, load, narrowedBy, readFiltersFromUrl, showcase, visibleBundles, writeFiltersToUrl, fetchLibrary, changed, take, REFRESH_MS } from '$lib/client/showcase.svelte.js';
   import { G, board, clearBoard, initBoard, isMobile, measure, render, setPan } from '$lib/client/showcase-board.js';
   import { commitZoom } from '$lib/client/showcase-zoom.js';
   import { viewportGestures } from '$lib/client/actions/showcase-viewport.js';
@@ -59,11 +57,45 @@
     readFiltersFromUrl();
     queryText = showcase.filters.query;
     apply();
+    watchForNewBundles();
   }
 
   function hide() {
     lightbox?.close();
     showcase.filtersOpen = false;
+    stopWatching();
+  }
+
+  /* A bundle published from OfferLab reaches the store's listing when it goes on the Online Store
+     channel, and the live read reflects that at once. While the Showcase is open it is re-read on
+     a timer and whenever the tab comes back into view, which is the moment after the channel was
+     turned on in the Shopify admin. The board is dealt again only when the set of bundles changed,
+     and never over an open lightbox. */
+  let watching = false;
+  let refreshTimer = 0;
+  const onVisible = () => { if (!document.hidden) checkForNewBundles(); };
+
+  async function checkForNewBundles() {
+    if (document.hidden || !watching) return;
+    const snapshot = await fetchLibrary().catch(() => null);
+    if (!snapshot || !watching || !changed(snapshot)) return;
+    if (lightbox?.isOpen()) return;
+    take(snapshot);
+    if (!isMobile()) clearBoard();
+    apply();
+  }
+
+  function watchForNewBundles() {
+    if (watching) return;
+    watching = true;
+    refreshTimer = setInterval(checkForNewBundles, REFRESH_MS);
+    document.addEventListener('visibilitychange', onVisible);
+  }
+
+  function stopWatching() {
+    watching = false;
+    clearInterval(refreshTimer);
+    document.removeEventListener('visibilitychange', onVisible);
   }
 
   function remeasure() {

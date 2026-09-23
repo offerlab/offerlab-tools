@@ -12,9 +12,10 @@ that drives the crawl. `wrangler.jsonc` is the whole configuration; secrets are 
   actions that hold the motion and touch handling.
 - `src/routes/api/**/+server.js` are the API routes, one per URL the browser calls
   (`/api/gemini`, `/api/serpapi`, `/api/opengraph`, `/api/catalog`, `/api/socials`,
-  `/api/data/*`, `/api/crawl/*`, `/api/moderation`, `/api/offerlab/*`). Each is a thin wrapper
-  around `src/lib/server/` (db, data-api, crawl, moderation: server only) and `src/lib/shared/`
-  (search, catalog, socials, jev, offerlab: the same code the browser runs).
+  `/api/library`, `/api/data/*`, `/api/crawl/*`, `/api/moderation`, `/api/offerlab/*`). Each is a
+  thin wrapper around `src/lib/server/` (db, data-api, crawl, moderation, library: server only)
+  and `src/lib/shared/` (search, catalog, socials, jev, offerlab, library-snapshot: the same code
+  the browser or the build scripts run).
 - `src/worker.js` is the Worker entry: SvelteKit's fetch handler plus the `scheduled()` cron.
 - `src/lib/styles/styles.css` is the design system, global and unchanged; `tailwind.css` is the
   Tailwind v4 entry with the finder's theme tokens.
@@ -94,6 +95,17 @@ the graph.
   hop. There is no separate scheduler Worker any more.
 - **Seeding:** `CRAWL_SECRET=... npm run crawl -- domains.txt` queues a list against production
   (`CRAWL_ORIGIN` for another deployment); `--status` shows the queue.
+
+## Showcase
+
+The Showcase reads `/api/library`: the committed snapshot (`static/library/snapshot.json`, built
+by `npm run build:library`) plus every bundle the demo store lists since, read from the store's
+public listing on each request. A bundle published from OfferLab reaches that listing the moment
+it is put on the Online Store channel. Each new bundle is classified once (Gemini) and kept in
+`library_bundles` (`migrations/0004_library.sql`); the listing decides which are shown. While the
+Showcase is open the browser re-reads every 45 seconds and when the tab comes back into view, and
+deals the board again only when the set of bundles changed. If the route fails, the snapshot file
+stands in.
 
 ## Moderation
 
