@@ -4,22 +4,19 @@
    * forever, a bottom omnibox with filters and chips, and the lightbox. Mounted once by the page
    * and kept; it loads the snapshot on its first showing and pauses when the view leaves.
    *
-   * The omnibox and its chips render from `showcase`; the board is imperative (showcase-board.js)
-   * and driven from here by `apply()`.
+   * The omnibox and its chips render from `showcase`; the board is imperative (showcase-board.js,
+   * mounted by the `showcaseBoard` action) and handed its bundles from here by `apply()`.
    */
   import { onMount, untrack } from 'svelte';
   import { app } from '$lib/client/state.svelte.js';
   import Icon from '$lib/components/Icon.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
   import { EYEBROW_CHIPS, TYPING_MS, label, load, narrowedBy, readFiltersFromUrl, showcase, visibleBundles, writeFiltersToUrl, fetchLibrary, changed, take, REFRESH_MS } from '$lib/client/showcase.svelte.js';
-  import { G, board, clearBoard, initBoard, isMobile, measure, render, setPan } from '$lib/client/showcase-board.js';
-  import { commitZoom } from '$lib/client/showcase-zoom.js';
-  import { viewportGestures } from '$lib/client/actions/showcase-viewport.js';
+  import { showcaseBoard } from '$lib/client/actions/showcase-viewport.js';
 
-  let section;
-  let viewport;
-  let boardEl;
   let lightbox;
+  // The board's controls, from the action once the viewport is mounted.
+  let shelves = null;
   // What is typed; it becomes the query filter after a pause in typing.
   let queryText = $state('');
   let typing = 0;
@@ -30,12 +27,7 @@
   const emptyTitle = $derived(`Nothing on the shelf for ${applied.map(f => f.label).join(' · ')}`);
 
   onMount(() => {
-    initBoard({ section, viewport, el: boardEl });
-    measure();
-    // A new size means new cell positions, so the board is dealt again where it stands.
-    board.media.addEventListener('change', remeasure);
     ready = true;
-    return () => board.media.removeEventListener('change', remeasure);
   });
 
   // Shows or pauses with the view. The work inside reads and writes the filters, so it runs
@@ -53,7 +45,7 @@
   async function show() {
     if (!showcase.loaded) await load();
     if (app.view !== 'library') return;
-    measure();
+    shelves.show();
     readFiltersFromUrl();
     queryText = showcase.filters.query;
     apply();
@@ -81,7 +73,6 @@
     if (!snapshot || !watching || !changed(snapshot)) return;
     if (lightbox?.isOpen()) return;
     take(snapshot);
-    if (!isMobile()) clearBoard();
     apply();
   }
 
@@ -98,28 +89,10 @@
     document.removeEventListener('visibilitychange', onVisible);
   }
 
-  function remeasure() {
-    commitZoom();
-    measure();
-    if (showcase.loaded) { clearBoard(); render(); }
-  }
-
+  // The camera stays where it is, so a filter changes what is on the shelves and not where you are.
   function apply() {
-    board.visible = visibleBundles();
     writeFiltersToUrl();
-
-    // A phone's shelves stand where they are; only what is on them changes.
-    if (isMobile()) return render();
-
-    // Row 0 opens across the middle with a tile centered; after that the pan is kept, so a filter
-    // changes what is on the shelves and not where you are.
-    if (!board.placed) {
-      const view = viewport.getBoundingClientRect();
-      board.pan = { x: Math.round((view.width - G.colW) / 2), y: Math.round(view.height / 2 - G.air - G.tile / 2) };
-      board.placed = true;
-    }
-    setPan(board.pan.x, board.pan.y);
-    render();
+    shelves.setBundles(visibleBundles());
   }
 
   // A pause in typing deals once; every keystroke would deal a shelf of covers for "c", "co"...
@@ -157,14 +130,14 @@
   }
 </script>
 
-<svelte:window onresize={remeasure} />
+<svelte:window onresize={() => shelves?.resize()} />
 <svelte:document onclick={onDocumentClick} />
 
-<section class="library-section" id="librarySection" class:hidden={app.view !== 'library'} aria-label="Collabs library" bind:this={section}>
+<section class="library-section" id="librarySection" class:hidden={app.view !== 'library'} aria-label="Collabs library">
   <!-- The viewport takes focus so the arrow keys pan it and a closed lightbox has somewhere to land. -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="library-viewport" id="libraryViewport" tabindex="0" aria-label="Bundle shelves. Drag or use the arrow keys to move around." bind:this={viewport} use:viewportGestures={{ onTile }}>
-    <div class="library-board" id="libraryBoard" bind:this={boardEl}></div>
+  <div class="library-viewport" id="libraryViewport" tabindex="0" aria-label="Bundle shelves. Drag or use the arrow keys to move around." use:showcaseBoard={{ onTile, onReady: controls => (shelves = controls) }}>
+    <div class="library-board" id="libraryBoard"></div>
     <div class="library-empty" id="libraryEmpty" class:hidden={!showcase.loaded || showcase.count > 0}>
       <div class="library-empty-blur" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="library-empty-message">
