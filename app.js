@@ -737,7 +737,7 @@ function updateCardCatalog(domain, catalog) {
     const chinstrap = renderCatalogChinstrap(catalog);
     if (chinstrap) group.insertAdjacentHTML('beforeend', chinstrap);
     const card = group.querySelector('.result-card');
-    if (card) setCardBuildable(card, hasProducts);
+    if (card) setCardBuildable(card, canBuildWith({ catalog }));
   });
 }
 
