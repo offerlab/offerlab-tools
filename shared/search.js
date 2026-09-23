@@ -556,9 +556,9 @@ async function fetchProductsFromBrands(api, brands) {
 // ============================================
 async function fetchBrandTopProducts(api, brand) {
   const brandName = brand.name;
-  const brandDomain = extractDomain(brand.url || '');
+  const storeDomain = brandDomain(brand.url || '');
   
-  console.log(`[Products] Searching Google Shopping for: ${brandName} (domain: ${brandDomain})`);
+  console.log(`[Products] Searching Google Shopping for: ${brandName} (domain: ${storeDomain})`);
   
   try {
     // Single search: brand name on Google Shopping
@@ -573,7 +573,7 @@ async function fetchBrandTopProducts(api, brand) {
     
     // Filter and score results to find products actually from this brand
     const brandLower = brandName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const domainLower = brandDomain.toLowerCase().replace(/[^a-z0-9.]/g, '');
+    const domainLower = storeDomain.toLowerCase().replace(/[^a-z0-9.]/g, '');
     
     // Also create word-based matching for multi-word brands
     const brandWords = brandName.toLowerCase().split(/\s+/).filter(w => w.length > 2);
@@ -584,22 +584,22 @@ async function fetchBrandTopProducts(api, brand) {
       .filter(result => {
         const title = (result.title || '').toLowerCase();
         const source = (result.source || '').toLowerCase();
-        // Google Shopping uses product_link, not link
-        const productLink = (result.product_link || result.link || '').toLowerCase();
+        // product_link is a google.com search URL carrying the query, so it names the brand on
+        // every result; only the merchant's own link says anything about who sells it.
+        const merchantLink = (result.link || '').toLowerCase();
         
         // Normalize title and source the same way we normalize brand name (remove spaces/special chars)
         const titleNormalized = title.replace(/[^a-z0-9]/g, '');
         const sourceNormalized = source.replace(/[^a-z0-9]/g, '');
         
-        // Must be from this brand (in title, source, or link)
+        // Must be from this brand (in title, source, or the merchant link)
         // Check both normalized and raw versions for flexibility
         const isBrandMatch = 
           title.includes(brandLower) ||
           titleNormalized.includes(brandLower) ||
           source.includes(brandLower) ||
           sourceNormalized.includes(brandLower) ||
-          productLink.includes(brandLower) ||
-          (domainLower && productLink.includes(domainLower)) ||
+          (domainLower && merchantLink.includes(domainLower)) ||
           // Also match if ALL significant brand words appear in title/source
           (brandWords.length > 1 && brandWords.every(w => title.includes(w) || source.includes(w)));
         
@@ -616,7 +616,7 @@ async function fetchBrandTopProducts(api, brand) {
       .map(result => ({
         productName: result.title || 'Unknown Product',
         brandName: brandName,
-        brandDomain: brandDomain,
+        brandDomain: storeDomain,
         url: result.product_link || result.link,
         imageUrl: result.thumbnail,
         price: result.extracted_price || result.price,
