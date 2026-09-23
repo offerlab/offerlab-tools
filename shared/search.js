@@ -8,6 +8,7 @@
  * provider sits behind it, which keeps a server-side search inside the Workers limit.
  */
 import { mergeSocial } from './socials.js';
+import { jsonrepair } from './vendor/jsonrepair/regular/jsonrepair.js';
 
 export const SEARCH_DEFAULTS = {
   catalogConcurrency: 6,
@@ -83,7 +84,7 @@ function buildKnownPartnersContext(partners) {
  * as the recommendations are in, onCatalog(brand) as each brand's catalog resolves.
  */
 export async function discoverComplementaryBrands(url, {
-  api, feedback = [], knownPartners = [], repairJson = null,
+  api, feedback = [], knownPartners = [],
   onProgress, onBrandsReady, onCatalog, config = {}
 }) {
   const settings = { ...SEARCH_DEFAULTS, ...config };
@@ -94,13 +95,13 @@ export async function discoverComplementaryBrands(url, {
   console.log(`[Discovery] Starting for: ${domain} (brand: ${brandName})`);
 
   updateProgress(0);
-  const brandProfile = await analyzeBrand(api, domain, repairJson);
+  const brandProfile = await analyzeBrand(api, domain);
   const resolvedBrandProfile = brandProfile.brandProfile || brandProfile;
   updateProgress(1);
 
   updateProgress(2);
   const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners);
-  const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context, repairJson);
+  const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
   const brands = (augmentedResults.brands || []).map(ensureHttps);
 
@@ -234,7 +235,7 @@ export function searchRecord(results, searchId, { keepCatalogs = false } = {}) {
 // ============================================
 // PHASE 1: Brand Analysis
 // ============================================
-async function analyzeBrand(api, domain, repairJson) {
+async function analyzeBrand(api, domain) {
   const prompt = `You are a brand strategist with deep expertise in DTC e-commerce, CPG, and lifestyle brands.
 
 TASK: Perform a comprehensive analysis of this brand before we identify collaboration partners.
@@ -309,13 +310,13 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
 
   const data = await response.json();
   const text = extractText(data);
-  return parseJsonResponse(text, repairJson);
+  return parseJsonResponse(text);
 }
 
 // ============================================
 // PHASE 2: Get Recommendations (Gemini - Brands get URLs)
 // ============================================
-async function getRecommendations(api, brandProfile, brandName, domain, feedbackContext, repairJson) {
+async function getRecommendations(api, brandProfile, brandName, domain, feedbackContext) {
   const prompt = `You are a world-class brand collaboration curator—part trend forecaster, part matchmaker, part cultural observer.
 
 Your mission: Identify brands that would create EXCEPTIONAL, UNEXPECTED, and COMMERCIALLY VIABLE collaboration opportunities.
@@ -449,7 +450,7 @@ CRITICAL INSTRUCTIONS:
   const text = extractText(data);
   
   // Store grounding metadata for later use
-  const results = parseJsonResponse(text, repairJson);
+  const results = parseJsonResponse(text);
   results._groundingMetadata = data.candidates?.[0]?.groundingMetadata;
   
   return results;
@@ -768,7 +769,7 @@ export function extractText(data) {
 // ============================================
 // UTILITY: Parse JSON Response from AI
 // ============================================
-export function parseJsonResponse(text, repairJson = null) {
+export function parseJsonResponse(text) {
   if (!text) throw new Error('No response from AI');
 
   let jsonStr = text;
@@ -791,13 +792,11 @@ export function parseJsonResponse(text, repairJson = null) {
         .trim();
       return JSON.parse(cleaned);
     } catch (repairErr) {
-      // The browser passes jsonrepair; the server has no copy and falls through
-      if (repairJson) {
-        try {
-          return JSON.parse(repairJson(jsonStr));
-        } catch {
-          // Fall through
-        }
+      // jsonrepair also salvages a reply cut off mid-object, fence and all
+      try {
+        return JSON.parse(jsonrepair(jsonStr));
+      } catch {
+        // Fall through
       }
 
       const isTruncated = parseErr.message?.includes('Unexpected end') ||

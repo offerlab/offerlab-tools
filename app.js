@@ -2,7 +2,7 @@
    Brand Collab Finder - Main Application
    ========================================================================== */
 
-import { jsonrepair } from 'https://esm.sh/jsonrepair';
+import { jsonrepair } from './shared/vendor/jsonrepair/regular/jsonrepair.js';
 // Configuration
 import { initPicker, openPicker, closePicker, isPickerOpen, canBuildWith, restorePickerFromUrl, syncPickerWithUrl } from './picker.js';
 import { icon, hydrateIcons } from './icons.js';
@@ -2052,7 +2052,6 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onC
     api: searchApi,
     feedback,
     knownPartners,
-    repairJson: jsonrepair,
     onProgress: (step) => { if (onProgress) onProgress(LOADING_MESSAGES[step] ?? LOADING_MESSAGES[0]); },
     onBrandsReady,
     onCatalog,
@@ -2060,10 +2059,8 @@ async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onC
   });
 }
 
-// Other modules parse Gemini output with the browser's jsonrepair fallback.
-function parseJsonResponse(text) {
-  return search.parseJsonResponse(text, jsonrepair);
-}
+// Other modules parse Gemini output through the search's parser.
+const parseJsonResponse = search.parseJsonResponse;
 
 /* --------------------------------------------------------------------------
    Typing Placeholder Animation
