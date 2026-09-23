@@ -6718,6 +6718,19 @@ button.social-link:disabled {
   display: none;
 }
 
+/* On a phone the bar has no room for a team name beside the mode switch: signed in, the control
+   is the avatar and the caret. Signed out it still has to say "Sign in". */
+@media (max-width: 767px) {
+  .offerlab-account:not(.is-disconnected) {
+    gap: 4px;
+    padding-right: 6px;
+  }
+
+  .offerlab-account:not(.is-disconnected) .offerlab-account-team {
+    display: none;
+  }
+}
+
 /* The wrap is pulled 10px right so the ghost button's padding reads as gutter. The menu is a
    solid surface, so it aligns to the real 20px edge instead and gives that pull back. */
 .offerlab-account-menu {
