@@ -3110,6 +3110,33 @@ position: relative;
   display: none;
 }
 
+/* Staff moderation actions share the social links' rows. */
+button.social-link {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.social-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.popover-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--content-border-neutral);
+}
+
+.moderation-error {
+  padding: 4px 12px 8px;
+  font-size: var(--font-size-sm);
+  color: var(--content-sentiment-negative);
+}
+
 .social-link-external {
   width: 16px;
   --icon-rendered: 16;

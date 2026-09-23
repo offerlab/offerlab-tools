@@ -608,6 +608,11 @@ const SOCIAL_PLATFORMS = [
 ];
 
 
+// An OfferLab developer, signed in: the finder's staff, who may correct its results.
+function isStaff() {
+  return offerlab.state.account?.developer === true;
+}
+
 function hasAnySocialLink(social) {
   return Object.keys(normalizeSocial(social)).length > 0;
 }
@@ -620,7 +625,7 @@ function socialEntries(social) {
 function updateCardSocial(domain, social) {
   document.querySelectorAll(`.result-card[data-domain="${domain}"]`).forEach(card => {
     card.dataset.social = JSON.stringify(social || {});
-    card.querySelector('.card-menu-btn')?.classList.toggle('hidden', !hasAnySocialLink(social));
+    card.querySelector('.card-menu-btn')?.classList.toggle('hidden', !hasAnySocialLink(social) && !isStaff());
   });
 }
 
@@ -846,7 +851,7 @@ function createBrandCard(brand, index) {
   card.dataset.social = JSON.stringify(brand.social || {});
   if (canBuildWith(brand)) card.dataset.buildable = 'true';
 
-  const showMenu = hasAnySocialLink(brand.social);
+  const showMenu = hasAnySocialLink(brand.social) || isStaff();
   card.innerHTML = `
     <div class="card-header-wrapper">
       <div class="card-header">
@@ -975,12 +980,13 @@ function showSocialPopover(button, socialData) {
     activePopoverCard.classList.add('popover-open');
   }
 
-  popover.innerHTML = socialEntries(socialData).map(entry => `
+  const socials = socialEntries(socialData);
+  popover.innerHTML = socials.map(entry => `
     <a href="${escapeHtml(entry.url)}" class="social-link" data-platform="${entry.key}" target="_blank" rel="noopener" title="@${escapeHtml(entry.handle)}">
       ${icon(entry.icon, { class: 'social-icon' })}
       <span>${entry.label}</span>
       ${icon('arrow-up-right', { class: 'social-link-external' })}
-    </a>`).join('');
+    </a>`).join('') + (isStaff() ? renderModerationActions(socials.length > 0) : '');
 
   // Append popover to card so it scrolls with the page (not fixed in viewport)
   parentCard.appendChild(popover);
@@ -996,6 +1002,58 @@ function showSocialPopover(button, socialData) {
 
   // Show
   popover.classList.remove('hidden');
+}
+
+// Staff only. "Wrong products" hides the brand's products everywhere; "Remove from results" drops
+// the brand from this search only.
+function renderModerationActions(afterSocials) {
+  return `${afterSocials ? '<div class="popover-divider" role="separator"></div>' : ''}
+    <button type="button" class="social-link moderation-action" data-action="hide-products">
+      ${icon('eye-slash', { class: 'social-icon' })}<span>Wrong products</span>
+    </button>
+    <button type="button" class="social-link moderation-action" data-action="remove-recommendation">
+      ${icon('close-x-rounded-remove', { class: 'social-icon' })}<span>Remove from results</span>
+    </button>
+    <p class="moderation-error" hidden></p>`;
+}
+
+async function moderateCard(card, action, popover) {
+  const domain = card.dataset.domain;
+  const searchDomain = extractDomain(getSearchFromUrl() || '');
+  const errorLine = popover.querySelector('.moderation-error');
+  popover.querySelectorAll('.moderation-action').forEach(button => { button.disabled = true; });
+  try {
+    const bearer = await offerlab.freshToken();
+    if (!bearer) throw new Error('Sign in to OfferLab to moderate results.');
+    await store.moderate({ action, domain, searchDomain }, bearer);
+  } catch (err) {
+    errorLine.textContent = err.message.endsWith('.') ? err.message : `${err.message}.`;
+    errorLine.hidden = false;
+    popover.querySelectorAll('.moderation-action').forEach(button => { button.disabled = false; });
+    return;
+  }
+  hideSocialPopover();
+  if (action === 'remove-recommendation') {
+    if (currentResults) currentResults.brands = currentResults.brands.filter(b => extractDomain(b.url || '') !== domain);
+    // The card's catalog footer sits beside it in the group, so the whole group goes.
+    (card.closest('.result-card-group') || card).remove();
+    return;
+  }
+  const hidden = { status: 'none', domain, count: 0, products: [], hidden: true };
+  const brand = currentResults?.brands?.find(b => extractDomain(b.url || '') === domain);
+  if (brand) brand.catalog = hidden;
+  updateCardCatalog(domain, hidden);
+}
+
+// The account loads after the first cards may be on screen; once it says staff, every card gets
+// the menu that carries the moderation actions.
+function revealStaffMenus() {
+  if (!offerlab.isEnabled() || !offerlab.isConnected()) return;
+  offerlab.loadAccount()
+    .then(() => {
+      if (isStaff()) document.querySelectorAll('.card-menu-btn').forEach(button => button.classList.remove('hidden'));
+    })
+    .catch(err => console.warn('[Moderation] could not read the OfferLab account:', err.message));
 }
 
 function hideSocialPopover() {
@@ -2642,6 +2700,13 @@ function initEventListeners() {
       return;
     }
 
+    const moderationAction = e.target.closest('.moderation-action');
+    if (moderationAction) {
+      e.stopPropagation();
+      if (!moderationAction.disabled) moderateCard(moderationAction.closest('.result-card'), moderationAction.dataset.action, moderationAction.closest('.social-popover'));
+      return;
+    }
+
     // Handle social link click (only available links are shown, no need to check disabled)
     if (socialLink) {
       hideSocialPopover();
@@ -2885,6 +2950,7 @@ function init() {
   
   initEventListeners();
   console.log('[init] Event listeners initialized');
+  revealStaffMenus();
   
   initTypingPlaceholders();
   console.log('[init] Typing placeholders initialized');

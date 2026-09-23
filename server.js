@@ -14,6 +14,7 @@ import { mkdirSync } from 'fs';
 import * as store from './shared/db.js';
 import { handleDataRequest } from './shared/data-api.js';
 import { handleCrawlRequest } from './shared/crawl-api.js';
+import { handleModerationRequest } from './shared/moderation-api.js';
 
 config(); // Load .env
 
@@ -283,6 +284,18 @@ app.all(['/api/crawl', '/api/crawl/*'], express.json(), async (req, res) => {
     db,
     env: process.env,
     origin: `http://localhost:${PORT}`
+  });
+  res.set('Cache-Control', 'no-store').status(status).json(body);
+});
+
+// Staff corrections to results. Same handler as the Pages function.
+app.post('/api/moderation', express.json(), async (req, res) => {
+  const { status, body } = await handleModerationRequest({
+    method: req.method,
+    authorization: req.get('authorization') || null,
+    body: req.body || null,
+    db,
+    host: process.env.OFFERLAB_HOST || undefined
   });
   res.set('Cache-Control', 'no-store').status(status).json(body);
 });

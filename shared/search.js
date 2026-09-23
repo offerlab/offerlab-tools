@@ -124,8 +124,9 @@ export async function discoverComplementaryBrands(url, {
   await attachCatalogs(api, [searchedBrandData, ...brands], { onCatalog, concurrency: settings.catalogConcurrency });
 
   // Google Shopping only for brands without a public catalog (paid, 1 search per brand). A brand
-  // whose Google Shopping catalog the store served fresh is not searched again; a stale one is.
-  const fallbackBrands = brands.filter(b => !hasCatalog(b.catalog)).slice(0, settings.serpFallbackBrands);
+  // whose Google Shopping catalog the store served fresh is not searched again; a stale one is,
+  // and one whose products staff hid never is.
+  const fallbackBrands = brands.filter(b => !b.catalog?.hidden && !hasCatalog(b.catalog)).slice(0, settings.serpFallbackBrands);
   let serpApiOutOfCredits = false;
   if (fallbackBrands.length > 0) {
     console.log(`[Discovery] SERP fallback for ${fallbackBrands.length} brands without a catalog`);

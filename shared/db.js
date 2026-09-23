@@ -8,6 +8,7 @@
  * Schema: migrations/0001_init.sql.
  */
 import { normalizeDomain } from './catalog.js';
+import { HIDDEN_CATALOG, isProductsHidden, moderationFor } from './moderation.js';
 
 /** How many products a stored search hands back per brand unless the caller asks for more. */
 export const DEFAULT_PRODUCTS_PER_BRAND = 24;
@@ -44,6 +45,8 @@ const EMPTY_CATALOG = (domain) => ({ status: 'none', domain, storeUrl: null, cou
 export async function getCatalog(db, domain) {
   const key = canonicalDomain(domain);
   if (!key) return null;
+  // Staff hid this brand's products: served empty, and fresh, so nothing crawls it again.
+  if (await isProductsHidden(db, key)) return { ...HIDDEN_CATALOG(key), fetchedAt: Date.now() };
   const row = await db.prepare('SELECT payload, fetched_at FROM catalogs WHERE domain = ?').bind(key).first();
   if (!row) return null;
   const catalog = parse(row.payload);
@@ -56,7 +59,8 @@ export async function getCatalog(db, domain) {
  */
 export async function putCatalog(db, domain, catalog, now = Date.now()) {
   const key = canonicalDomain(domain);
-  if (!key || !catalog || catalog.status === 'error') return false;
+  if (!key || !catalog || catalog.status === 'error' || catalog.hidden) return false;
+  if (await isProductsHidden(db, key)) return false;
   const { fetchedAt, cached, stale, truncated, ...record } = catalog;
   const products = Array.isArray(record.products) ? record.products : [];
   if (!products.length) {
@@ -123,20 +127,24 @@ export async function getSearch(db, domain, { products = DEFAULT_PRODUCTS_PER_BR
   const searchedBrand = parse(search.searched_brand);
   const searchedKey = canonicalDomain(searchedBrand?.url || '') || key;
   const domains = [...new Set([key, searchedKey, ...brandRows.map(row => row.domain)])].filter(Boolean);
+  const moderation = await moderationFor(db, key, domains);
   const catalogs = new Map();
   if (domains.length) {
     const placeholders = domains.map(() => '?').join(', ');
     const { results } = await db.prepare(`SELECT domain, payload FROM catalogs WHERE domain IN (${placeholders})`).bind(...domains).all();
     for (const row of results) catalogs.set(row.domain, parse(row.payload));
   }
-  const catalogFor = (brandDomain) => trimProducts(catalogs.get(brandDomain) || EMPTY_CATALOG(brandDomain), products);
+  const catalogFor = (brandDomain) => moderation.hidden.has(brandDomain)
+    ? HIDDEN_CATALOG(brandDomain)
+    : trimProducts(catalogs.get(brandDomain) || EMPTY_CATALOG(brandDomain), products);
 
   return {
     type: search.status,
     searchId: search.search_id,
     errorMessage: search.error_message || undefined,
     searchedBrand: searchedBrand ? { ...searchedBrand, catalog: catalogFor(searchedKey) } : null,
-    brands: brandRows.map(row => ({ ...parse(row.brand, {}), catalog: catalogFor(row.domain) })),
+    brands: brandRows.filter(row => !moderation.removed.has(row.domain))
+      .map(row => ({ ...parse(row.brand, {}), catalog: catalogFor(row.domain) })),
     serpApiOutOfCredits: Boolean(search.serp_out_of_credits),
     timestamp: search.updated_at
   };
@@ -152,7 +160,9 @@ export async function putSearch(db, domain, record, now = Date.now()) {
   if (!key) throw new Error('A search needs a domain');
   const type = ['results', 'empty', 'error'].includes(record?.type) ? record.type : 'error';
   const searchId = String(record?.searchId || `${now}`);
-  const brands = type === 'results' && Array.isArray(record.brands) ? record.brands : [];
+  const offered = type === 'results' && Array.isArray(record.brands) ? record.brands : [];
+  const { removed } = await moderationFor(db, key, []);
+  const brands = offered.filter(brand => !removed.has(canonicalDomain(brand?.url || '')));
 
   const statements = [
     db.prepare(
