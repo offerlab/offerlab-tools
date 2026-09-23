@@ -29,11 +29,10 @@
     tilt: THUMB_TILTS[pick.sequence % THUMB_TILTS.length]
   })));
 
-  // The brand line doubles as the progress line: while a draft is being created there is nothing
-  // the operator needs from it, and it is the one place in the pill with room for a sentence.
+  // While a draft is being created the brand line stays put: the looping dots in the primary
+  // button are the whole progress signal.
   const note = $derived.by(() => {
     const { status, message } = picker.draft;
-    if (status === 'working') return `${message}…`;
     if (status === 'error' || status === 'pending') return message;
     if (status === 'done') return `Opened ${message} in OfferLab`;
     return split;
@@ -60,12 +59,14 @@
         <span class:picker-tray-problem={picker.draft.status === 'error'}>{note}</span>
       </div>
       <div class="picker-tray-actions">
-        <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="cross-large" size={14} /><span class="picker-tray-action-label">Clear</span></button>
+        {#if primary !== 'working'}
+          <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="cross-large" size={14} /><span class="picker-tray-action-label">Clear</span></button>
+        {/if}
         {#if primary === 'working'}
-          <!-- Still the primary button to look at, with nothing to press: the app's loader in place of a label. -->
-          <button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="ol-loader" aria-hidden="true"></span></button>
+          <!-- Still the primary button to look at, with nothing to press: the app's three dots looping beside a shimmering label until the draft is ready. -->
+          <button type="button" class="btn btn--md btn--primary picker-tray-busy" aria-busy="true"><span class="ol-loader" aria-hidden="true"></span><span class="text-shimmer-ink">Bundling</span></button>
         {:else if primary === 'done'}
-          <button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>
+          <button type="button" class="btn btn--md btn--primary" data-action="open-draft">Let’s go <Icon name="arrow-up-right" size={16} /></button>
         {:else if primary === 'connect'}
           <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Connect OfferLab</button>
         {:else if primary === 'retry'}
