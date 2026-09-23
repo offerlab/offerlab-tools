@@ -1391,8 +1391,10 @@ function trayNote(brands) {
 
 function trayPrimary() {
   const { status } = state.draft;
+  // Still the primary button to look at, with nothing to press: no action, and the app's three
+  // dots looping in place of a label until the draft is ready.
   if (status === 'working') {
-    return `<button type="button" class="btn btn--md btn--primary" disabled>Working</button>`;
+    return `<button type="button" class="btn btn--md btn--primary" aria-busy="true" aria-label="Creating the bundle"><span class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></span></button>`;
   }
   if (status === 'done') {
     return `<button type="button" class="btn btn--md btn--primary" data-action="open-draft">Open in OfferLab</button>`;
