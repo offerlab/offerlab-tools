@@ -494,7 +494,8 @@ function buildFailure(status, result) {
   if (failures.length) {
     const [first] = failures;
     const rest = failures.length > 1 ? ` (and ${failures.length - 1} more)` : '';
-    const who = first.brand ? `${first.brand}: ` : '';
+    // The reason usually names the brand already.
+    const who = first.brand && !String(first.reason || '').startsWith(first.brand) ? `${first.brand}: ` : '';
     return `${who}${first.reason || 'could not be set up'}${rest}`;
   }
   return status?.error_message || 'OfferLab could not build that bundle';

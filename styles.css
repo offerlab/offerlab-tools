@@ -6860,28 +6860,131 @@ button.social-link:disabled {
   margin-inline-start: calc(32px - var(--tray-item-gap));
 }
 
-/* The app's three-dot loader (connected_integrations/oauth_redirect), in the button's own color. */
-.loading-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 1em;
+/* The app's loader (atelier/tailwind/buttons.css .ol-loader), verbatim: three dots out of one
+   element, ::before and ::after LEFT and RIGHT, the element's own background CENTER, in the
+   button's own color. Regenerated in the app from lib/assets/loader; not hand-tuned here. */
+.ol-loader {
+  width: 16px;
+  aspect-ratio: 1;
+  position: relative;
+  flex-shrink: 0;
+  background: no-repeat radial-gradient(circle closest-side, currentColor 100%, transparent);
+  background-size: 14.2857% 14.2857%;
+  animation:
+    ol-loader-spin 11.533s infinite linear,
+    ol-loader-center 11.533s infinite linear;
 }
 
-.loading-dots i {
-  width: 6px;
-  height: 6px;
+.ol-loader::before,
+.ol-loader::after {
+  content: "";
+  position: absolute;
+  width: 14.2857%;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: currentColor;
-  animation: loadingDotPulse 1.5s ease-in-out infinite;
+  margin: -7.14286% 0 0 -7.14286%;
 }
 
-.loading-dots i:nth-child(2) { animation-delay: 0.3s; }
-.loading-dots i:nth-child(3) { animation-delay: 0.6s; }
+.ol-loader::before {
+  animation: ol-loader-left 11.533s infinite linear;
+}
 
-@keyframes loadingDotPulse {
-  0%, 100% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 1; }
+.ol-loader::after {
+  animation: ol-loader-right 11.533s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ol-loader {
+    animation: ol-loader-center 11.533s infinite linear;
+  }
+}
+
+@keyframes ol-loader-spin {
+  0% { transform: rotate(0deg); animation-timing-function: linear; }
+  27.706% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.435, 0.000, 0.566, 1.000); }
+  33.911% { transform: rotate(-120deg); animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { transform: rotate(-120deg); animation-timing-function: cubic-bezier(0.274, 0.000, 0.226, 1.000); }
+  77.345% { transform: rotate(-360deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes ol-loader-left {
+  0.000% { left: 26.429%; top: 63.371%; animation-timing-function: cubic-bezier(0.243, 0.609, 0.559, 1.000); }
+  1.732% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  6.926% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  12.121% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  17.316% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  22.511% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.667, 1.000); }
+  27.706% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  33.911% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  38.672% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { left: 61.471%; top: 84.375%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { left: 26.429%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.340, 1.000); }
+  75.613% { left: 26.429%; top: 32.143%; animation-timing-function: linear; }
+  77.345% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.005, 0.340, 1.000); }
+  80.808% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  86.003% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  91.198% { left: 26.429%; top: 67.857%; animation-timing-function: cubic-bezier(0.516, 0.008, 0.340, 1.000); }
+  96.392% { left: 26.429%; top: 32.143%; animation-timing-function: cubic-bezier(0.601, 0.007, 0.576, 0.694); }
+  100% { left: 26.429%; top: 63.371%; }
+}
+
+@keyframes ol-loader-right {
+  0.000% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  5.195% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  10.390% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  15.584% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  20.779% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  25.974% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  33.911% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.667, 1.000); }
+  38.672% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { left: 73.571%; top: 25.357%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { left: 40.089%; top: 83.707%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.500, 1.000); }
+  77.345% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  84.271% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  89.466% { left: 73.571%; top: 32.143%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  94.661% { left: 73.571%; top: 67.857%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  100% { left: 73.571%; top: 32.143%; }
+}
+
+@keyframes ol-loader-center {
+  0.000% { background-position: 50.000% 37.654%; animation-timing-function: cubic-bezier(0.313, 0.367, 0.468, 1.000); }
+  3.463% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  8.658% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  13.853% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  19.048% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  24.242% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.833, 0.833); }
+  29.437% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.167, 0.167, 0.667, 1.000); }
+  33.911% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  38.672% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  43.434% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  48.629% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  53.824% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  59.019% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  64.214% { background-position: 11.200% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.667, 1.000); }
+  69.408% { background-position: 89.842% 40.625%; animation-timing-function: cubic-bezier(0.333, 0.000, 0.500, 1.000); }
+  75.325% { background-position: 50.000% 29.167%; animation-timing-function: linear; }
+  77.345% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  82.540% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  87.735% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  92.929% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
+  98.124% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.435, 0.000, 0.744, 0.413); }
+  100% { background-position: 50.000% 37.654%; }
+}
+
+/* A product with no price cannot be picked: shown so the catalog reads whole, but quiet. */
+.picker-product.is-unpriced {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .picker-tray-actions .btn {
