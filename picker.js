@@ -747,16 +747,6 @@ async function createDraft(name) {
     .map(pick => ({ domain: pick.domain, brandName: entryFor(pick.domain)?.brand.name, product: pick.product }));
   if (!picks.length) return;
 
-  setDraft('working', 'Checking the storefronts');
-  // The picks stay, so the tray stays with the message; the operator swaps them.
-  const gone = await unlistedPicks(picks);
-  if (gone.length) {
-    const brand = gone[0].brandName || gone[0].domain;
-    const names = gone.map(pick => pick.product.title).join(', ');
-    setDraft('error', `${brand} no longer lists ${names}. Remove it and try again.`);
-    return;
-  }
-
   setDraft('working', 'Connecting to OfferLab');
   try {
     const draft = await offerlab.createDraftBundle({
@@ -775,32 +765,6 @@ async function createDraft(name) {
     console.warn('[OfferLab] draft failed:', err);
     setDraft('error', err.message || 'Could not create the draft');
   }
-}
-
-const storefrontHandle = url => { try { return new URL(url).pathname.split('/products/')[1]?.split('/')[0] || null; } catch { return null; } };
-
-/**
- * The picks a fresh crawl of each storefront no longer lists. The stored catalog can be a day
- * old, and a brand unlists products between crawls; the build imports each pick from the
- * listing as it is now, so a pick that is gone from it fails the whole build. Each column takes
- * the fresh catalog while it is here. A storefront that cannot be crawled is left to the build.
- */
-async function unlistedPicks(picks) {
-  const byDomain = new Map();
-  for (const pick of picks) byDomain.set(pick.domain, [...(byDomain.get(pick.domain) || []), pick]);
-  const gone = [];
-  await Promise.all([...byDomain].map(async ([domain, domainPicks]) => {
-    const fresh = await fetchCatalog(domain, { refresh: true });
-    if (fresh?.status !== 'shopify' || !fresh.products?.length) return;
-    const listed = new Set(fresh.products.map(p => storefrontHandle(p.url)).filter(Boolean));
-    for (const pick of domainPicks) {
-      const handle = storefrontHandle(pick.product.url);
-      if (handle && !listed.has(handle)) gone.push(pick);
-    }
-    const entry = entryFor(domain);
-    if (entry) { entry.brand.catalog = fresh; renderColumn(domain); }
-  }));
-  return gone;
 }
 
 function syncActiveConceptToSelection() {
