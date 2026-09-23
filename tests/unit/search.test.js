@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -156,5 +156,64 @@ describe('httpApi', () => {
     const fetchImpl = vi.fn(async () => new Response('{}'));
     await httpApi('', fetchImpl).catalog('a.com');
     expect(fetchImpl.mock.calls[0][0]).toBe('/api/catalog?domain=a.com');
+  });
+});
+
+describe('fetchWithRetry', () => {
+  const res = (status) => new Response('{}', { status });
+  // A request that never answers until its attempt's signal aborts it.
+  const hang = (signal) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
+
+  it('gives an attempt its own signal', async () => {
+    let seen;
+    const response = await fetchWithRetry('/x', { method: 'POST' }, 3, async (_url, options) => { seen = options.signal; return res(200); }, { timeoutMs: 100 });
+    expect(response.status).toBe(200);
+    expect(seen).toBeInstanceOf(AbortSignal);
+  });
+
+  it('retries an attempt that times out', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const pending = fetchWithRetry('/x', {}, 3, async (_url, options) => (++calls === 1 ? hang(options.signal) : res(200)), { timeoutMs: 50 });
+    await vi.advanceTimersByTimeAsync(50); // first attempt times out
+    await vi.advanceTimersByTimeAsync(1000); // backoff before the second
+    expect((await pending).status).toBe(200);
+    expect(calls).toBe(2);
+    vi.useRealTimers();
+  });
+
+  it('retries a 5xx and hands back the last response', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const pending = fetchWithRetry('/x', {}, 2, async () => { calls++; return res(502); });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect((await pending).status).toBe(502);
+    expect(calls).toBe(2);
+    vi.useRealTimers();
+  });
+
+  it('does not retry a cancelled request', async () => {
+    const controller = new AbortController();
+    let calls = 0;
+    const pending = fetchWithRetry('/x', { signal: controller.signal }, 3, async (_url, options) => { calls++; return hang(options.signal); }, { timeoutMs: 5000 });
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(calls).toBe(1);
+  });
+
+  it('says so when every attempt times out', async () => {
+    vi.useFakeTimers();
+    const pending = fetchWithRetry('/x', {}, 2, async (_url, options) => hang(options.signal), { timeoutMs: 50 });
+    const failure = expect(pending).rejects.toThrow('timed out 2 times');
+    await vi.advanceTimersByTimeAsync(50 + 1000 + 50);
+    await failure;
+    vi.useRealTimers();
+  });
+
+  it('threads the api signal into a plain GET', async () => {
+    const controller = new AbortController();
+    let seen;
+    await httpApi('', async (_url, options) => { seen = options?.signal; return res(200); }, { signal: controller.signal }).catalog('a.com');
+    expect(seen).toBe(controller.signal);
   });
 });
