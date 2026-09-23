@@ -8,7 +8,11 @@
  */
 import { icon } from './icons.js';
 
+// The live read; the committed snapshot stands in when it fails.
+const LIBRARY_URL = '/api/library';
 const SNAPSHOT_URL = 'library/snapshot.json';
+// A bundle put on the store's Online Store channel shows up within this while the Showcase is open.
+const REFRESH_MS = 45000;
 const BRANDS_URL = 'library/brands.json';
 
 // Words a booth visitor types around the thing they mean, and the words they use for ours.
@@ -140,12 +144,14 @@ export async function showLibrary() {
   if (!state.loaded) await load();
   readFiltersFromUrl();
   apply();
+  watchForNewBundles();
 }
 
 export function hideLibrary() {
   dom.section.classList.add('hidden');
   closeLightbox();
   closeFilters();
+  stopWatching();
 }
 
 export function libraryFilterParams() {
@@ -158,10 +164,23 @@ export function libraryFilterParams() {
 
 async function load() {
   const [snapshot, logos] = await Promise.all([
-    fetch(SNAPSHOT_URL).then(r => r.json()),
+    fetchLibrary(),
     fetch(BRANDS_URL).then(r => (r.ok ? r.json() : {})).catch(() => ({}))
   ]);
   state.logos = logos;
+  take(snapshot);
+  state.loaded = true;
+}
+
+async function fetchLibrary() {
+  try {
+    const response = await fetch(LIBRARY_URL, { cache: 'no-store' });
+    if (response.ok) return await response.json();
+  } catch { /* the snapshot below */ }
+  return fetch(SNAPSHOT_URL).then(r => r.json());
+}
+
+function take(snapshot) {
   state.bundles = snapshot.bundles.filter(bundle => bundle.cover).map(bundle => ({
     ...bundle,
     // Every word of the bundle, stemmed once, so a query is a set lookup per term.
@@ -170,7 +189,36 @@ async function load() {
   }));
   state.categories = snapshot.categories.filter(c => state.bundles.some(b => b.category === c));
   renderFilterOptions();
-  state.loaded = true;
+}
+
+/* A bundle published from OfferLab reaches the store's listing when it goes on the Online Store
+   channel, and the live read reflects that at once. While the Showcase is open it is re-read on
+   a timer and whenever the tab comes back into view, which is the moment after the channel was
+   turned on in the Shopify admin. The board is dealt again only when the set of bundles changed,
+   and never over an open lightbox. */
+function watchForNewBundles() {
+  if (state.watching) return;
+  state.watching = true;
+  const check = async () => {
+    if (document.hidden || !state.watching) return;
+    const snapshot = await fetchLibrary().catch(() => null);
+    if (!snapshot || !state.watching) return;
+    const ids = snapshot.bundles.map(bundle => bundle.id).join('\n');
+    if (ids === state.bundles.map(bundle => bundle.id).join('\n')) return;
+    if (!dom.lightbox.classList.contains('hidden')) return;
+    take(snapshot);
+    if (!MOBILE.matches) clearBoard();
+    apply();
+  };
+  state.refreshTimer = setInterval(check, REFRESH_MS);
+  state.onVisible = () => { if (!document.hidden) check(); };
+  document.addEventListener('visibilitychange', state.onVisible);
+}
+
+function stopWatching() {
+  state.watching = false;
+  clearInterval(state.refreshTimer);
+  document.removeEventListener('visibilitychange', state.onVisible);
 }
 
 const label = slug => slug.replace(/-and-/g, ' & ').replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());

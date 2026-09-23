@@ -10,11 +10,12 @@ import { config } from 'dotenv';
 import { fetchShopifyCatalog } from './shared/catalog.js';
 import { fetchSocials } from './shared/socials.js';
 import { DEFAULT_OFFERLAB_HOST, endpoints, registerClient, exchangeToken, callMcp } from './shared/offerlab.js';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 import * as store from './shared/db.js';
 import { handleDataRequest } from './shared/data-api.js';
 import { handleCrawlRequest } from './shared/crawl-api.js';
 import { handleModerationRequest } from './shared/moderation-api.js';
+import { handleLibraryRequest } from './shared/library.js';
 
 config(); // Load .env
 
@@ -236,6 +237,20 @@ app.get('/api/catalog', async (req, res) => {
     console.error('[Catalog Proxy] Error:', err);
     res.status(500).json({ error: 'Failed to fetch catalog' });
   }
+});
+
+// The Showcase's bundles: the committed snapshot plus what the demo store lists since.
+app.get('/api/library', async (req, res) => {
+  const readJson = file => JSON.parse(readFileSync(join(__dirname, 'library', file), 'utf8'));
+  const { status, body } = await handleLibraryRequest({
+    method: req.method,
+    snapshot: readJson('snapshot.json'),
+    curation: readJson('curation.json'),
+    db,
+    apiKey: process.env.GEMINI_API_KEY,
+    log: message => console.warn(`[Library] ${message}`)
+  });
+  res.set('Cache-Control', 'no-store').status(status).json(body);
 });
 
 // Social accounts linked from a storefront homepage (same grammar as the app's Brand DNA extraction)
