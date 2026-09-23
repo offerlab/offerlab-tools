@@ -127,6 +127,8 @@ export async function liveLibrary({ snapshot, curation, db, apiKey, fetchImpl = 
     }
   } catch (err) {
     log(`store read failed, serving what is stored: ${err.message}`);
+    // Not an empty listing: an unreadable store must not unlist everything.
+    listed = null;
   }
 
   let bundles;
@@ -135,9 +137,12 @@ export async function liveLibrary({ snapshot, curation, db, apiKey, fetchImpl = 
   } else {
     bundles = await classified(listed, storedById, { apiKey, fetchImpl, log });
     if (db) {
+      // Written: a bundle classified on this read, and a carried one that was dated unlisted and
+      // is listed again. An unclassified one is not remembered, so it is tried again next time.
       const changed = bundles.filter(bundle => {
         const before = storedById.get(bundle.id);
-        return bundle.classifiedNow || !before || before.unlistedAt || before.hash !== bundle.hash;
+        const carried = !bundle.classifiedNow && before?.category && before.hash === bundle.hash;
+        return bundle.classifiedNow || (carried && before.unlistedAt);
       });
       await putLibraryBundles(db, changed).catch(err => log(`store write failed: ${err.message}`));
       const listedIds = new Set(bundles.map(bundle => bundle.id));
