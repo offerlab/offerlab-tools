@@ -761,8 +761,7 @@ async function createDraft(name) {
       picks,
       // The bundle presents as whichever brand leads it, and it is being pitched to the one that
       // was searched for, so that is the brand whose products go first.
-      presentingDomain: sellerEntry()?.domain,
-      onProgress: message => setDraft('working', message)
+      presentingDomain: sellerEntry()?.domain
     });
     offerlab.rememberDraft(sellerEntry()?.domain, draft);
     setDraft('done', draft.name, draft.url);
@@ -1395,11 +1394,10 @@ function renderTray() {
   `;
 }
 
-// The brand line doubles as the progress line: while a draft is being created there is nothing
-// the operator needs from it, and it is the one place in the pill with room for a sentence.
+// While a draft is being created the brand line stays put: the looping dots in the primary
+// button are the whole progress signal.
 function trayNote(brands) {
   const { status, message } = state.draft;
-  if (status === 'working') return `${message}\u2026`;
   if (status === 'error' || status === 'pending') return message;
   if (status === 'done') return `Opened ${message} in OfferLab`;
   return brands;
