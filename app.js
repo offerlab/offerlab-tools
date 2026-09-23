@@ -754,8 +754,8 @@ function brandForCard(card) {
   return getResults()?.brands?.find(b => extractDomain(b.url || '') === card.dataset.domain) || null;
 }
 
-function fetchCatalog(domain) {
-  return search.fetchCatalog(searchApi, domain);
+function fetchCatalog(domain, options) {
+  return search.fetchCatalog(searchApi, domain, options);
 }
 
 // Searched brand's visit control: the platform mark (when known) beside the external-link icon,
