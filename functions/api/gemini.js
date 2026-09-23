@@ -3,6 +3,11 @@
  * Keeps the API key secure on the server side
  */
 
+// How long one Gemini call may take before the proxy answers 504 instead. The browser gives up
+// on an attempt sooner (GEMINI_ATTEMPT_TIMEOUT_MS in shared/search.js) and retries; this keeps
+// a Gemini connection that never answers from holding the function open behind it.
+const UPSTREAM_TIMEOUT_MS = 180_000;
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -46,6 +51,7 @@ export async function onRequest(context) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -64,6 +70,13 @@ export async function onRequest(context) {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
+    if (err?.name === 'TimeoutError') {
+      console.error(`[Gemini Proxy] No answer from Gemini within ${UPSTREAM_TIMEOUT_MS / 1000}s`);
+      return new Response(
+        JSON.stringify({ error: 'Gemini did not answer in time' }),
+        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     console.error('[Gemini Proxy] Error:', err);
     return new Response(
       JSON.stringify({ error: 'Failed to process Gemini request' }),

@@ -2055,10 +2055,16 @@ const LOADING_MESSAGES = [
 ];
 
 
-async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog } = {}) {
+// Shown when a step has been quiet for this long: the recommender can take a minute, and a
+// screen that says nothing for that long reads as hung.
+const SLOW_SEARCH_NOTICE_MS = 45000;
+const SLOW_SEARCH_NOTICE = "Still working. Researching a brand from scratch can take a minute or two...";
+
+// `signal` cancels every request the search makes, so leaving the search stops it.
+async function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog, signal } = {}) {
   const [feedback, knownPartners] = await Promise.all([getFeedbackHistory(), store.loadKnownPartners(extractDomain(url))]);
   return search.discoverComplementaryBrands(url, {
-    api: searchApi,
+    api: signal ? httpApi('', undefined, { signal }) : searchApi,
     feedback,
     knownPartners,
     onProgress: (step) => { if (onProgress) onProgress(LOADING_MESSAGES[step] ?? LOADING_MESSAGES[0]); },
@@ -2341,11 +2347,23 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
   liveResults = null;
   let brandsShown = false;
 
+  // A step that stays quiet gets a note that the search is still going.
+  let slowNotice = null;
+  const armSlowNotice = () => {
+    if (slowNotice) clearTimeout(slowNotice);
+    slowNotice = setTimeout(() => {
+      if (!isSearchCancelled && elements.loadingText) elements.loadingText.textContent = SLOW_SEARCH_NOTICE;
+    }, SLOW_SEARCH_NOTICE_MS);
+  };
+  armSlowNotice();
+
   try {
     const results = await discoverComplementaryBrands(url, {
+      signal: searchAbortController.signal,
       onProgress: (msg) => {
         if (isSearchCancelled) return;
         if (elements.loadingText) elements.loadingText.textContent = msg;
+        armSlowNotice();
       },
       // Called as soon as brands are ready - show results page immediately
       onBrandsReady: ({ searchedBrand, brands }) => {
@@ -2432,7 +2450,7 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
 
   } catch (error) {
     // If cancelled, don't show error
-    if (isSearchCancelled) {
+    if (isSearchCancelled || error?.name === 'AbortError') {
       console.log('[performSearch] Search was cancelled');
       return;
     }
@@ -2442,6 +2460,8 @@ async function performSearch(url, { fromUrlRestore = false } = {}) {
     elements.errorMessage.textContent = errorMessage;
     if (!fromUrlRestore) updateUrlForSearch(domain);
     showSection('error');
+  } finally {
+    if (slowNotice) clearTimeout(slowNotice);
   }
 }
 
