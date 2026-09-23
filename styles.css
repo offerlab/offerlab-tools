@@ -7434,13 +7434,21 @@ button.social-link:disabled {
   pointer-events: none;
 }
 
+/* The board is the map: library-board.js moves and scales it as one transform from its top-left,
+   on one layer the compositor moves and scales without redrawing. After a zoom the hint comes off
+   for a frame, so the layer is drawn again, sharp, at its new scale. */
 .library-board {
   position: absolute;
   top: 0;
   left: 0;
   width: 0;
   height: 0;
+  transform-origin: 0 0;
   will-change: transform;
+}
+
+.library-viewport.is-sharpening .library-board {
+  will-change: auto;
 }
 
 /* A shelf row is one continuous plank: the tiles standing on it, the glow on the wall behind them
@@ -7502,7 +7510,6 @@ button.social-link:disabled {
   border-radius: var(--lib-radius, 28px);
   cursor: pointer;
   z-index: 1;
-  transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--scale, 1));
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.12),
     0 16px 36px -16px rgba(0, 0, 0, 0.18);
@@ -7531,8 +7538,10 @@ button.social-link:disabled {
   z-index: 2;
 }
 
-/* While the pointer is on it, follow with only a hair of smoothing, on its own layer. */
+/* While the pointer is on it, follow with only a hair of smoothing, on its own layer. At rest a
+   tile has no transform, so it draws into the board's layer rather than making one of its own. */
 .library-tile.is-tilting {
+  transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--scale, 1));
   transition: transform 0.15s ease-out, box-shadow 0.25s ease, opacity 0.32s ease;
   will-change: transform;
 }
@@ -7653,6 +7662,11 @@ button.social-link:disabled {
 .library-tile:focus-visible .library-tile-name,
 .library-tile.is-bare .library-tile-name {
   opacity: 1;
+}
+
+.library-tile.is-scrim-fresh .library-tile-scrim {
+  opacity: 0 !important;
+  transition: none !important;
 }
 
 .library-tile:hover .library-tile-scrim,
@@ -8215,65 +8229,20 @@ button.social-link:disabled {
     overflow: hidden;
   }
 
-  /* The shelves stand still and the viewport scrolls down through them; each shelf's rail scrolls
-     sideways on its own. The rail runs one air's height past its plank so a cover's shadow is
-     not cut at the shelf's edge; below it is only the next shelf's air, which holds nothing. */
-  /* Isolated, so the shelves' own stacking never rises over the footer. Pans only, so a pinch
-     is the board's to zoom rather than the browser's. */
+  /* The same map as a desktop's: one board the fingers pan and pinch, kept on the shelves by
+     library-board.js. Isolated, so the shelves' own stacking never rises over the footer. */
   .library-viewport {
-    overflow: hidden auto;
-    touch-action: pan-x pan-y;
     cursor: auto;
     isolation: isolate;
   }
 
-  .library-board {
-    position: relative;
-    width: 100%;
-    margin-bottom: var(--lib-foot);
-    will-change: auto;
-  }
-
-  /* Mid-pinch the board is one layer the compositor scales. The tiles' resting transform is 3D,
-     which makes each a layer of its own, re-rastered at every step of the pinch; at rest it draws
-     the same as none. */
-  .library-viewport.is-zooming .library-board {
-    will-change: transform;
-  }
-
-  .library-viewport.is-zooming .library-tile:not(.is-tilting) {
-    transform: none;
-    transition: none;
-  }
-
-  .library-shelf {
-    width: 100%;
-  }
-
-  .library-shelf-rail {
-    bottom: calc(-1 * var(--lib-air));
-    overflow: auto hidden;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
-  }
-
-  .library-shelf-rail::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* The rail runs an air past the plank, so a tile stands that much higher inside it. */
-  .library-shelf-rail .library-tile {
-    bottom: calc(var(--lib-plank) + var(--lib-air));
-  }
-
-  .library-shelf-rail::after {
-    content: "";
-    position: absolute;
-    left: calc(var(--rail-end) - 1px);
-    top: 0;
-    width: 1px;
-    height: 1px;
+  /* WebKit paints a CSS blur on the main thread as each tile comes into view, which stalls a pan;
+     as layers of their own the blurred copies are blurred by the compositor instead. Only Apple's
+     WebKit knows this font keyword, and Chromium blurs these fine without the extra layers. */
+  @supports (font: -apple-system-body) {
+    .library-tile-scrim img {
+      will-change: filter;
+    }
   }
 
   /* Over the bottom of the viewport, the way the results bar is over the top of the sheet: the
