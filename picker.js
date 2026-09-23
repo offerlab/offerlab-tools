@@ -153,13 +153,15 @@ export function initPicker() {
 }
 
 /**
- * Only a brand with a public storefront catalog can be built with: the build imports each pick
- * from its storefront, and a Google Shopping result has no storefront to import from (every
- * such build failed with "google.com: no public catalog found"). Those brands can still be
- * pitched; they just have no Create bundle and are not offered on the rail.
+ * A brand with products can be built with. A public storefront's are imported by the build; a
+ * Google Shopping brand's are created from what the finder knows, which only an OfferLab that
+ * takes product descriptions can do, so those are offered unless it is known not to.
  */
 export function canBuildWith(brand) {
-  return brand?.catalog?.status === 'shopify' && (brand.catalog.products?.length || 0) > 0;
+  const products = brand?.catalog?.products?.length || 0;
+  if (!products) return false;
+  if (brand.catalog.status === 'shopify') return true;
+  return brand.catalog.status === 'serp' && offerlab.buildTakesSpecs() !== false;
 }
 
 export function isPickerOpen() {
@@ -744,7 +746,12 @@ async function createDraft(name) {
 
   const picks = [...state.selection.values()]
     .sort((a, b) => a.sequence - b.sequence)
-    .map(pick => ({ domain: pick.domain, brandName: entryFor(pick.domain)?.brand.name, product: pick.product }));
+    .map(pick => ({
+      domain: pick.domain,
+      brandName: entryFor(pick.domain)?.brand.name,
+      product: pick.product,
+      storefront: entryFor(pick.domain)?.brand.catalog?.status === 'shopify'
+    }));
   if (!picks.length) return;
 
   setDraft('working', 'Connecting to OfferLab');
