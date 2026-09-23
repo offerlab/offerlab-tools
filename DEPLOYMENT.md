@@ -98,14 +98,16 @@ the graph.
 
 ## Showcase
 
-The Showcase reads `/api/library`: the committed snapshot (`static/library/snapshot.json`, built
-by `npm run build:library`) plus every bundle the demo store lists since, read from the store's
-public listing on each request. A bundle published from OfferLab reaches that listing the moment
-it is put on the Online Store channel. Each new bundle is classified once (Gemini) and kept in
-`library_bundles` (`migrations/0004_library.sql`); the listing decides which are shown. While the
-Showcase is open the browser re-reads every 45 seconds and when the tab comes back into view, and
-deals the board again only when the set of bundles changed. If the route fails, the snapshot file
-stands in.
+The Showcase reads `/api/library`. D1 holds every bundle (`library_bundles`,
+`migrations/0004_library.sql` and `0005_library_listing.sql`), seeded from the committed snapshot
+(`static/library/snapshot.json`, built by `npm run build:library`) the first time the route is
+read. Each read then syncs the table with the demo store's public listing: a bundle published from
+OfferLab reaches that listing the moment it is put on the Online Store channel; a new bundle is
+classified once (Gemini) and kept, a changed one is classified again, and one the store stops
+listing is dated unlisted and left out until it is listed again. Without a database, or when the
+store cannot be read, the snapshot and what is stored still go out. While the Showcase is open the
+browser re-reads every 45 seconds and when the tab comes back into view, and deals the board
+again only when the set of bundles changed. If the route fails, the snapshot file stands in.
 
 ## Moderation
 

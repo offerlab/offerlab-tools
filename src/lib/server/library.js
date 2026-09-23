@@ -1,19 +1,20 @@
 /**
- * GET /api/library (src/routes/api/library/+server.js): the Showcase's bundles, live.
+ * GET /api/library (src/routes/api/library/+server.js): the Showcase's bundles.
  *
- * The committed snapshot (static/library/snapshot.json) is the base. On top of it go the bundles the
- * store lists now that the snapshot does not know: a bundle published from OfferLab reaches the
- * store's public listing the moment it is put on the Online Store channel, and that listing is
- * what is read here, so a bundle shows in the Showcase as soon as it has a storefront URL. Each
- * new bundle is classified once and kept in D1; the store's listing decides which are still
- * shown, so a bundle taken off the channel leaves again.
+ * D1 holds every bundle (library_bundles), seeded from the committed snapshot
+ * (static/library/snapshot.json) the first time it is read. Each read then syncs the table with
+ * the store's public listing: a bundle published from OfferLab reaches that listing the moment it
+ * is put on the Online Store channel, so it shows in the Showcase as soon as it has a
+ * storefront URL. A new bundle is classified once and kept; one the store stops listing is
+ * dated unlisted and left out until it is listed again. Without a database (or a store that
+ * cannot be read) the snapshot and the additions still go out, only nothing is remembered.
  */
 import {
   fetchStoreProducts, showcaseRecords, classifyBatch, applyClassification, carryClassification, finished, CLASSIFY_BATCH
 } from '$lib/shared/library-snapshot.js';
 
 /* -------------------------------------------------------------------------- */
-/* D1: one row per bundle classified since the snapshot                        */
+/* D1: one row per bundle                                                      */
 /* -------------------------------------------------------------------------- */
 
 function parse(json) {
@@ -24,77 +25,139 @@ function parse(json) {
   }
 }
 
-export async function getLiveBundles(db) {
-  const { results } = await db.prepare('SELECT record FROM library_bundles').all();
-  return (results || []).map(row => parse(row.record)).filter(Boolean);
+/** Every stored bundle, listed or not, as { ...record, unlistedAt }. */
+export async function getLibraryBundles(db) {
+  const { results } = await db.prepare('SELECT record, unlisted_at FROM library_bundles').all();
+  return (results || []).flatMap(row => {
+    const record = parse(row.record);
+    return record ? [{ ...record, unlistedAt: row.unlisted_at }] : [];
+  });
 }
 
-export async function putLiveBundle(db, bundle, now = Date.now()) {
-  await db.prepare(
-    `INSERT INTO library_bundles (id, store, handle, hash, record, published_at, classified_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET hash = excluded.hash, record = excluded.record, published_at = excluded.published_at, classified_at = excluded.classified_at`
-  ).bind(bundle.id, bundle.store, bundle.handle, bundle.hash, JSON.stringify(bundle), bundle.publishedAt || null, now).run();
+function upsert(db, bundle, now) {
+  const { unlistedAt: _u, classifiedNow: _c, ...record } = finished(bundle);
+  return db.prepare(
+    `INSERT INTO library_bundles (id, store, handle, hash, record, published_at, classified_at, unlisted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+     ON CONFLICT(id) DO UPDATE SET hash = excluded.hash, record = excluded.record, published_at = excluded.published_at, classified_at = excluded.classified_at, unlisted_at = NULL`
+  ).bind(bundle.id, bundle.store, bundle.handle, bundle.hash, JSON.stringify(record), bundle.publishedAt || null, now);
+}
+
+export async function putLibraryBundle(db, bundle, now = Date.now()) {
+  await upsert(db, bundle, now).run();
+}
+
+/** Writes many at once; D1 and the SQLite adapter both take a batch. */
+async function putLibraryBundles(db, bundles, now = Date.now()) {
+  const statements = bundles.map(bundle => upsert(db, bundle, now));
+  if (statements.length) await db.batch(statements);
+}
+
+async function markUnlisted(db, ids, now = Date.now()) {
+  if (!ids.length) return;
+  await db.batch(ids.map(id => db.prepare('UPDATE library_bundles SET unlisted_at = ? WHERE id = ? AND unlisted_at IS NULL').bind(now, id)));
 }
 
 /* -------------------------------------------------------------------------- */
-/* The merge                                                                   */
+/* The sync                                                                    */
 /* -------------------------------------------------------------------------- */
+
+/** Classifies the records that need it, in batches; stored answers are carried over. */
+async function classified(records, known, { apiKey, fetchImpl, log }) {
+  const out = [];
+  const pending = [];
+  for (const record of records) {
+    const before = known.get(record.id);
+    if (before && before.hash === record.hash && before.category) out.push(carryClassification(record, before));
+    else pending.push(record);
+  }
+  for (let i = 0; i < pending.length; i += CLASSIFY_BATCH) {
+    const batch = pending.slice(i, i + CLASSIFY_BATCH);
+    let results = [];
+    if (apiKey) {
+      results = await classifyBatch(batch, { apiKey, fetchImpl }).catch(err => { log(`classify failed: ${err.message}`); return []; });
+    }
+    const byHandle = new Map((results || []).map(result => [result.handle, result]));
+    for (const record of batch) {
+      const result = byHandle.get(record.handle);
+      // Only a classified bundle is remembered; an unclassified one is tried again next time.
+      out.push({ ...applyClassification(record, result), classifiedNow: !!result });
+    }
+  }
+  return out;
+}
+
+const newestFirst = (a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || ''));
 
 /**
- * The snapshot's bundles plus the store's newer ones, newest first among the additions. A store
- * that cannot be read costs nothing but freshness: the snapshot and what D1 already holds go out.
+ * The Showcase's bundles, newest first. With a database: the table, seeded from the snapshot,
+ * synced with the store's listing. Without one: the snapshot plus whatever the store lists on
+ * top of it.
  */
 export async function liveLibrary({ snapshot, curation, db, apiKey, fetchImpl = fetch, log = () => {} }) {
-  const inSnapshot = new Set(snapshot.bundles.map(bundle => bundle.id));
-  const stored = db ? await getLiveBundles(db).catch(err => { log(`stored read failed: ${err.message}`); return []; }) : [];
+  let stored = [];
+  if (db) {
+    stored = await getLibraryBundles(db).catch(err => { log(`stored read failed: ${err.message}`); return null; });
+    if (stored === null) {
+      db = null;
+      stored = [];
+    }
+  }
   const storedById = new Map(stored.map(bundle => [bundle.id, bundle]));
 
-  let additions;
+  // The snapshot seeds the table once; after that the table is the record.
+  if (db) {
+    const missing = snapshot.bundles.filter(bundle => !storedById.has(bundle.id));
+    if (missing.length) {
+      await putLibraryBundles(db, missing).catch(err => log(`seed failed: ${err.message}`));
+      for (const bundle of missing) storedById.set(bundle.id, { ...bundle, unlistedAt: null });
+      log(`seeded ${missing.length} bundles from the snapshot`);
+    }
+  } else {
+    for (const bundle of snapshot.bundles) if (!storedById.has(bundle.id)) storedById.set(bundle.id, { ...bundle, unlistedAt: null });
+  }
+
+  let listed = null;
   try {
-    additions = [];
+    listed = [];
     for (const store of snapshot.stores) {
       const products = await fetchStoreProducts(store, { fetchImpl });
-      additions.push(...showcaseRecords(store, products, curation).filter(record => !inSnapshot.has(record.id)));
+      listed.push(...showcaseRecords(store, products, curation));
     }
   } catch (err) {
+    // Not an empty listing: an unreadable store must not unlist everything.
     log(`store read failed, serving what is stored: ${err.message}`);
-    additions = null;
+    listed = null;
   }
 
   let bundles;
-  if (additions === null) {
-    bundles = stored.filter(bundle => !inSnapshot.has(bundle.id));
+  if (listed === null) {
+    bundles = [...storedById.values()].filter(bundle => !bundle.unlistedAt);
   } else {
-    const pending = [];
-    bundles = additions.map(record => {
-      const before = storedById.get(record.id);
-      if (before && before.hash === record.hash && before.category) return carryClassification(record, before);
-      pending.push(record);
-      return record;
-    });
-    for (let i = 0; i < pending.length; i += CLASSIFY_BATCH) {
-      const batch = pending.slice(i, i + CLASSIFY_BATCH);
-      let results = [];
-      if (apiKey) {
-        results = await classifyBatch(batch, { apiKey, fetchImpl }).catch(err => { log(`classify failed: ${err.message}`); return []; });
-      }
-      const byHandle = new Map((results || []).map(result => [result.handle, result]));
-      for (const record of batch) {
-        const result = byHandle.get(record.handle);
-        const index = bundles.findIndex(bundle => bundle.id === record.id);
-        bundles[index] = applyClassification(record, result);
-        // Only a classified bundle is remembered; an unclassified one is tried again next time.
-        if (db && result) await putLiveBundle(db, bundles[index]).catch(err => log(`store write failed: ${err.message}`));
-      }
+    bundles = await classified(listed, storedById, { apiKey, fetchImpl, log });
+    if (db) {
+      // Written: a bundle classified on this read, and a carried one that was dated unlisted and
+      // is listed again. An unclassified one is not remembered, so it is tried again next time.
+      const changed = bundles.filter(bundle => {
+        const before = storedById.get(bundle.id);
+        const carried = !bundle.classifiedNow && before?.category && before.hash === bundle.hash;
+        return bundle.classifiedNow || (carried && before.unlistedAt);
+      });
+      await putLibraryBundles(db, changed).catch(err => log(`store write failed: ${err.message}`));
+      const listedIds = new Set(bundles.map(bundle => bundle.id));
+      await markUnlisted(db, [...storedById.keys()].filter(id => !listedIds.has(id) && !storedById.get(id).unlistedAt))
+        .catch(err => log(`unlist failed: ${err.message}`));
     }
-    bundles.sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')));
   }
 
+  bundles.sort(newestFirst);
   return {
     ...snapshot,
     liveAt: new Date().toISOString(),
-    bundles: [...bundles.map(finished), ...snapshot.bundles]
+    bundles: bundles.map(bundle => {
+      const { unlistedAt: _u, classifiedNow: _c, ...record } = finished(bundle);
+      return record;
+    })
   };
 }
 
