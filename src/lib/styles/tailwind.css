@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Only what the markup and components use; styles.css is the design system. */
+@source "../../";
+
+/* The OfferLab design-system tokens the old tailwind.config.js exposed as utilities
+   (text-display-small, text-content-tertiary, ...), now in Tailwind v4's @theme. */
+@theme {
+  --text-display-small: var(--size-4xl, 40px);
+  --text-display-small--line-height: 120%;
+  --text-display-small--letter-spacing: -0.05em;
+  --text-display-medium: var(--size-6xl, 88px);
+  --text-display-medium--line-height: 120%;
+  --text-display-medium--letter-spacing: -0.05em;
+
+  --color-content-primary: var(--content-primary, #342E26);
+  --color-content-secondary: var(--content-secondary);
+  --color-content-tertiary: var(--content-tertiary);
+  --color-content-background-base: var(--content-background-base, #F7F5F0);
+  --color-content-background-elevated: var(--content-background-elevated, #FFF);
+  --color-content-border-neutral: var(--content-border-neutral);
+  --color-brand-primary-brew: var(--brand-primary-brew, #342E26);
+  --color-brand-secondary-spice: var(--brand-secondary-spice, #713636);
+  --color-brand-secondary-mint: var(--brand-secondary-mint);
+  --color-brand-secondary-moola: var(--brand-secondary-moola);
+}

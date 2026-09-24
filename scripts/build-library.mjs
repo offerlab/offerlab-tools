@@ -1,22 +1,19 @@
-// Builds library/snapshot.json: every published bundle on the demo stores, read from their public
-// catalogs and classified once. The library reads that file first; /api/library lays the bundles
-// published since over it (shared/library.js). A guest at a booth needs no OfferLab account and
-// the deployed finder holds no key (OL-4032).
-//   npm run build:library
+// Builds static/library/snapshot.json: every published bundle on the demo stores, read from their
+// public catalogs and classified once. The library reads that file first; /api/library lays the
+// bundles published since over it (src/lib/server/library.js). A guest at a booth needs no
+// OfferLab account and the deployed finder holds no key (OL-4032).
+//   GEMINI_API_KEY=... npm run build:library
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { config } from 'dotenv';
 import {
   CATEGORIES, CLASSIFY_BATCH, fetchStoreProducts, showcaseRecords, classifyBatch, applyClassification,
   carryClassification, finished
-} from '../shared/library-snapshot.js';
-
-config();
+} from '../src/lib/shared/library-snapshot.js';
 
 const root = new URL('..', import.meta.url).pathname;
-const STORES = JSON.parse(readFileSync(join(root, 'library/stores.json'), 'utf8'));
-const CURATION = JSON.parse(readFileSync(join(root, 'library/curation.json'), 'utf8'));
-const OUT = join(root, 'library/snapshot.json');
+const STORES = JSON.parse(readFileSync(join(root, 'static/library/stores.json'), 'utf8'));
+const CURATION = JSON.parse(readFileSync(join(root, 'static/library/curation.json'), 'utf8'));
+const OUT = join(root, 'static/library/snapshot.json');
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {

@@ -1,0 +1,12 @@
+# Local secrets for `vite dev` and `wrangler dev`. Copy to .dev.vars (git-ignored).
+# Production sets these with `wrangler secret put <NAME>`.
+GEMINI_API_KEY=
+SERP_API_KEY=
+OPENGRAPH_API_KEY=
+TYPESAFE_API_KEY=
+CRAWL_SECRET=
+# OFFERLAB_HOST=https://shoptalk.offerlab.com
+
+# Without the keys above, the Gemini, SerpAPI and OpenGraph proxies forward to this origin's
+# /api/* so a real search still runs locally. Leave unset in production.
+# UPSTREAM_API_ORIGIN=https://collabfinder.offerlab.com

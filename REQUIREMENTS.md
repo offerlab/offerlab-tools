@@ -236,10 +236,9 @@ After results load, show feedback prompt:
 ## Technical Architecture
 
 ### Frontend Stack
-- **HTML5** - Semantic markup
-- **CSS3** - Modern animations, flexbox/grid, custom properties
-- **Vanilla JavaScript** - No framework dependencies for simplicity
-- **Fetch API** - For AI service calls
+- **SvelteKit (Svelte 5)** on a Cloudflare Worker with static assets; see `DEPLOYMENT.md`
+- **CSS3** - Modern animations, flexbox/grid, custom properties (`src/lib/styles/styles.css`)
+- **Fetch API** - For AI service calls, through the Worker's `/api/*` proxies
 - **Cloudflare D1** - Searches, crawled catalogs, search history & feedback persistence
 
 ### AI Integration

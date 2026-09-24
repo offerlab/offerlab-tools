@@ -1,11 +1,9 @@
 // Queues domains for the server-side crawl, or shows the queue. One domain per line in the file;
-// blank lines and # comments are skipped. Needs CRAWL_SECRET in .env or the environment.
-//   npm run crawl -- domains.txt [--refresh]
-//   npm run crawl -- --status
+// blank lines and # comments are skipped. Needs CRAWL_SECRET in the environment (or a file
+// passed with --env-file), and CRAWL_ORIGIN for a deployment other than production.
+//   CRAWL_SECRET=... npm run crawl -- domains.txt [--refresh]
+//   CRAWL_SECRET=... npm run crawl -- --status
 import { readFileSync } from 'fs';
-import { config } from 'dotenv';
-
-config();
 
 const origin = process.env.CRAWL_ORIGIN || 'https://collabfinder.offerlab.com';
 const secret = process.env.CRAWL_SECRET;

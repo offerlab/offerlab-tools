@@ -1,8 +1,12 @@
-# Cloudflare Pages headers. The page, its modules and its stylesheet always revalidate, so a
-# deploy never leaves a browser holding new HTML against old JS or CSS; ETags make that cheap.
-# Fonts, images and the snapshot's logos are content that only changes with a new file name.
+# Static-asset headers (adapter-cloudflare copies this next to the assets; the Worker's own
+# responses set theirs in code). SvelteKit's hashed build output never changes under one name;
+# fonts, images and the snapshot's logos only change with a new file name; everything else
+# revalidates so a deploy never leaves a browser holding new HTML against old JS or CSS.
 /*
   Cache-Control: public, max-age=0, must-revalidate
+
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
 
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
