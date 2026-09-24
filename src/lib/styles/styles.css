@@ -7447,7 +7447,8 @@ button.social-link:disabled {
   will-change: transform;
 }
 
-.library-viewport.is-sharpening .library-board {
+.library-viewport.is-sharpening .library-board,
+.library-viewport.is-sharpening .library-shelf {
   will-change: auto;
 }
 
@@ -8229,11 +8230,17 @@ button.social-link:disabled {
     overflow: hidden;
   }
 
-  /* The same map as a desktop's: one board the fingers pan and pinch, kept on the shelves by
-     library-board.js. Isolated, so the shelves' own stacking never rises over the footer. */
+  /* The same map as a desktop's: one board the fingers pan up and down and pinch, kept on the
+     shelves by library-board.js. Isolated, so the shelves' own stacking never rises over the
+     footer. */
   .library-viewport {
     cursor: auto;
     isolation: isolate;
+  }
+
+  /* Each shelf slides sideways on its own, as a layer the compositor moves without redrawing. */
+  .library-shelf {
+    will-change: transform;
   }
 
   /* WebKit paints a CSS blur on the main thread as each tile comes into view, which stalls a pan;

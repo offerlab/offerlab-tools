@@ -6,9 +6,10 @@
  * anything out; tiles are added or dropped only as the view nears the edge of what is dealt.
  *
  * A desktop's board runs forever in every direction, each row a seeded shuffle of the bundles,
- * odd rows half a column over. A phone's board is the bundles dealt once, a fixed number to a
- * shelf, and the camera stays on it. The board knows tiles and shelves; what a click on a tile
- * means belongs to `onTile`.
+ * odd rows half a column over. A phone's board is the bundles dealt once, eight to a shelf: the
+ * camera moves up and down and zooms, and each shelf slides sideways on its own, as the native
+ * scrollers it replaces did. The board knows tiles and shelves; what a click on a tile means
+ * belongs to `onTile`.
  */
 
 // Resting geometry. A phone's column is its viewport over 2.25, so the next tile is always cut off.
@@ -20,6 +21,8 @@ const ZOOM = { min: 0.5, max: 2.4, key: 1.25, wheel: 0.01, notch: 25, ease: 180 
 const REST_MS = 250;
 const DRAG_THRESHOLD = 6;
 const FRICTION = 0.95;
+// Past its end a shelf follows the finger this much, then eases back when let go.
+const SHELF_STRETCH = 0.35;
 const KEY_STEP = 160;
 // Tiles dealt per frame, so no frame stalls on building DOM.
 const DEAL_PER_FRAME = 24;
@@ -44,6 +47,8 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
   const rows = new Map();
   const cells = new Map();
   const queue = new Map();
+  // Shelves sliding on their own: gliding after a flick, or easing back inside their ends.
+  const sliding = new Set();
   const pointers = new Map();
   const anims = [];
   const deal = { r: 0 };
@@ -87,8 +92,10 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     for (const [name, value] of Object.entries(vars)) section.style.setProperty(`--lib-${name}`, `${value}px`);
   }
 
-  // Odd rows open half a column along: to the right on a desktop, scrolled in on a phone.
-  const rowOffset = r => (r & 1 ? (phone() ? -G.colW / 2 : G.colW / 2) : 0);
+  // A desktop's odd rows sit half a column along. A phone's shelves each slide sideways on their
+  // own instead: a row's `s` is how far it has slid, in board px, and odd shelves open half a
+  // column in. A desktop row keeps `s` at 0.
+  const rowOffset = r => (!phone() && r & 1 ? G.colW / 2 : 0);
   const cellLeft = (r, c) => c * G.colW + rowOffset(r) + G.gap / 2 + G.inset;
   const shelves = () => (bundles.length ? Math.ceil(bundles.length / PHONE.perShelf) : Math.ceil(view.height / G.shelfH) + 1);
   const perShelf = () => (bundles.length ? PHONE.perShelf : Math.ceil(PHONE.columns) + 1);
@@ -97,25 +104,59 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
   /** A phone's board edges: its tiles plus the gutter, and the footer's room under the last shelf. */
   function bounds() {
     return {
-      left: shelves() > 1 ? -G.colW / 2 : 0,
+      left: 0,
       right: perShelf() * G.colW + G.inset + G.gap / 2 + PHONE.gutter,
       top: 0,
       bottom: shelves() * G.shelfH + PHONE.foot
     };
   }
 
-  /** Keeps a phone's camera on the board: pinned to the start when the board is smaller than the view. */
+  /**
+   * Keeps a phone's camera on the shelves, top to bottom; pinned to the top when they are shorter
+   * than the view. Sideways, each shelf keeps itself in view (`slideRange`).
+   */
   function clamp() {
     if (!phone()) return;
     const b = bounds();
-    const fit = (lo, hi, size, pos) => {
-      const min = size - hi * cam.k, max = -lo * cam.k;
-      return min >= max ? max : Math.min(max, Math.max(min, pos));
-    };
-    // An odd shelf starts half a tile off the left edge, as it did before; the camera may reveal it.
-    const x = fit(b.left, b.right, view.width, cam.x);
-    cam.x = x;
-    cam.y = fit(b.top, b.bottom, view.height, cam.y);
+    const min = view.height - b.bottom * cam.k, max = -b.top * cam.k;
+    cam.y = min >= max ? max : Math.min(max, Math.max(min, cam.y));
+  }
+
+  /** How far shelf `r` may slide at this zoom: its tiles plus the end gutter fill the view if they can. */
+  function slideRange(r) {
+    const end = shelfCount(r) * G.colW + G.inset + G.gap / 2 + PHONE.gutter;
+    const min = cam.x / cam.k, max = end - (view.width - cam.x) / cam.k;
+    return [min, Math.max(min, max)];
+  }
+
+  const outside = row => {
+    const [min, max] = slideRange(row.r);
+    return row.s < min ? row.s - min : row.s > max ? row.s - max : 0;
+  };
+
+  function placeRow(row) {
+    const transform = `translate(${-row.s}px, ${row.r * G.shelfH}px)`;
+    if (row.transform === transform) return;
+    row.transform = transform;
+    row.el.style.transform = transform;
+  }
+
+  /** A shelf let go: it glides on, stops at its end, and eases back if it was pulled past one. */
+  function slide(row, dt) {
+    if (row.v) {
+      row.s += row.v * dt;
+      row.v *= FRICTION ** (dt / 16);
+      if (Math.abs(row.v) < 0.02 || outside(row)) row.v = 0;
+    }
+    if (!row.v) {
+      const over = outside(row);
+      row.s -= over * Math.min(1, 0.25 * (dt / 16));
+      if (Math.abs(outside(row)) < 0.25) {
+        row.s -= outside(row);
+        sliding.delete(row);
+      }
+    }
+    placeRow(row);
   }
 
   /* ------------------------------------------------------------------------ */
@@ -173,7 +214,7 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     for (const [key, tile] of cells) {
       if (Number(tile.dataset.width) >= width || tile.classList.contains('library-tile--ghost')) continue;
       const [r, c] = key.split(':').map(Number);
-      const x = cellLeft(r, c), y = r * G.shelfH;
+      const x = cellLeft(r, c) - (rows.get(r)?.s || 0), y = r * G.shelfH;
       if (x + G.colW < v.x0 || x > v.x1 || y + G.shelfH < v.y0 || y > v.y1) continue;
       const bundle = bundleFor(r, c);
       if (!bundle) continue;
@@ -224,11 +265,12 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     if (row) return row;
     const node = document.createElement('div');
     node.className = 'library-shelf';
-    node.style.transform = `translate(0, ${r * G.shelfH}px)`;
     // Later rows paint over earlier ones so a plank's shadow falls behind the glow of the row below.
     node.style.zIndex = String(r + 1e6);
     node.innerHTML = '<div class="library-shelf-glow"></div><div class="library-shelf-shadow"></div><div class="library-shelf-slab"></div><div class="library-shelf-rail"></div>';
-    row = { el: node, r, furniture: [...node.children].slice(0, 3), rail: node.lastElementChild, span: '' };
+    row = { el: node, r, furniture: [...node.children].slice(0, 3), rail: node.lastElementChild, span: '', s: phone() && r & 1 ? G.colW / 2 : 0, v: 0, transform: '' };
+    if (phone()) row.s = Math.min(Math.max(row.s, slideRange(r)[0]), slideRange(r)[1]);
+    placeRow(row);
     rows.set(r, row);
     el.appendChild(node);
     return row;
@@ -265,7 +307,8 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     if (phone()) { r0 = Math.max(0, r0); r1 = Math.min(shelves() - 1, r1); }
     for (let r = r0; r <= r1; r++) {
       let c0 = Math.floor((rect.x0 - rowOffset(r) - G.inset) / G.colW), c1 = Math.floor((rect.x1 - rowOffset(r) - G.inset) / G.colW);
-      if (phone()) { c0 = Math.max(0, c0); c1 = Math.min(shelfCount(r) - 1, c1); }
+      // A phone's shelf is eight tiles that slide on their own, so the whole shelf is dealt.
+      if (phone()) { c0 = 0; c1 = shelfCount(r) - 1; }
       for (let c = c0; c <= c1; c++) fn(r, c);
     }
   }
@@ -362,10 +405,12 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
       const left = cellLeft(r, c);
       tile.style.left = `${left}px`;
       cells.set(key, tile);
-      crossfade(current, tile, (cam.x + left * cam.k) / view.width);
+      crossfade(current, tile, (cam.x + (left - (rows.get(r)?.s || 0)) * cam.k) / view.width);
       rowFor(r).rail.appendChild(tile);
     }
-    for (const [r, row] of rows) if (phone() && r >= shelves()) { row.el.remove(); rows.delete(r); }
+    for (const [r, row] of rows) if (phone() && r >= shelves()) { row.el.remove(); rows.delete(r); sliding.delete(row); }
+    // A shelf that now holds fewer bundles eases back inside its end.
+    if (phone()) for (const row of rows.values()) if (outside(row)) sliding.add(row);
     queue.clear();
     for (const row of rows.values()) row.span = '';
     clamp();
@@ -463,13 +508,14 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     // A glide that meets a phone's edge stops along that edge.
     if (glide && cam.x !== free.x) glide.x = 0;
     if (glide && cam.y !== free.y) glide.y = 0;
+    for (const row of sliding) if (row !== drag?.row) slide(row, dt);
     if (cam.x !== shown.x || cam.y !== shown.y || cam.k !== shown.k) {
       write();
       lastMove = now;
     }
     // Mid-gesture, tiles are dealt only when the view nears the edge of what is dealt.
     if (!inside(visibleRect(1), dealt)) dealRect(reachRect());
-    const moving = pointers.size || anims.length || glide || gesture || now - lastMove < REST_MS;
+    const moving = pointers.size || anims.length || glide || gesture || sliding.size || now - lastMove < REST_MS;
     // While the board moves only tiles about to show are built; the rest of the reach waits for rest.
     build(DEAL_PER_FRAME, moving ? visibleRect(1) : null);
     if (moving || queue.size) {
@@ -490,9 +536,19 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     if (rested) return;
     rested = true;
     const dpr = window.devicePixelRatio || 1;
+    // A pinch moved a phone's camera sideways; that becomes each shelf's own slide, so the shelves
+    // stay where they are on screen and the camera goes back to their left edge.
+    if (phone() && cam.x) {
+      for (const row of rows.values()) {
+        row.s -= cam.x / cam.k;
+        if (outside(row)) sliding.add(row);
+      }
+      cam.x = 0;
+    }
     cam.x = Math.round(cam.x * dpr) / dpr;
     cam.y = Math.round(cam.y * dpr) / dpr;
     write();
+    if (phone()) for (const row of rows.values()) placeRow(row);
     if (zooming) {
       zooming = false;
       // The layer kept its old scale through the zoom; without the hint for a frame it is drawn
@@ -502,7 +558,7 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     }
     prune();
     sharpen();
-    if (queue.size && !frame) frame = requestAnimationFrame(tick);
+    if ((queue.size || sliding.size) && !frame) frame = requestAnimationFrame(tick);
   }
 
   /* ------------------------------------------------------------------------ */
@@ -520,7 +576,19 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
   function startPinch() {
     const [a, b] = [...pointers.values()];
     pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
-    if (drag) drag.moved = true;
+    if (drag) {
+      drag.moved = true;
+      // A shelf the first finger was sliding is let go where it is, and eases inside its ends later.
+      if (drag.row) sliding.add(drag.row);
+      drag.row = null;
+      drag.mode = phone() ? 'y' : 'free';
+    }
+  }
+
+  /** The phone shelf under a point in the viewport, if there is one. */
+  function shelfAt(y) {
+    const r = Math.floor((y - cam.y) / cam.k / G.shelfH);
+    return r >= 0 && r < shelves() ? rows.get(r) : null;
   }
 
   on(viewport, 'pointerdown', event => {
@@ -534,7 +602,10 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     stopMotion();
     if (pointers.size === 1) {
       suppressClick = false;
-      drag = { id: event.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, t: performance.now(), vx: 0, vy: 0, moved: false, axis: null };
+      drag = { id: event.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, t: performance.now(), vx: 0, vy: 0, moved: false, mode: null, row: null };
+      // A finger on a gliding shelf stops it, as it would a native scroller.
+      const row = phone() && shelfAt(p.y);
+      if (row) row.v = 0;
     } else {
       untilt();
       startPinch();
@@ -562,8 +633,14 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
       const dx = p.x - drag.sx, dy = p.y - drag.sy;
       if (Math.hypot(dx, dy) <= DRAG_THRESHOLD) return;
       drag.moved = true;
-      // A phone's shelves read like a list: a mostly vertical drag stays vertical.
-      if (phone()) drag.axis = Math.abs(dy) > 2 * Math.abs(dx) ? 'y' : Math.abs(dx) > 2 * Math.abs(dy) ? 'x' : null;
+      // On a phone the drag's start decides it: mostly sideways slides the shelf under the finger
+      // on its own, anything else moves the board up and down. A desktop's board pans freely.
+      drag.mode = 'free';
+      if (phone()) {
+        drag.row = Math.abs(dx) > Math.abs(dy) ? shelfAt(drag.sy) : null;
+        drag.mode = drag.row ? 'shelf' : 'y';
+        if (drag.row) { drag.row.v = 0; sliding.add(drag.row); }
+      }
       // Captured only now: capturing on pointerdown would retarget a tap's click to the viewport.
       // A finger is captured by the page already.
       if (event.pointerType !== 'touch') viewport.setPointerCapture(event.pointerId);
@@ -572,13 +649,17 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
       drag.lx = p.x; drag.ly = p.y;
     }
     const now = performance.now();
-    const dx = drag.axis === 'y' ? 0 : p.x - drag.lx, dy = drag.axis === 'x' ? 0 : p.y - drag.ly;
+    const dx = drag.mode === 'y' ? 0 : p.x - drag.lx, dy = drag.mode === 'shelf' ? 0 : p.y - drag.ly;
     const dt = Math.max(1, now - drag.t);
     // A short running average, so the glide carries the flick and not one jittery sample.
     drag.vx = drag.vx * 0.6 + (dx / dt) * 0.4;
     drag.vy = drag.vy * 0.6 + (dy / dt) * 0.4;
     drag.lx = p.x; drag.ly = p.y; drag.t = now;
-    panBy(dx, dy);
+    if (drag.mode === 'shelf') {
+      const step = -dx / cam.k;
+      drag.row.s += outside(drag.row) ? step * SHELF_STRETCH : step;
+      placeRow(drag.row);
+    } else panBy(dx, dy);
     wake();
   });
 
@@ -589,14 +670,18 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
       // One finger of a pinch lifted: the other carries on as a drag, from where it is.
       pinch = null;
       const [[id, p]] = [...pointers];
-      drag = { id, sx: p.x, sy: p.y, lx: p.x, ly: p.y, t: performance.now(), vx: 0, vy: 0, moved: true, axis: null };
+      drag = { id, sx: p.x, sy: p.y, lx: p.x, ly: p.y, t: performance.now(), vx: 0, vy: 0, moved: true, mode: phone() ? 'y' : 'free', row: null };
     } else if (!pointers.size) {
       pinch = null;
       viewport.classList.remove('is-dragging');
       if (drag?.moved) {
         suppressClick = true;
         const fresh = performance.now() - drag.t < 60;
-        if (fresh && Math.hypot(drag.vx, drag.vy) > 0.1) glide = { x: drag.vx, y: drag.vy };
+        if (drag.row) {
+          // The shelf glides on by itself; the board stays put.
+          drag.row.v = fresh && !outside(drag.row) ? -drag.vx / cam.k : 0;
+          sliding.add(drag.row);
+        } else if (fresh && Math.hypot(drag.vx, drag.vy) > 0.1) glide = { x: drag.vx, y: drag.vy };
       }
       drag = null;
     }
