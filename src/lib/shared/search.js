@@ -178,12 +178,12 @@ export async function discoverComplementaryBrands(url, {
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
   const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
-  const [toppedUp, unexpected] = await Promise.all([
-    topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands }),
-    unexpectedPending
-  ]);
-  const merged = mergeUnexpected(toppedUp, unexpected);
-  const brands = composeGraded(merged, await gradeCandidates(api, resolvedBrandProfile, merged), frequentBrands);
+  const merged = mergeUnexpected(capped, await unexpectedPending);
+  const composed = composeGraded(merged, await gradeCandidates(api, resolvedBrandProfile, merged), frequentBrands);
+  // The emerging count is read after grading, since Jev's stages are the ones that stand; what
+  // the top-up adds is graded the same way.
+  const toppedUp = await topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: composed, frequentBrands });
+  const brands = toppedUp === composed ? composed : composeGraded(toppedUp, await gradeCandidates(api, resolvedBrandProfile, toppedUp), frequentBrands);
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -835,8 +835,9 @@ const LANE_MIN = 2;
  * a dev server without one) nothing is graded and the list stands as it was.
  */
 export async function gradeCandidates(api, searchedBrand, brands) {
-  if (typeof api.jev !== 'function' || !brands.length) return brands.map(() => null);
+  if (typeof api.jev !== 'function' || !brands.length) return brands.map(b => b.grade || null);
   return Promise.all(brands.map(async brand => {
+    if (brand.grade) return brand.grade;
     try {
       const response = await api.jev({ state: gradeState(searchedBrand, brand), questions: GRADE_QUESTIONS });
       if (!response.ok) return null;
