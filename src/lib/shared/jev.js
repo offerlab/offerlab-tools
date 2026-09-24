@@ -100,3 +100,81 @@ export function judge(result, thresholds = JEV_THRESHOLDS) {
 function round(n) {
   return Math.round(n * 100) / 100;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Grading recommendation candidates                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What Jev is asked about each recommended brand, against the searched brand. The lanes are the
+ * finder's own (src/lib/shared/search.js); surprise is its own axis, since a pairing nobody saw
+ * coming can sit in any lane.
+ */
+export const GRADE_QUESTIONS = {
+  kind: QUESTIONS.kind,
+  competitor: {
+    type: 'noul',
+    instructions: 'The candidate is a direct competitor of the searched brand: it sells the same kind of product to the same customer',
+    criteria: { true: 'Same product category, same shopper; one would replace the other', false: 'A different product; they could share a shelf or a bundle' }
+  },
+  lane: {
+    type: 'choice',
+    instructions: 'Which lane describes how the candidate relates to the searched brand',
+    criteria: {
+      'same-shelf': "Products used alongside the searched brand's own, on the same shelf or in the same routine",
+      'adjacent-function': 'The next need this customer has around the product: hydration, supplements, recovery, sleep, tools, care, storage, gear, footwear',
+      lifestyle: "The apparel, equipment, spaces or services this customer's day runs on",
+      'parallel-premium': "A category this customer buys in at the same tier that is not the searched brand's own: beauty, personal care, home, kitchen, wellness"
+    }
+  },
+  stage: {
+    type: 'choice',
+    instructions: 'How established the candidate brand is',
+    criteria: {
+      emerging: 'Founded 2020 or later, or under roughly $10M revenue, little mainstream recognition',
+      growing: 'A few years old, growing, some recognition',
+      established: 'Well known, proven, widely distributed'
+    }
+  },
+  fit: QUESTIONS.fit,
+  surprise: {
+    type: 'score',
+    instructions: 'How surprising the pairing is while still making immediate sense',
+    criteria: [
+      'The obvious adjacent pick anyone would name',
+      'Sensible but ordinary',
+      'Fresh: not the first thing you would think of',
+      'Nobody saw it coming and everyone immediately gets it'
+    ]
+  }
+};
+
+/** The text Jev reads to grade a recommendation: the searched brand, then the candidate as recommended. */
+export function gradeState(searchedBrand, candidate) {
+  return {
+    searched_brand: { name: searchedBrand?.name || null, description: searchedBrand?.description || null },
+    candidate: {
+      name: candidate.name,
+      website: candidate.url,
+      why_recommended: candidate.reasons || [],
+      bundle_idea: candidate.bundleIdea || null,
+      hook: candidate.hook || null
+    }
+  };
+}
+
+/** Jev's answers on one candidate, flattened: { brand, competitor, lane, laneConfidence, stage, fit, surprise }. */
+export function readGrade(result) {
+  const a = result?.answers || {};
+  return {
+    brand: round(a.kind?.probabilities?.consumer_brand ?? 1),
+    kind: a.kind?.choice || null,
+    competitor: round(a.competitor?.noul ?? 0),
+    lane: a.lane?.choice || null,
+    laneConfidence: round(a.lane?.confidence ?? 0),
+    stage: a.stage?.choice || null,
+    stageConfidence: round(a.stage?.confidence ?? 0),
+    fit: round(a.fit?.score ?? 2),
+    surprise: round(a.surprise?.score ?? 0)
+  };
+}

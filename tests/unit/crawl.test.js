@@ -112,8 +112,11 @@ function fakeApi({ brands = 5, catalogs = true } = {}) {
   const recommendations = Array.from({ length: brands }, (_, i) => ({ name: `Brand ${i}`, url: `https://brand${i}.test`, reasons: ['fits'], bundleIdea: 'box', brandStage: 'emerging' }));
   const catalog = (domain) => ({ status: 'shopify', domain, storeUrl: `https://${domain}`, count: 1, products: [{ id: 1, title: 'P', image: 'https://x/p.jpg', price: 5, url: `https://${domain}/products/p` }] });
   return {
+    // In the order the search asks: the analysis, the unexpected lane's ideation (started beside
+    // the main call), then the recommendations.
     gemini: vi.fn()
       .mockImplementationOnce(async () => gemini({ brandProfile: { name: 'Seed', url: 'https://seed.test', description: 'Seed sells seeds' } }))
+      .mockImplementationOnce(async () => gemini({ ideas: [] }))
       .mockImplementationOnce(async () => gemini({ brands: recommendations, products: [] })),
     catalog: vi.fn(async (domain) => json(catalogs ? catalog(domain) : { status: 'none', domain, count: 0, products: [] })),
     socials: vi.fn(async () => json({ socials: {} })),
@@ -149,7 +152,7 @@ describe('runStep: search', () => {
     await seed('seed.test', { status: 'searching', attempts: 1 });
     const result = await runStep(await row('seed.test'), { db, api, settings });
     expect(result).toMatchObject({ status: 'expand', reused: false, partners: 5, withCatalog: 5 });
-    expect(api.gemini).toHaveBeenCalledTimes(2);
+    expect(api.gemini).toHaveBeenCalledTimes(3);
     expect(api.serp).not.toHaveBeenCalled();
 
     const stored = await store.getSearch(db, 'seed.test');

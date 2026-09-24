@@ -8,6 +8,7 @@
  * Gemini failure arrives as a 200 whose body carries { error, status }.
  */
 import { json, preflight, readJson, env, forwardUpstream, CORS } from '$lib/server/api.js';
+import { foldStream } from '$lib/server/gemini-stream.js';
 
 // How long one Gemini call may take before the proxy answers 504 instead. The browser gives up
 // on an attempt sooner (GEMINI_ATTEMPT_TIMEOUT_MS in src/lib/shared/search.js) and retries; this
@@ -15,7 +16,8 @@ import { json, preflight, readJson, env, forwardUpstream, CORS } from '$lib/serv
 const UPSTREAM_TIMEOUT_MS = 180_000;
 const KEEPALIVE_EVERY_MS = 10_000;
 
-async function askGemini(endpoint, body) {
+// The kept-alive path streams from Google too, or the Worker's own fetch is the silent leg.
+async function askGemini(endpoint, body, { stream = false } = {}) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -27,7 +29,9 @@ async function askGemini(endpoint, body) {
     console.error('[Gemini Proxy] API error:', response.status, errorText);
     return { ok: false, status: response.status, body: { error: 'Gemini API request failed', details: errorText, status: response.status } };
   }
-  return { ok: true, status: 200, body: await response.json() };
+  const answer = stream ? await foldStream(response) : await response.json();
+  if (answer?.error) return { ok: false, status: answer.status || 502, body: { error: answer.error, status: answer.status || 502 } };
+  return { ok: true, status: 200, body: answer };
 }
 
 function failure(err) {
@@ -46,7 +50,7 @@ function streamed(endpoint, body) {
   (async () => {
     const pulse = setInterval(() => writer.write(encoder.encode(' ')).catch(() => {}), KEEPALIVE_EVERY_MS);
     try {
-      const answer = await askGemini(endpoint, body).catch(failure);
+      const answer = await askGemini(endpoint, body, { stream: true }).catch(failure);
       await writer.write(encoder.encode(JSON.stringify(answer.body)));
     } finally {
       clearInterval(pulse);
@@ -75,8 +79,9 @@ export async function POST(event) {
 
   const body = await readJson(event.request);
   const model = event.url.searchParams.get('model') || 'gemini-2.5-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
-  if (event.url.searchParams.get('keepalive') === '1') return streamed(endpoint, body);
+  const base = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`;
+  if (event.url.searchParams.get('keepalive') === '1') return streamed(`${base}:streamGenerateContent?alt=sse&key=${apiKey}`, body);
+  const endpoint = `${base}:generateContent?key=${apiKey}`;
 
   try {
     const answer = await askGemini(endpoint, body);
