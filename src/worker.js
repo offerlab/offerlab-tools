@@ -12,6 +12,9 @@
  * own fetch handler in-process, exactly as an HTTP call to /api/crawl/next would be, so the crawl
  * route stays the one implementation. A search takes about two minutes, so ticks overlap and a
  * couple of searches run at once; the queue's claim keeps them on different domains.
+ *
+ * The same tick syncs the Showcase's table with the demo store's listing (/api/library?sync=1), so
+ * a read of the Showcase never waits on the store.
  */
 import app from './kit-worker.js';
 
@@ -25,8 +28,15 @@ export default {
 
   async scheduled(event, env, ctx) {
     ctx.waitUntil(drain(env, ctx));
+    ctx.waitUntil(syncLibrary(env, ctx));
   }
 };
+
+async function syncLibrary(env, ctx) {
+  const response = await app.fetch(new Request(`${INTERNAL_ORIGIN}/api/library?sync=1`), env, ctx);
+  const body = await response.json().catch(() => ({}));
+  console.log(JSON.stringify({ cron: 'library', status: response.status, bundles: body.bundles?.length ?? null }));
+}
 
 async function drain(env, ctx) {
   if (!env.CRAWL_SECRET) {

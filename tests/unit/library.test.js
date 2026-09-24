@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createTestDb, resetDb } from './helpers/d1.js';
-import { liveLibrary, handleLibraryRequest, getLibraryBundles, putLibraryBundle } from '$lib/server/library.js';
+import { liveLibrary, readLibrary, libraryTag, handleLibraryRequest, getLibraryBundles, putLibraryBundle } from '$lib/server/library.js';
 import { toRecord, applyClassification } from '$lib/shared/library-snapshot.js';
 
 const STORE = 'demo.example';
@@ -111,6 +111,35 @@ describe('the Showcase library', () => {
     const { fetchImpl } = stubFetch();
     const library = await liveLibrary({ snapshot: snapshot(), curation: { pin: [], exclude: ['new-kit'] }, db, apiKey: null, fetchImpl });
     expect(ids(library)).toEqual([`${STORE}/old-kit`]);
+  });
+
+  it('reads the table alone, listed bundles newest first, and the snapshot before the first sync', async () => {
+    expect(ids(await readLibrary({ snapshot: snapshot(), db }))).toEqual([`${STORE}/old-kit`]);
+    const classify = () => [{ handle: 'new-kit', category: 'snacks', brands: ['B'], products: [] }];
+    await liveLibrary({ snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl: stubFetch({ classify }).fetchImpl });
+    await liveLibrary({ snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl: stubFetch({ products: [product('new-kit')] }).fetchImpl });
+    const read = await readLibrary({ snapshot: snapshot(), db });
+    expect(ids(read)).toEqual([`${STORE}/new-kit`]);
+    expect(read.bundles[0]).not.toHaveProperty('unlistedAt');
+    expect(read.readAt).toBeTruthy();
+  });
+
+  it('tags a library by its bundles, so the same set carries the same tag and a change a new one', async () => {
+    const one = await readLibrary({ snapshot: snapshot(), db });
+    expect(libraryTag(one)).toBe(libraryTag(await readLibrary({ snapshot: snapshot(), db })));
+    await liveLibrary({ snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl: stubFetch({ classify: () => [{ handle: 'new-kit', category: 'snacks', brands: ['B'], products: [] }] }).fetchImpl });
+    expect(libraryTag(await readLibrary({ snapshot: snapshot(), db }))).not.toBe(libraryTag(one));
+  });
+
+  it('answers a plain GET from the table and a sync from the store', async () => {
+    const { fetchImpl, calls } = stubFetch({ classify: () => [{ handle: 'new-kit', category: 'snacks', brands: ['B'], products: [] }] });
+    const read = await handleLibraryRequest({ method: 'GET', snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl });
+    expect(ids(read.body)).toEqual([`${STORE}/old-kit`]);
+    expect(calls).toEqual([]);
+    const synced = await handleLibraryRequest({ method: 'GET', snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl, sync: true });
+    expect(ids(synced.body)).toEqual([`${STORE}/new-kit`, `${STORE}/old-kit`]);
+    expect(calls.some(u => u.includes('/products.json'))).toBe(true);
+    expect(ids((await handleLibraryRequest({ method: 'GET', snapshot: snapshot(), curation, db, apiKey: 'k', fetchImpl })).body)).toEqual([`${STORE}/new-kit`, `${STORE}/old-kit`]);
   });
 
   it('answers the route: GET only, and the bare snapshot when the sync itself fails', async () => {

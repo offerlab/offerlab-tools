@@ -103,14 +103,17 @@ the graph.
 
 The Showcase reads `/api/library`. D1 holds every bundle (`library_bundles`,
 `migrations/0004_library.sql` and `0005_library_listing.sql`), seeded from the committed snapshot
-(`static/library/snapshot.json`, built by `npm run build:library`) the first time the route is
-read. Each read then syncs the table with the demo store's public listing: a bundle published from
-OfferLab reaches that listing the moment it is put on the Online Store channel; a new bundle is
+(`static/library/snapshot.json`, built by `npm run build:library`) by the first sync. A plain read
+is the table alone: one query, `Cache-Control: max-age=30, stale-while-revalidate` and an ETag.
+A sync (`?sync=1`) first brings the table up to the demo store's public listing: a bundle published
+from OfferLab reaches that listing the moment it is put on the Online Store channel; a new bundle is
 classified once (Gemini) and kept, a changed one is classified again, and one the store stops
-listing is dated unlisted and left out until it is listed again. Without a database, or when the
-store cannot be read, the snapshot and what is stored still go out. While the Showcase is open the
-browser re-reads every 45 seconds and when the tab comes back into view, and deals the board
-again only when the set of bundles changed. If the route fails, the snapshot file stands in.
+listing is dated unlisted and left out until it is listed again. The Worker's cron syncs every
+minute (`src/worker.js`), and the open Showcase asks for a sync every 45 seconds and when the tab
+comes back into view, dealing the board again only when the set of bundles changed. The browser
+keeps the last read in localStorage and opens the Showcase from it at once. Without a database, or
+when the store cannot be read, the snapshot and what is stored still go out; if the route fails,
+the snapshot file stands in.
 
 ## Moderation
 

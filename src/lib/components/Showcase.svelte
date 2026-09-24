@@ -43,7 +43,7 @@
   });
 
   async function show() {
-    if (!showcase.loaded) await load();
+    if (!showcase.loaded) await load({ onChange: () => { if (app.view === 'library' && !lightbox?.isOpen()) apply(); } });
     if (app.view !== 'library') return;
     shelves.show();
     readFiltersFromUrl();
@@ -59,17 +59,17 @@
   }
 
   /* A bundle published from OfferLab reaches the store's listing when it goes on the Online Store
-     channel, and the live read reflects that at once. While the Showcase is open it is re-read on
-     a timer and whenever the tab comes back into view, which is the moment after the channel was
-     turned on in the Shopify admin. The board is dealt again only when the set of bundles changed,
-     and never over an open lightbox. */
+     channel. While the Showcase is open the finder is asked to look at the store on a timer and
+     whenever the tab comes back into view, which is the moment after the channel was turned on
+     in the Shopify admin. The board is dealt again only when the set of bundles changed, and
+     never over an open lightbox. */
   let watching = false;
   let refreshTimer = 0;
   const onVisible = () => { if (!document.hidden) checkForNewBundles(); };
 
   async function checkForNewBundles() {
     if (document.hidden || !watching) return;
-    const snapshot = await fetchLibrary().catch(() => null);
+    const snapshot = await fetchLibrary({ sync: true }).catch(() => null);
     if (!snapshot || !watching || !changed(snapshot)) return;
     if (lightbox?.isOpen()) return;
     take(snapshot);

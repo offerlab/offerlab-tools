@@ -1,17 +1,21 @@
 /**
- * The Showcase's data and filters: every published demo bundle, read live from /api/library (the
- * committed snapshot plus what the store lists since) with the snapshot standing in when that
- * fails (OL-3832, OL-4032). No OfferLab calls, no account.
+ * The Showcase's data and filters: every published demo bundle, read from /api/library (the
+ * finder's table, synced with the store) with the snapshot standing in when that fails (OL-3832,
+ * OL-4032). No OfferLab calls, no account.
+ *
+ * The last read is kept in localStorage, so the Showcase opens from it at once and the network
+ * only ever changes what is already on the shelves.
  *
  * `showcase` is the reactive part the omnibox renders from; the bundles themselves stay plain,
  * since the board deals them imperatively and never watches them.
  */
 import { param, replaceUrl } from '$lib/client/url.js';
 
-// The live read; the committed snapshot stands in when it fails.
 const LIBRARY_URL = '/api/library';
+// The committed snapshot stands in when the route fails.
 const SNAPSHOT_URL = '/library/snapshot.json';
 const BRANDS_URL = '/library/brands.json';
+const CACHE_KEY = 'showcase.library.v1';
 // A bundle put on the store's Online Store channel shows up within this while the Showcase is open.
 export const REFRESH_MS = 45000;
 
@@ -59,22 +63,57 @@ export const logoFor = name => data.logos[name.toLowerCase()];
 /* Data                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export async function load() {
-  const [snapshot, logos] = await Promise.all([
-    fetchLibrary(),
-    fetch(BRANDS_URL).then(r => (r.ok ? r.json() : {})).catch(() => ({}))
-  ]);
+/**
+ * Fills the shelves. With a cached read the Showcase is ready at once and the network's answer
+ * follows; `onChange` is called if that answer carries a different set of bundles, once they are
+ * on the shelves. Without one it waits for the network, as it must.
+ */
+export async function load({ onChange = () => {} } = {}) {
+  const logosLoading = fetch(BRANDS_URL).then(r => (r.ok ? r.json() : {})).catch(() => ({}));
+  const cached = readCache();
+  if (cached) {
+    take(cached);
+    showcase.loaded = true;
+    data.logos = await logosLoading;
+    fetchLibrary().then(fresh => {
+      if (!changed(fresh)) return;
+      take(fresh);
+      onChange();
+    }).catch(() => {});
+    return;
+  }
+  const [snapshot, logos] = await Promise.all([fetchLibrary(), logosLoading]);
   data.logos = logos;
   take(snapshot);
   showcase.loaded = true;
 }
 
-export async function fetchLibrary() {
+/** The route's answer, kept for next time; `sync` asks the finder to look at the store first. */
+export async function fetchLibrary({ sync = false } = {}) {
   try {
-    const response = await fetch(LIBRARY_URL, { cache: 'no-store' });
-    if (response.ok) return await response.json();
+    const response = await fetch(sync ? `${LIBRARY_URL}?sync=1` : LIBRARY_URL, sync ? { cache: 'no-store' } : {});
+    if (response.ok) {
+      const library = await response.json();
+      writeCache(library);
+      return library;
+    }
   } catch { /* the snapshot below */ }
   return fetch(SNAPSHOT_URL).then(r => r.json());
+}
+
+function readCache() {
+  try {
+    const library = JSON.parse(localStorage.getItem(CACHE_KEY));
+    return Array.isArray(library?.bundles) && Array.isArray(library?.categories) ? library : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(library) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(library));
+  } catch { /* a full or refused store only costs the next open a wait */ }
 }
 
 /** Whether a listing carries a different set of bundles from the one on the shelves. */
