@@ -106,7 +106,7 @@ export async function discoverComplementaryBrands(url, {
   console.log(`[Discovery] Starting for: ${domain} (brand: ${brandName})`);
 
   updateProgress(0);
-  const brandProfile = await analyzeBrand(api, domain);
+  const brandProfile = await analyzeBrand(api, domain, await brandFacts(api, domain));
   const resolvedBrandProfile = brandProfile.brandProfile || brandProfile;
   updateProgress(1);
 
@@ -246,13 +246,56 @@ export function searchRecord(results, searchId, { keepCatalogs = false } = {}) {
 // ============================================
 // PHASE 1: Brand Analysis
 // ============================================
-async function analyzeBrand(api, domain) {
+
+const FACTS_PRODUCTS = 15;
+
+/**
+ * What the brand's own site says about itself: its title, description and name, and what it
+ * sells. Web search for a short domain lands on whichever company owns the name in the news
+ * (built.com is a protein bar; "Built" in search is a construction-finance platform), and the
+ * analysis has to describe the site that was typed.
+ */
+export async function brandFacts(api, domain) {
+  const [site, catalog] = await Promise.all([
+    fetchOpenGraphData(api, `https://${domain}`).catch(() => ({})),
+    fetchCatalog(api, domain).catch(() => ({ products: [] }))
+  ]);
+  const products = (catalog?.products || []).slice(0, FACTS_PRODUCTS);
+  return {
+    title: site?.title || null,
+    description: site?.description || null,
+    siteName: site?.siteName || null,
+    vendor: products.map(p => p.vendor).find(Boolean) || null,
+    productTypes: [...new Set(products.map(p => p.productType).filter(Boolean))].slice(0, 6),
+    products: products.map(p => p.title).filter(Boolean)
+  };
+}
+
+/** The facts as the prompt states them; empty when nothing was read. */
+export function factsBlock(facts) {
+  if (!facts) return '';
+  const lines = [];
+  if (facts.siteName || facts.title) lines.push(`Site title: ${[facts.siteName, facts.title].filter(Boolean).join(' | ')}`);
+  if (facts.description) lines.push(`Site description: ${facts.description}`);
+  if (facts.vendor) lines.push(`Vendor named in the catalog: ${facts.vendor}`);
+  if (facts.productTypes?.length) lines.push(`Product types: ${facts.productTypes.join(', ')}`);
+  if (facts.products?.length) lines.push(`Products on sale: ${facts.products.join('; ')}`);
+  if (!lines.length) return '';
+  return `
+VERIFIED FACTS FROM THE BRAND'S OWN WEBSITE (read directly from the site and its public catalog):
+${lines.map(line => `- ${line}`).join('\n')}
+
+The brand is the company that owns this website and sells these products. Your analysis must describe that business. Search results about a different company that shares the name (another business at another domain) are not this brand: ignore them.
+`;
+}
+
+async function analyzeBrand(api, domain, facts = null) {
   const prompt = `You are a brand strategist with deep expertise in DTC e-commerce, CPG, and lifestyle brands.
 
 TASK: Perform a comprehensive analysis of this brand before we identify collaboration partners.
 
 INPUT URL: ${domain}
-
+${factsBlock(facts)}
 Use web search to research this brand thoroughly. Visit their website, look up press coverage, social media presence, and any available information.
 
 Return your analysis as JSON:
@@ -906,9 +949,13 @@ async function fetchOpenGraphData(api, url) {
     // Log raw response for debugging
     console.log(`[OpenGraph] Raw response for ${fullUrl}:`, JSON.stringify(data));
     
+    const text = key => (typeof data?.[key] === 'string' && data[key].trim() ? data[key].trim() : null);
     const result = {
       imageUrl: data?.imageUrl && typeof data.imageUrl === 'string' ? data.imageUrl : null,
-      faviconUrl: data?.faviconUrl && typeof data.faviconUrl === 'string' ? data.faviconUrl : null
+      faviconUrl: data?.faviconUrl && typeof data.faviconUrl === 'string' ? data.faviconUrl : null,
+      title: text('title'),
+      description: text('description'),
+      siteName: text('siteName')
     };
     
     if (result.imageUrl) {

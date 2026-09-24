@@ -1,4 +1,8 @@
-/** OpenGraph.io proxy: the key stays on the server; the answer is a cover image and a favicon. */
+/**
+ * OpenGraph.io proxy: the key stays on the server; the answer is a cover image, a favicon, and
+ * the site's own title, description and name, which ground the brand analysis in what the site
+ * says about itself.
+ */
 import { json, preflight, env, forwardUpstream } from '$lib/server/api.js';
 import { usableCover } from '$lib/server/opengraph.js';
 
@@ -37,10 +41,14 @@ export async function GET(event) {
 
     const imageUrl = imageOf(data?.hybridGraph) || imageOf(data?.openGraph) || imageOf(data?.htmlInferred) || imageOf(data);
     const faviconUrl = data?.hybridGraph?.favicon || data?.htmlInferred?.favicon || null;
+    const text = key => [data?.hybridGraph, data?.openGraph, data?.htmlInferred].map(g => g?.[key]).find(v => typeof v === 'string' && v.trim()) || null;
 
     return json({
       imageUrl: usableCover(imageUrl, faviconUrl),
-      faviconUrl: faviconUrl && typeof faviconUrl === 'string' ? faviconUrl : null
+      faviconUrl: faviconUrl && typeof faviconUrl === 'string' ? faviconUrl : null,
+      title: text('title'),
+      description: text('description'),
+      siteName: text('site_name')
     });
   } catch (err) {
     console.error('[OpenGraph Proxy] Error:', err);
