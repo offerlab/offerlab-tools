@@ -8035,8 +8035,11 @@ button.social-link:disabled {
   width: 40px;
   height: 40px;
   padding: 0;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.14);
+  /* Elevated, like the Open button beside it on a phone: a lit surface with a hairline and a lift. */
+  color: var(--content-primary);
+  background: var(--content-background-elevated);
+  border: 1px solid var(--content-border-neutral);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 10px 30px rgba(0, 0, 0, 0.32);
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -8049,7 +8052,7 @@ button.social-link:disabled {
 }
 
 .library-lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--content-background-base);
 }
 
 /* Square, up to 640, and never taller than the viewport leaves for the card. */
