@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -152,6 +152,14 @@ describe('httpApi', () => {
     expect(calls[1].url).toBe('https://finder.test/api/gemini?model=gemini-2.5-pro');
   });
 
+  it('asks the proxy to keep a long call alive', async () => {
+    const { calls, api } = stub();
+    await api.gemini({ contents: [] }, undefined, { keepalive: true });
+    await api.gemini({ contents: [] }, 'gemini-2.5-pro', { keepalive: true });
+    expect(calls[0].url).toBe('https://finder.test/api/gemini?keepalive=1');
+    expect(calls[1].url).toBe('https://finder.test/api/gemini?model=gemini-2.5-pro&keepalive=1');
+  });
+
   it('calls relative paths with no base', async () => {
     const fetchImpl = vi.fn(async () => new Response('{}'));
     await httpApi('', fetchImpl).catalog('a.com');
@@ -294,5 +302,51 @@ describe('capWellTrodden', () => {
 
   it('leaves the list alone with nothing well-trodden', () => {
     expect(capWellTrodden(list(['A', 'B']), [])).toHaveLength(2);
+  });
+});
+
+const gemini = text => ({ candidates: [{ content: { parts: [{ text }] } }] });
+const answers = (...bodies) => { let i = 0; return { gemini: async () => new Response(JSON.stringify(bodies[Math.min(i++, bodies.length - 1)]), { status: 200 }) }; };
+
+describe('geminiJson', () => {
+  it('reads the answer, tries once more after a failure the proxy reports in the body, and gives up on the rest', async () => {
+    const ok = gemini('{"a":1}');
+    expect(await geminiJson(answers({ error: 'Gemini did not answer in time', status: 504 }, ok), 'Test', {})).toEqual(ok);
+    await expect(geminiJson(answers({ error: 'Gemini API request failed', status: 400 }), 'Test', {})).rejects.toThrow('Test failed: 400 - Gemini API request failed');
+    await expect(geminiJson(answers({ error: 'down', status: 503 }, { error: 'down', status: 503 }), 'Test', {})).rejects.toThrow('Test failed: 503 - down');
+  });
+});
+
+describe('topUpEmerging', () => {
+  const profile = { name: 'BUILT', url: 'https://built.com' };
+  const brand = (name, brandStage, lane = 'same-shelf') => ({ name, url: `https://${name.toLowerCase()}.com`, brandStage, lane, category: 'same-moment' });
+
+  it('adds emerging brands the list lacks, from the thin lanes, skipping what is listed or well-trodden', async () => {
+    const brands = [brand('Vuori', 'established', 'lifestyle'), brand('Kodiak', 'established'), brand('Chomps', 'emerging')];
+    const calls = [];
+    const api = { gemini: async (body) => { calls.push(body.contents[0].parts[0].text); return new Response(JSON.stringify(gemini(JSON.stringify({ brands: [
+      { name: 'Munk Pack', url: 'https://munkpack.com', lane: 'parallel-premium', category: 'same-values', brandStage: 'growing' },
+      { name: 'Chomps', url: 'https://chomps.com', lane: 'unexpected', category: 'unexpected-delight' },
+      { name: 'Brightland', url: 'https://brightland.co', lane: 'unexpected', category: 'unexpected-delight' },
+      { name: 'Bala', url: 'https://shopbala.com', lane: 'unexpected', category: 'made up' }
+    ] }))), { status: 200 }); } };
+    const result = await topUpEmerging(api, { brandProfile: profile, brandName: 'BUILT', domain: 'built.com', brands, frequentBrands: [{ name: 'Brightland' }] });
+    expect(result.map(b => b.name)).toEqual(['Vuori', 'Kodiak', 'Chomps', 'Munk Pack', 'Bala']);
+    expect(result.slice(3).every(b => b.brandStage === 'emerging')).toBe(true);
+    expect(result[4].category).toBe('unexpected-delight');
+    expect(calls[0]).toContain('Add 4 EMERGING brands');
+    expect(calls[0]).toContain('Brightland');
+  });
+
+  it('leaves a list with enough emerging brands alone, without a call', async () => {
+    const brands = ['A', 'B', 'C', 'D'].map(n => brand(n, 'emerging'));
+    const api = { gemini: async () => { throw new Error('must not call'); } };
+    expect(await topUpEmerging(api, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands })).toBe(brands);
+  });
+
+  it('keeps the list as it was when the call fails', async () => {
+    const brands = [brand('Vuori', 'established')];
+    const api = { gemini: async () => new Response(JSON.stringify({ error: 'down', status: 503 }), { status: 200 }) };
+    expect(await topUpEmerging(api, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands })).toEqual(brands);
   });
 });

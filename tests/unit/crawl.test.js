@@ -108,7 +108,8 @@ const gemini = (payload) => new Response(JSON.stringify({ candidates: [{ content
 const json = (payload, status = 200) => new Response(JSON.stringify(payload), { status });
 
 function fakeApi({ brands = 5, catalogs = true } = {}) {
-  const recommendations = Array.from({ length: brands }, (_, i) => ({ name: `Brand ${i}`, url: `https://brand${i}.test`, reasons: ['fits'], bundleIdea: 'box' }));
+  // Emerging, so the search has no emerging top-up to make and Gemini is asked exactly twice.
+  const recommendations = Array.from({ length: brands }, (_, i) => ({ name: `Brand ${i}`, url: `https://brand${i}.test`, reasons: ['fits'], bundleIdea: 'box', brandStage: 'emerging' }));
   const catalog = (domain) => ({ status: 'shopify', domain, storeUrl: `https://${domain}`, count: 1, products: [{ id: 1, title: 'P', image: 'https://x/p.jpg', price: 5, url: `https://${domain}/products/p` }] });
   return {
     gemini: vi.fn()

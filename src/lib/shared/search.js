@@ -28,7 +28,9 @@ export function httpApi(base = '', fetchImpl = (...args) => fetch(...args), { si
   const at = (path) => `${base}${path}`;
   const get = (path) => fetchImpl(at(path), signal ? { signal } : undefined);
   return {
-    gemini: (body, model) => fetchWithRetry(at(`/api/gemini${model ? `?model=${encodeURIComponent(model)}` : ''}`), {
+    // `keepalive`: the proxy streams a pulse while Gemini works, for a call that can outlast the
+    // edge's patience (src/routes/api/gemini/+server.js); a failure then arrives in the body.
+    gemini: (body, model, { keepalive = false } = {}) => fetchWithRetry(at(`/api/gemini${geminiQuery(model, keepalive)}`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -40,6 +42,14 @@ export function httpApi(base = '', fetchImpl = (...args) => fetch(...args), { si
     socials: (domain) => get(`/api/socials?domain=${encodeURIComponent(domain)}`),
     opengraph: (url) => get(`/api/opengraph?url=${encodeURIComponent(url)}`)
   };
+}
+
+function geminiQuery(model, keepalive) {
+  const params = new URLSearchParams();
+  if (model) params.set('model', model);
+  if (keepalive) params.set('keepalive', '1');
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }
 
 /** "https://www.Graza.co/x" -> "graza.co"; "" when it is not a URL. */
@@ -161,7 +171,8 @@ export async function discoverComplementaryBrands(url, {
   const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
-  const brands = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
+  const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
+  const brands = await topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands });
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -389,7 +400,7 @@ Return your analysis as JSON:
 
 Be specific and insightful. This analysis will drive high-quality collaboration recommendations.`;
 
-  const response = await api.gemini({
+  const data = await geminiJson(api, 'Brand analysis', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: {
         parts: [{ text: 'You are a brand analyst. Use web search to research thoroughly. Return only valid JSON.' }]
@@ -403,15 +414,25 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
         thinkingConfig: { thinkingBudget: 0 }
       }
   });
+  return parseJsonResponse(extractText(data));
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Brand analysis failed: ${response.status} - ${errorData.error || 'Unknown error'}`);
+/**
+ * A grounded Gemini call, kept alive by the proxy, read as JSON. A failure the proxy reports in
+ * the body (its own 504, Gemini's 5xx) is tried once more; anything else is thrown as it is.
+ */
+export async function geminiJson(api, label, body, { attempts = 2 } = {}) {
+  let failure = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const response = await api.gemini(body, undefined, { keepalive: true });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && !data.error) return data;
+    const status = data.status || response.status;
+    failure = new Error(`${label} failed: ${status} - ${data.error || 'Unknown error'}`);
+    if (!(status >= 500)) break;
+    console.warn(`[API] ${label}: ${status}, trying once more`);
   }
-
-  const data = await response.json();
-  const text = extractText(data);
-  return parseJsonResponse(text);
+  throw failure;
 }
 
 // ============================================
@@ -543,7 +564,7 @@ CRITICAL INSTRUCTIONS:
 4. Be specific in your reasoning—generic explanations indicate lazy thinking
 5. Do NOT recommend any products from ${brandName}`;
 
-  const response = await api.gemini({
+  const data = await geminiJson(api, 'Recommendations', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: { parts: [{ text: systemInstruction }] },
       tools: [{ google_search: {} }],
@@ -555,20 +576,81 @@ CRITICAL INSTRUCTIONS:
         thinkingConfig: { thinkingBudget: 0 }
       }
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Recommendations failed: ${response.status} - ${errorData.error || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
-  const text = extractText(data);
-  
+  const results = parseJsonResponse(extractText(data));
   // Store grounding metadata for later use
-  const results = parseJsonResponse(text);
   results._groundingMetadata = data.candidates?.[0]?.groundingMetadata;
-  
   return results;
+}
+
+// ============================================
+// PHASE 2b: Emerging top-up
+// ============================================
+
+/** How many emerging brands a list should carry; the main call honours its own quota unevenly. */
+export const EMERGING_MIN = 4;
+const RECOMMENDATIONS_MAX = 15;
+
+/**
+ * Brings the list up to EMERGING_MIN emerging brands with one more, smaller grounded call, aimed
+ * at the lanes with the fewest brands. Nothing already listed or well-trodden; a failure leaves
+ * the list as it was.
+ */
+export async function topUpEmerging(api, { brandProfile, brandName, domain, brands, frequentBrands = [] }) {
+  const have = brands.filter(b => b.brandStage === 'emerging').length;
+  const need = EMERGING_MIN - have;
+  if (need <= 0) return brands;
+
+  const counts = Object.fromEntries([...LANES].map(lane => [lane, brands.filter(b => b.lane === lane).length]));
+  const thinLanes = Object.entries(counts).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([lane]) => lane);
+  const listed = brands.map(b => b.name).filter(Boolean);
+  const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
+
+  const prompt = `You are a brand collaboration curator. For the brand below you already recommended: ${listed.join(', ')}.
+
+=== THE BRAND ===
+${JSON.stringify({ name: brandProfile.name, url: brandProfile.url, productAnalysis: brandProfile.productAnalysis, targetCustomer: brandProfile.targetCustomer }, null, 2)}
+
+TASK: Add ${need + 1} EMERGING brands: founded 2020 or later, under $10M revenue, real and active (verify each with web search and use its actual homepage URL). Aim for these lanes, which are thinnest: ${thinLanes.join(' and ')}.
+- None of the brands already recommended, and no direct competitor of ${brandName}.
+- None of these, which are recommended everywhere: ${trodden.join(', ') || 'none'}.
+- The strongest fit for THIS customer, not the best-known name you can think of.
+
+Return valid JSON only:
+{
+  "brands": [
+    {
+      "name": "Brand Name",
+      "url": "https://actualbrandwebsite.com",
+      "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
+      "lane": "${thinLanes.join('|')}",
+      "brandStage": "emerging",
+      "reasons": ["3 short bullets, under 12 words each, concrete, naming real products"],
+      "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
+      "social": { "tiktok": "handle or null", "instagram": "handle or null", "facebook": "handle or null" }
+    }
+  ]
+}`;
+
+  try {
+    const data = await geminiJson(api, 'Emerging top-up', {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: 'You are an expert brand collaboration curator. Use Google Search to verify every brand. Return ONLY valid JSON.' }] },
+      tools: [{ google_search: {} }],
+      generationConfig: { temperature: 0.8, topK: 50, topP: 0.97, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
+    });
+    const seen = new Set(brands.flatMap(b => [b.name?.toLowerCase(), brandDomain(b.url || '')]).filter(Boolean));
+    const troddenSet = new Set(trodden.map(t => t.toLowerCase()));
+    const added = normalizeRecommendations(parseJsonResponse(extractText(data)).brands || [])
+      .map(b => ({ ...b, brandStage: 'emerging' }))
+      .map(ensureHttps)
+      .filter(b => b.name && !seen.has(b.name.toLowerCase()) && !seen.has(brandDomain(b.url || '')) && !troddenSet.has(b.name.toLowerCase()))
+      .slice(0, Math.max(need, 0) + 1);
+    console.log(`[Discovery] Emerging top-up: had ${have}, added ${added.length}`);
+    return [...brands, ...added].slice(0, RECOMMENDATIONS_MAX);
+  } catch (err) {
+    console.warn(`[Discovery] Emerging top-up skipped: ${err.message}`);
+    return brands;
+  }
 }
 
 // ============================================
