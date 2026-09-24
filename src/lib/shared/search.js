@@ -87,6 +87,42 @@ function buildKnownPartnersContext(partners) {
   return `\n\nKNOWN PARTNERS FROM PAST SEARCHES (each of these brands was matched with this one when it was searched):\n${lines.join('\n')}\nInclude the ones that still fit this brand, after verifying they are active; they count toward the 12-15. Leave out any that do not fit.\n`;
 }
 
+const ANGLES = new Set(['same-moment', 'same-aesthetic', 'same-values', 'gift-pairing', 'lifestyle-stack', 'unexpected-delight']);
+const LANES = new Set(['same-shelf', 'adjacent-function', 'lifestyle', 'parallel-premium', 'unexpected']);
+// The angle a lane reads as when the model wrote something else, and the other way round.
+const LANE_ANGLE = { 'same-shelf': 'same-moment', 'adjacent-function': 'same-moment', lifestyle: 'lifestyle-stack', 'parallel-premium': 'same-aesthetic', unexpected: 'unexpected-delight' };
+const ANGLE_LANE = { 'same-moment': 'same-shelf', 'same-aesthetic': 'parallel-premium', 'same-values': 'adjacent-function', 'gift-pairing': 'parallel-premium', 'lifestyle-stack': 'lifestyle', 'unexpected-delight': 'unexpected' };
+
+/** Every brand carries one of the six angles and one of the five lanes, whatever the model wrote. */
+export function normalizeRecommendations(brands) {
+  return brands.map(brand => {
+    const lane = LANES.has(brand.lane) ? brand.lane : (ANGLE_LANE[brand.lane] || ANGLE_LANE[brand.category] || 'lifestyle');
+    const category = ANGLES.has(brand.category) ? brand.category : (LANE_ANGLE[lane] || 'same-moment');
+    return { ...brand, lane, category };
+  });
+}
+
+/** How many well-trodden brands a list may carry; a kitchen brand's list came back with seven. */
+export const WELL_TRODDEN_MAX = 2;
+const WELL_TRODDEN_FLOOR = 10;
+
+/**
+ * Keeps the first two well-trodden picks and drops the rest, while the list stays long enough to
+ * be a list. The prompt asks for this; a hard prior does not always listen.
+ */
+export function capWellTrodden(brands, frequentBrands, { max = WELL_TRODDEN_MAX, floor = WELL_TRODDEN_FLOOR } = {}) {
+  const trodden = new Set((frequentBrands || []).map(b => (b.name || b.domain || '').trim().toLowerCase()).filter(Boolean));
+  if (!trodden.size) return brands;
+  let kept = 0;
+  let count = brands.length;
+  return brands.filter(brand => {
+    if (!trodden.has((brand.name || '').trim().toLowerCase())) return true;
+    if (kept < max || count <= floor) { kept++; return true; }
+    count--;
+    return false;
+  });
+}
+
 /**
  * The brands the finder recommends most across recent searches. Left to itself the model reaches
  * for the same famous DTC names for every brand (Brightland in 53 of the last 97 searches); told
@@ -125,7 +161,7 @@ export async function discoverComplementaryBrands(url, {
   const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
-  const brands = (augmentedResults.brands || []).map(ensureHttps);
+  const brands = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -487,7 +523,10 @@ Return valid JSON only:
 }
 
 Requirements:
-- 12-15 brands, every lane covered by at least 2, diversity requirements met
+- 12-15 brands
+- EVERY one of the five lanes has at least 2 brands. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
+- At least 4 emerging brands (founded 2020+, under $10M revenue)
+- At most 2 brands from the ALREADY WELL-TRODDEN list, if one was given. The reader has seen those; the rest of the list must reach beyond them
 - "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
 - 20-25 products total
 - At least 2 products per recommended brand

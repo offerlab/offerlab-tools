@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -262,5 +262,37 @@ describe('buildFrequentContext', () => {
     expect(context).toContain('at most 2 of them');
     expect(buildFrequentContext([])).toBe('');
     expect(buildFrequentContext(undefined)).toBe('');
+  });
+});
+
+describe('normalizeRecommendations', () => {
+  it('gives every brand one of the six angles and one of the five lanes', () => {
+    const [a, b, c] = normalizeRecommendations([
+      { name: 'A', category: 'complementary', lane: 'lifestyle' },
+      { name: 'B', category: 'same-aesthetic', lane: 'lifestyle-stack' },
+      { name: 'C', category: 'unexpected-delight' }
+    ]);
+    expect([a.category, a.lane]).toEqual(['lifestyle-stack', 'lifestyle']);
+    expect([b.category, b.lane]).toEqual(['same-aesthetic', 'lifestyle']);
+    expect([c.category, c.lane]).toEqual(['unexpected-delight', 'unexpected']);
+  });
+});
+
+describe('capWellTrodden', () => {
+  const frequent = [{ name: 'Brightland' }, { name: 'Our Place' }, { name: 'Graza' }, { name: 'Fly By Jing' }];
+  const list = names => names.map(name => ({ name }));
+
+  it('keeps the first two well-trodden picks and drops the rest', () => {
+    const brands = list(['Graza', 'Fishwife', 'Brightland', 'Our Place', 'Fly By Jing', 'Ooni', 'Acid League', 'Sanzo', 'Ghia', 'Haus', 'Jeni\'s', 'Momofuku', 'Curio']);
+    expect(capWellTrodden(brands, frequent).map(b => b.name)).toEqual(['Graza', 'Fishwife', 'Brightland', 'Ooni', 'Acid League', 'Sanzo', 'Ghia', 'Haus', 'Jeni\'s', 'Momofuku', 'Curio']);
+  });
+
+  it('stops dropping once the list would fall below ten', () => {
+    const brands = list(['Graza', 'Brightland', 'Our Place', 'Fly By Jing', 'A', 'B', 'C', 'D', 'E', 'F', 'G']);
+    expect(capWellTrodden(brands, frequent)).toHaveLength(10);
+  });
+
+  it('leaves the list alone with nothing well-trodden', () => {
+    expect(capWellTrodden(list(['A', 'B']), [])).toHaveLength(2);
   });
 });
