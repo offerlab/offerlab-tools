@@ -382,15 +382,14 @@ describe('unexpectedCollabs and mergeUnexpected', () => {
     jev: async (body) => new Response(JSON.stringify(jevFor(JSON.parse(body).state.candidate.name)), { status: 200 }),
     serp: async (params) => {
       const q = new URLSearchParams(params).get('q');
-      const sites = { 'Who Gives A Crap official site': ['https://www.instagram.com/whogivesacrap', 'https://whogivesacrap.org/'], 'Dude Wipes official site': ['https://dudewipes.com/collections/all'], 'Nowhere Co official site': [] };
+      const sites = { 'Who Gives A Crap official site': ['https://www.instagram.com/whogivesacrap', 'https://whogivesacrap.org/'], 'Dude Wipes official site': ['https://dudewipes.com/collections/all'], 'Graza official site': ['https://graza.co/'], 'Nowhere Co official site': [] };
       return new Response(JSON.stringify({ organic_results: (sites[q] || []).map(link => ({ link })) }), { status: 200 });
     }
   };
 
   it('ideates without grounding, lets Jev pick the surprising ideas that hold a bundle, and resolves each pick\'s real site', async () => {
-    const brands = [brand('Graza', 'same-shelf'), brand('Omsom', 'unexpected')];
-    const picks = await unexpectedCollabs(api, { brandProfile: profile, brandName: 'Fly By Jing', domain: 'flybyjing.com', brands, frequentBrands: [{ name: 'Brightland' }] });
-    expect(picks.map(b => [b.name, b.url])).toEqual([['Who Gives A Crap', 'https://whogivesacrap.org'], ['Dude Wipes', 'https://dudewipes.com']]);
+    const picks = await unexpectedCollabs(api, { brandProfile: profile, brandName: 'Fly By Jing', domain: 'flybyjing.com', frequentBrands: [{ name: 'Brightland' }] });
+    expect(picks.map(b => [b.name, b.url])).toEqual([['Who Gives A Crap', 'https://whogivesacrap.org'], ['Dude Wipes', 'https://dudewipes.com'], ['Graza', 'https://graza.co']]);
     expect(picks[0]).toMatchObject({ lane: 'unexpected', category: 'unexpected-delight', hook: 'Twenty-four days of spice needs a plan for the day after', brandStage: 'established' });
     expect(picks[0].reasons[1]).toBe('Premium bamboo toilet paper with the advent calendar');
     expect(picks[0].bundleIdea).toBe('The Ring of Fire Kit: Everyone gets it');
@@ -398,13 +397,13 @@ describe('unexpectedCollabs and mergeUnexpected', () => {
 
   it('keeps the list as it was when ideation fails', async () => {
     const failing = { ...api, gemini: async () => new Response(JSON.stringify({ error: 'down', status: 503 }), { status: 200 }) };
-    expect(await unexpectedCollabs(failing, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands: [] })).toEqual([]);
+    expect(await unexpectedCollabs(failing, { brandProfile: profile, brandName: 'X', domain: 'x.com' })).toEqual([]);
   });
 
   it('mergeUnexpected keeps the main call\'s own unexpected picks only to fill the lane, and makes room in a full list', () => {
     const others = Array.from({ length: 13 }, (_, i) => brand(`B${i}`, 'lifestyle', i === 12 ? 'emerging' : 'established'));
     const brands = [...others, brand('Own1', 'unexpected'), brand('Own2', 'unexpected')];
-    const merged = mergeUnexpected(brands, [brand('Hot1', 'unexpected'), brand('Hot2', 'unexpected')]);
+    const merged = mergeUnexpected(brands, [brand('Hot1', 'unexpected'), brand('Hot2', 'unexpected'), brand('B3', 'unexpected')]);
     expect(merged).toHaveLength(15);
     expect(merged.filter(b => b.lane === 'unexpected').map(b => b.name)).toEqual(['Hot1', 'Hot2', 'Own1']);
     expect(merged.find(b => b.name === 'B12')).toBeTruthy();
@@ -415,7 +414,7 @@ describe('unexpectedCollabs and mergeUnexpected', () => {
 
 describe('gradeCandidates and composeGraded', () => {
   const brand = (name, lane, brandStage = 'established') => ({ name, url: `https://${name.toLowerCase().replace(/[^a-z]/g, '')}.com`, lane, category: 'same-moment', brandStage });
-  const grade = (over = {}) => ({ brand: 1, kind: 'consumer_brand', competitor: 0.05, lane: 'same-shelf', laneConfidence: 0.8, stage: 'growing', fit: 2.4, surprise: 1.5, ...over });
+  const grade = (over = {}) => ({ brand: 1, kind: 'consumer_brand', competitor: 0.05, lane: 'same-shelf', laneConfidence: 0.8, stage: 'growing', stageConfidence: 0.8, fit: 2.4, surprise: 1.5, ...over });
 
   it('asks Jev about every candidate and reads the answers, tolerating a candidate it cannot grade', async () => {
     const answers = { kind: { choice: 'media', probabilities: { consumer_brand: 0.02, media: 0.98 }, confidence: 0.9 }, competitor: { noul: 0.1 }, lane: { choice: 'lifestyle', confidence: 0.7 }, stage: { choice: 'established' }, fit: { score: 1.9 }, surprise: { score: 2.4 } };
@@ -453,6 +452,23 @@ describe('gradeCandidates and composeGraded', () => {
     // Snow Peak: Jev was not sure, so the model's lane stands.
     expect(out.find(b => b.name === 'Snow Peak').lane).toBe('lifestyle');
     expect(out.find(b => b.name === 'Flea Away').brandStage).toBe('emerging');
+  });
+
+  it('pins the ideated pairings to the unexpected lane, never fills it by fit, and keeps the model\'s stage when Jev is unsure', () => {
+    const brands = [
+      { ...brand('Who Gives A Crap', 'unexpected'), hook: 'the aftermath' },
+      brand('Slip', 'same-shelf'), brand('Osea', 'same-shelf'), brand('Loftie', 'adjacent-function'), brand('Cometeer', 'adjacent-function'),
+      brand('The Sill', 'lifestyle'), brand('Kin', 'lifestyle'), brand('Public Goods', 'parallel-premium'), brand('Soft Services', 'parallel-premium', 'emerging')
+    ];
+    const grades = [
+      grade({ lane: 'adjacent-function', surprise: 2.6 }),
+      grade({ fit: 2.8, surprise: 0.9 }), grade({ surprise: 1.6 }), grade({ lane: 'adjacent-function', surprise: 1.8 }), grade({ lane: 'adjacent-function', surprise: 1.7 }),
+      grade({ lane: 'lifestyle', surprise: 1.5 }), grade({ lane: 'lifestyle', surprise: 1.9 }), grade({ lane: 'parallel-premium', surprise: 1.5 }), grade({ lane: 'parallel-premium', stage: 'growing', stageConfidence: 0.3, surprise: 1.7 })
+    ];
+    const out = composeGraded(brands, grades);
+    expect(out.filter(b => b.lane === 'unexpected').map(b => b.name)).toEqual(['Who Gives A Crap']);
+    expect(out.find(b => b.name === 'Slip').lane).toBe('same-shelf');
+    expect(out.find(b => b.name === 'Soft Services').brandStage).toBe('emerging');
   });
 
   it('leaves the list alone when nothing was graded', () => {

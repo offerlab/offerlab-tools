@@ -172,13 +172,15 @@ export async function discoverComplementaryBrands(url, {
 
   updateProgress(2);
   const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
+  // The unexpected lane is ideated beside the main call: it needs only the profile, and the
+  // stronger model takes its time.
+  const unexpectedPending = unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, frequentBrands });
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
   const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
-  // Two follow-ups, side by side: the emerging count, and the unexpected lane at a higher temperature.
   const [toppedUp, unexpected] = await Promise.all([
     topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands }),
-    unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands })
+    unexpectedPending
   ]);
   const merged = mergeUnexpected(toppedUp, unexpected);
   const brands = composeGraded(merged, await gradeCandidates(api, resolvedBrandProfile, merged), frequentBrands);
@@ -430,10 +432,10 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
  * A grounded Gemini call, kept alive by the proxy, read as JSON. A failure the proxy reports in
  * the body (its own 504, Gemini's 5xx) is tried once more; anything else is thrown as it is.
  */
-export async function geminiJson(api, label, body, { attempts = 2 } = {}) {
+export async function geminiJson(api, label, body, { attempts = 2, model = undefined } = {}) {
   let failure = null;
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const response = await api.gemini(body, undefined, { keepalive: true });
+    const response = await api.gemini(body, model, { keepalive: true });
     const data = await response.json().catch(() => ({}));
     if (response.ok && !data.error) return data;
     const status = data.status || response.status;
@@ -685,7 +687,8 @@ export const UNEXPECTED_COUNT = 3;
 // Hosts a search for a brand name lands on that are never the brand's own site.
 const NOT_THE_BRAND = new Set(['amazon', 'instagram', 'facebook', 'tiktok', 'youtube', 'wikipedia', 'reddit', 'linkedin', 'pinterest', 'twitter', 'x', 'walmart', 'target', 'etsy', 'ebay', 'google', 'apple', 'crunchbase', 'bloomberg', 'yelp', 'trustpilot', 'threads', 'shopify']);
 const secondLevel = host => host.split('.').slice(-2, -1)[0] || host;
-const IDEAS = 8;
+const IDEAS = 12;
+const IDEATION_MODEL = 'gemini-2.5-pro';
 
 /**
  * The brand's own homepage, from a web search for its name: the result whose domain carries the
@@ -714,27 +717,33 @@ export async function resolveHomepage(api, name) {
  * Jev picking the most surprising ideas that still hold a bundle; a web search for each pick's
  * real homepage. A brand with no findable site is dropped.
  */
-export async function unexpectedCollabs(api, { brandProfile, brandName, domain, brands, frequentBrands = [] }) {
-  const listed = brands.map(b => b.name).filter(Boolean);
+export async function unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands = [] }) {
   const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
   const prompt = `You are the creative director of a brand collaboration studio, famous for one thing: pairings nobody saw coming that everyone immediately gets.
 
 === THE BRAND ===
 ${JSON.stringify({ name: brandProfile.name, url: brandProfile.url, tagline: brandProfile.tagline, productAnalysis: brandProfile.productAnalysis, brandDNA: brandProfile.brandDNA, targetCustomer: brandProfile.targetCustomer }, null, 2)}
 
-=== THE BAR ===
-Fly By Jing makes Sichuan chili crisp and just released a holiday advent calendar. The pairing: Who Gives A Crap, the toilet paper brand: a holiday bundle that plays on what 24 days of very spicy food does to you. Dude Wipes would have landed the same way. It is funny, but that is not the point. The point is a buyer saying "oh wow, that really works, and I never would have thought of it". The best pairings of this kind are often not funny at all: two rituals, two moments, or two feelings that belong together and nobody had put side by side.
+=== THE PATTERN ===
+Every iconic collaboration has the same two parts: TENSION, the two brands seem to belong to different worlds, and a SHARED TRUTH, one thing that is true of both and that the pairing makes everyone see at once. Sensible pairings have the truth without the tension; gimmicks have the tension without the truth. You want both.
+- Fly By Jing (Sichuan chili crisp) released a holiday advent calendar. The pairing: Who Gives A Crap, the toilet paper brand, a holiday bundle about what 24 days of very spicy food does to you. Dude Wipes would have landed the same way. Tension: condiment and bathroom. Truth: the aftermath.
+- Crocs and KFC: a clog with a fried-chicken charm. Tension: footwear and fast food. Truth: both are proudly unglamorous comfort.
+- Liquid Death and e.l.f.: a corpse-paint makeup kit. Tension: canned water and cosmetics. Truth: the same irreverent fan.
+- Heinz and Absolut: a vodka pasta sauce. Tension: ketchup and vodka. Truth: a recipe the internet had already made famous.
+- Bombas and a dating app would be a gimmick; Bombas and a marathon's finish line is the same pattern done right: the truth is the moment.
+Some of the best are not funny at all: two rituals, two moments, or two feelings that belong together and nobody had put side by side. Funny is allowed; forced is not.
 
 === HOW TO FIND ONE ===
-Start from the product, not from a category. Work each of these angles and keep only what clicks:
+Start from the product, never from a category. Work each angle and keep only what clicks:
 1. The aftermath: what happens to the person after using ${brandName}'s product, and who owns that moment.
 2. The lead-up: what has to happen right before, or what makes the product possible, and who owns that.
 3. The ritual: the exact time and place the product lives in, and the unlikely object sitting right there.
 4. The same feeling in a category this customer never connects with it.
 5. A name, a shape, a color, a number or a pun only these two brands can share.
 6. A season or a cultural moment where the two belong on the same shelf for six weeks.
+7. The opposite: the brand whose product is the exact counterweight to this one, so the pair is a whole.
 
-RULES: real brands that sell their own products (you know them; do not invent any). Not a direct competitor of ${brandName}. Not one of these already recommended: ${listed.join(', ') || 'none'}. Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}. Not the safe adjacent category everyone would suggest. Name the exact product on each side. If it is funny it must also be a bundle the buyer wants.
+RULES: real brands that sell their own products (you know them; do not invent any). Not a direct competitor of ${brandName}. Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}. Not the safe adjacent category everyone would suggest, and not the obvious wellness or gear pairing. Name the exact product on each side and say the tension and the truth in the hook. If it is funny it must also be a bundle the buyer wants.
 
 Return valid JSON only, ${IDEAS} ideas, strongest first:
 {
@@ -754,10 +763,10 @@ Return valid JSON only, ${IDEAS} ideas, strongest first:
   try {
     const data = await geminiJson(api, 'Unexpected collabs', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Return ONLY valid JSON.' }] },
-      generationConfig: { temperature: 1.3, topK: 64, topP: 0.98, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
-    });
-    const seen = new Set([...listed, ...trodden].map(n => n.toLowerCase()));
+      systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Think first, then return ONLY valid JSON.' }] },
+      generationConfig: { temperature: 1.2, topK: 64, topP: 0.98, maxOutputTokens: 8192 }
+    }, { model: IDEATION_MODEL });
+    const seen = new Set(trodden.map(n => n.toLowerCase()));
     const ideas = (parseJsonResponse(extractText(data)).ideas || [])
       .filter(idea => idea?.brand && !seen.has(String(idea.brand).toLowerCase()))
       .map(idea => ({
@@ -801,6 +810,9 @@ Return valid JSON only, ${IDEAS} ideas, strongest first:
  */
 export function mergeUnexpected(brands, picks) {
   if (!picks.length) return brands;
+  const listed = new Set(brands.flatMap(b => [b.name?.toLowerCase(), brandDomain(b.url || '')]).filter(Boolean));
+  picks = picks.filter(b => !listed.has(b.name?.toLowerCase()) && !listed.has(brandDomain(b.url || '')));
+  if (!picks.length) return brands;
   const others = brands.filter(b => b.lane !== 'unexpected');
   const own = brands.filter(b => b.lane === 'unexpected').slice(0, Math.max(0, UNEXPECTED_COUNT - picks.length));
   const lane = [...picks, ...own];
@@ -814,7 +826,7 @@ export function mergeUnexpected(brands, picks) {
 // ============================================
 
 /** A candidate below any of these is out. Lanes come from Jev when it is at least this sure. */
-export const GRADE_THRESHOLDS = { brand: 0.5, competitor: 0.5, fit: 1.2, laneConfidence: 0.35, surprise: 2.2 };
+export const GRADE_THRESHOLDS = { brand: 0.5, competitor: 0.5, fit: 1.2, laneConfidence: 0.35, stageConfidence: 0.5, surprise: 2.2 };
 const LANE_MIN = 2;
 
 /**
@@ -853,17 +865,21 @@ export function composeGraded(brands, grades, frequentBrands = [], thresholds = 
   }).map(({ brand, grade }) => {
     if (!grade) return brand;
     const lane = grade.lane && grade.laneConfidence >= thresholds.laneConfidence ? grade.lane : (brand.lane === 'unexpected' ? 'parallel-premium' : brand.lane);
-    return { ...brand, lane, brandStage: grade.stage || brand.brandStage, grade };
+    const brandStage = grade.stage && grade.stageConfidence >= thresholds.stageConfidence ? grade.stage : brand.brandStage;
+    return { ...brand, lane, brandStage, grade };
   });
 
-  // The unexpected lane: the most surprising pairings that still hold a bundle, whatever their relation.
-  const bySurprise = kept.filter(b => b.grade && b.grade.surprise >= thresholds.surprise).sort((a, b) => b.grade.surprise - a.grade.surprise);
-  const unexpectedNames = new Set(bySurprise.slice(0, UNEXPECTED_COUNT).map(b => b.name));
+  // The unexpected lane: the ideated pairings (they carry a hook), then the most surprising of
+  // the rest that still hold a bundle, whatever their relation. Never filled by fit.
+  const pinned = kept.filter(b => b.hook);
+  const bySurprise = kept.filter(b => !b.hook && b.grade && b.grade.surprise >= thresholds.surprise).sort((a, b) => b.grade.surprise - a.grade.surprise);
+  const unexpectedNames = new Set([...pinned, ...bySurprise].slice(0, UNEXPECTED_COUNT).map(b => b.name));
   const composed = kept.map(b => (unexpectedNames.has(b.name) ? { ...b, lane: 'unexpected', category: 'unexpected-delight' } : b));
 
-  // Coverage: a lane below two takes the nearest fit from an over-full lane, by Jev's own second choice being unknown here, so by fit.
+  // Coverage of the relation lanes: a lane below two takes the best fit from an over-full one.
   const counts = () => Object.fromEntries([...LANES].map(l => [l, composed.filter(b => b.lane === l).length]));
   for (const lane of LANES) {
+    if (lane === 'unexpected') continue;
     while (counts()[lane] < LANE_MIN) {
       const donor = composed
         .filter(b => b.lane !== lane && b.lane !== 'unexpected' && counts()[b.lane] > LANE_MIN && b.grade)

@@ -173,6 +173,7 @@ export function readGrade(result) {
     lane: a.lane?.choice || null,
     laneConfidence: round(a.lane?.confidence ?? 0),
     stage: a.stage?.choice || null,
+    stageConfidence: round(a.stage?.confidence ?? 0),
     fit: round(a.fit?.score ?? 2),
     surprise: round(a.surprise?.score ?? 0)
   };
