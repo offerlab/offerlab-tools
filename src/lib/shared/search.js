@@ -8,6 +8,7 @@
  * provider sits behind it, which keeps a server-side search inside the Workers limit.
  */
 import { mergeSocial } from './socials.js';
+import { GRADE_QUESTIONS, gradeState, readGrade } from './jev.js';
 import { jsonrepair } from './vendor/jsonrepair/regular/jsonrepair.js';
 
 export const SEARCH_DEFAULTS = {
@@ -179,7 +180,8 @@ export async function discoverComplementaryBrands(url, {
     topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands }),
     unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands })
   ]);
-  const brands = mergeUnexpected(toppedUp, unexpected);
+  const merged = mergeUnexpected(toppedUp, unexpected);
+  const brands = composeGraded(merged, await gradeCandidates(api, resolvedBrandProfile, merged), frequentBrands);
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -474,7 +476,7 @@ For each brand, classify using ONE of these collaboration angles:
 
 === BREADTH: COVER THESE LANES ===
 
-Spread the 12-15 brands across ALL five lanes, at least 2 in each, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
+Spread the 15-18 brands across ALL five lanes, at least 3 in each, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
 1. **"same-shelf"**: products used alongside this brand's own, on the same shelf or in the same routine (never a direct competitor).
 2. **"adjacent-function"**: the next need this customer has around the product: for food and drink that is hydration, supplements, recovery or sleep; for beauty it is tools, skin health or wellness; for home it is care, storage or the rituals the product serves; for apparel it is gear, footwear or recovery.
 3. **"lifestyle"**: the apparel, equipment, spaces or services this customer's day runs on.
@@ -483,7 +485,7 @@ Spread the 12-15 brands across ALL five lanes, at least 2 in each, chosen for TH
 
 === DIVERSITY REQUIREMENTS ===
 
-Your 12-15 brand recommendations MUST also include:
+Your 15-18 brand recommendations MUST also include:
 - At least 4 **emerging brands** (founded 2020+, under $10M revenue)
 - At least 4 **established brands** (well-known, proven track record)
 - At least 1 **non-obvious category** (digital product, subscription, experience)
@@ -551,8 +553,8 @@ Return valid JSON only:
 }
 
 Requirements:
-- 12-15 brands
-- EVERY one of the five lanes has at least 2 brands. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
+- 15-18 brands
+- EVERY one of the five lanes has at least 3 brands. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
 - At least 4 emerging brands (founded 2020+, under $10M revenue)
 - At most 2 brands from the ALREADY WELL-TRODDEN list, if one was given. The reader has seen those; the rest of the list must reach beyond them
 - "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
@@ -680,42 +682,71 @@ Return valid JSON only:
 /** How many unexpected pairings a list carries; the main call's own picks fill in below this. */
 export const UNEXPECTED_COUNT = 3;
 
+// Hosts a search for a brand name lands on that are never the brand's own site.
+const NOT_THE_BRAND = new Set(['amazon', 'instagram', 'facebook', 'tiktok', 'youtube', 'wikipedia', 'reddit', 'linkedin', 'pinterest', 'twitter', 'x', 'walmart', 'target', 'etsy', 'ebay', 'google', 'apple', 'crunchbase', 'bloomberg', 'yelp', 'trustpilot', 'threads', 'shopify']);
+const secondLevel = host => host.split('.').slice(-2, -1)[0] || host;
+const IDEAS = 8;
+
 /**
- * The unexpected lane as its own call, hotter than the main one. The main call is good at fit
- * and safe with surprise; this one is briefed for the pairing a buyer would never have thought
- * of and immediately gets, which is the kind that makes the finder worth opening.
+ * The brand's own homepage, from a web search for its name: the result whose domain carries the
+ * name, else the first that is not a marketplace or a social network. Null when nothing does.
+ */
+export async function resolveHomepage(api, name) {
+  try {
+    const response = await api.serp(new URLSearchParams({ q: `${name} official site`, engine: 'google' }).toString());
+    if (!response.ok) return null;
+    const data = await response.json();
+    const hosts = (data.organic_results || []).map(r => brandDomain(r.link || '')).filter(h => h && !NOT_THE_BRAND.has(secondLevel(h)));
+    const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const host = hosts.find(h => key && secondLevel(h).replace(/[^a-z0-9]/g, '').includes(key.slice(0, Math.max(4, key.length)))) || hosts[0] || null;
+    return host ? `https://${host}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The unexpected lane in three cheap steps, none of them a grounded call. Grounded search pulls
+ * the model toward what is already written about a brand, and "verify every brand" is the enemy
+ * of a leap: one grounded call at a high temperature still answered Olipop and Therabody for a
+ * protein bar. So: an ungrounded ideation call at a high temperature, starting from what happens
+ * after, before and around the product and working back to the brand that owns that moment;
+ * Jev picking the most surprising ideas that still hold a bundle; a web search for each pick's
+ * real homepage. A brand with no findable site is dropped.
  */
 export async function unexpectedCollabs(api, { brandProfile, brandName, domain, brands, frequentBrands = [] }) {
   const listed = brands.map(b => b.name).filter(Boolean);
   const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
-  const prompt = `You are the creative director of a brand collaboration studio, and you are famous for one thing: pairings nobody saw coming that everyone immediately gets.
+  const prompt = `You are the creative director of a brand collaboration studio, famous for one thing: pairings nobody saw coming that everyone immediately gets.
 
 === THE BRAND ===
 ${JSON.stringify({ name: brandProfile.name, url: brandProfile.url, tagline: brandProfile.tagline, productAnalysis: brandProfile.productAnalysis, brandDNA: brandProfile.brandDNA, targetCustomer: brandProfile.targetCustomer }, null, 2)}
 
 === THE BAR ===
-Fly By Jing makes Sichuan chili crisp and just released a holiday advent calendar. The pairing: Who Gives A Crap, the toilet paper brand, a holiday bundle that plays on what 24 days of very spicy food does to you. Dude Wipes would have landed the same way. It is funny, but that is not the point: the point is that a buyer says "oh wow, that really works, and I never would have thought of it". Some of the best pairings of this kind are not funny at all: they connect two rituals, two moments, or two feelings that belong together and nobody had put side by side.
+Fly By Jing makes Sichuan chili crisp and just released a holiday advent calendar. The pairing: Who Gives A Crap, the toilet paper brand: a holiday bundle that plays on what 24 days of very spicy food does to you. Dude Wipes would have landed the same way. It is funny, but that is not the point. The point is a buyer saying "oh wow, that really works, and I never would have thought of it". The best pairings of this kind are often not funny at all: two rituals, two moments, or two feelings that belong together and nobody had put side by side.
 
-TASK: Propose ${UNEXPECTED_COUNT + 1} pairings for ${brandName} that clear that bar.
-- Each must be a real, active brand with its own products; verify it with web search and use its actual homepage URL.
-- Name the specific product on each side that the pairing is built on, and the cultural or bodily or seasonal hook that makes it click.
-- A buyer must still say yes: the two products are bought by the same person, or the pairing is the reason to buy.
-- Not a direct competitor of ${brandName}. Not one of the brands already recommended (${listed.join(', ') || 'none'}). Not one of the brands recommended everywhere (${trodden.join(', ') || 'none'}). Not the safe adjacent category everyone would suggest.
-- Not a joke for its own sake: if it is funny, it also has to be a bundle the buyer wants.
+=== HOW TO FIND ONE ===
+Start from the product, not from a category. Work each of these angles and keep only what clicks:
+1. The aftermath: what happens to the person after using ${brandName}'s product, and who owns that moment.
+2. The lead-up: what has to happen right before, or what makes the product possible, and who owns that.
+3. The ritual: the exact time and place the product lives in, and the unlikely object sitting right there.
+4. The same feeling in a category this customer never connects with it.
+5. A name, a shape, a color, a number or a pun only these two brands can share.
+6. A season or a cultural moment where the two belong on the same shelf for six weeks.
 
-Return valid JSON only:
+RULES: real brands that sell their own products (you know them; do not invent any). Not a direct competitor of ${brandName}. Not one of these already recommended: ${listed.join(', ') || 'none'}. Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}. Not the safe adjacent category everyone would suggest. Name the exact product on each side. If it is funny it must also be a bundle the buyer wants.
+
+Return valid JSON only, ${IDEAS} ideas, strongest first:
 {
-  "brands": [
+  "ideas": [
     {
-      "name": "Brand Name",
-      "url": "https://actualbrandwebsite.com",
-      "category": "unexpected-delight",
-      "lane": "unexpected",
-      "brandStage": "emerging|growing|established",
+      "brand": "Brand Name",
       "hook": "The one line that makes the pairing click, under 15 words",
-      "reasons": ["3 short bullets, under 12 words each, concrete, naming the real products on both sides"],
-      "bundleIdea": "One sentence describing the specific product bundle or campaign, with a name for it",
-      "social": { "tiktok": "handle or null", "instagram": "handle or null", "facebook": "handle or null" }
+      "their_product": "the specific product of theirs",
+      "our_product": "the specific ${brandName} product",
+      "why_yes": "One sentence on why a buyer says yes",
+      "bundle_name": "A name for the bundle or campaign",
+      "brandStage": "emerging|growing|established"
     }
   ]
 }`;
@@ -723,18 +754,39 @@ Return valid JSON only:
   try {
     const data = await geminiJson(api, 'Unexpected collabs', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Use Google Search to verify every brand and take its real URL from the results. Return ONLY valid JSON.' }] },
-      tools: [{ google_search: {} }],
-      generationConfig: { temperature: 1.15, topK: 64, topP: 0.98, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
+      systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Return ONLY valid JSON.' }] },
+      generationConfig: { temperature: 1.3, topK: 64, topP: 0.98, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
     });
-    const seen = new Set(brands.flatMap(b => [b.name?.toLowerCase(), brandDomain(b.url || '')]).filter(Boolean));
-    const troddenSet = new Set(trodden.map(t => t.toLowerCase()));
-    const picks = normalizeRecommendations(parseJsonResponse(extractText(data)).brands || [])
-      .map(b => ({ ...b, lane: 'unexpected', category: 'unexpected-delight' }))
-      .map(ensureHttps)
-      .filter(b => b.name && !seen.has(b.name.toLowerCase()) && !seen.has(brandDomain(b.url || '')) && !troddenSet.has(b.name.toLowerCase()))
-      .slice(0, UNEXPECTED_COUNT);
-    console.log(`[Discovery] Unexpected collabs: ${picks.map(b => b.name).join(', ') || 'none'}`);
+    const seen = new Set([...listed, ...trodden].map(n => n.toLowerCase()));
+    const ideas = (parseJsonResponse(extractText(data)).ideas || [])
+      .filter(idea => idea?.brand && !seen.has(String(idea.brand).toLowerCase()))
+      .map(idea => ({
+        name: String(idea.brand).trim(),
+        hook: idea.hook || null,
+        reasons: [idea.hook, `${idea.their_product || 'their product'} with ${idea.our_product || `${brandName}'s`}`, idea.why_yes].filter(Boolean).map(String),
+        bundleIdea: [idea.bundle_name, idea.why_yes].filter(Boolean).join(': '),
+        brandStage: ['emerging', 'growing', 'established'].includes(idea.brandStage) ? idea.brandStage : 'growing',
+        category: 'unexpected-delight',
+        lane: 'unexpected',
+        social: {}
+      }));
+
+    // Jev: the most surprising ideas that are real brands, not competitors, and still a bundle.
+    const grades = await gradeCandidates(api, brandProfile, ideas);
+    const ranked = ideas
+      .map((idea, i) => ({ idea, grade: grades[i] }))
+      .filter(({ grade }) => !grade || (grade.brand >= GRADE_THRESHOLDS.brand && grade.competitor <= GRADE_THRESHOLDS.competitor && grade.fit >= 1.3))
+      .sort((a, b) => (b.grade?.surprise ?? 0) - (a.grade?.surprise ?? 0))
+      .slice(0, UNEXPECTED_COUNT + 2);
+
+    const picks = [];
+    for (const { idea, grade } of ranked) {
+      if (picks.length >= UNEXPECTED_COUNT) break;
+      const url = await resolveHomepage(api, idea.name);
+      if (!url) continue;
+      picks.push({ ...idea, url, brandStage: grade?.stage || idea.brandStage });
+    }
+    console.log(`[Discovery] Unexpected collabs: ${picks.map(b => `${b.name} (${b.hook || 'no hook'})`).join('; ') || 'none'} from ${ideas.length} ideas`);
     return picks;
   } catch (err) {
     console.warn(`[Discovery] Unexpected collabs skipped: ${err.message}`);
@@ -755,6 +807,72 @@ export function mergeUnexpected(brands, picks) {
   const overflow = others.length + lane.length - RECOMMENDATIONS_MAX;
   const kept = overflow > 0 ? withoutLastEstablished(others, overflow) : others;
   return [...kept, ...lane];
+}
+
+// ============================================
+// PHASE 2d: Jev grades every candidate; code composes the list
+// ============================================
+
+/** A candidate below any of these is out. Lanes come from Jev when it is at least this sure. */
+export const GRADE_THRESHOLDS = { brand: 0.5, competitor: 0.5, fit: 1.2, laneConfidence: 0.35, surprise: 2.2 };
+const LANE_MIN = 2;
+
+/**
+ * Jev's answers for every candidate, in parallel (half a second for a list). A candidate Jev
+ * could not grade gets null and is kept as the model labelled it; with no proxy at all (no key,
+ * a dev server without one) nothing is graded and the list stands as it was.
+ */
+export async function gradeCandidates(api, searchedBrand, brands) {
+  if (typeof api.jev !== 'function' || !brands.length) return brands.map(() => null);
+  return Promise.all(brands.map(async brand => {
+    try {
+      const response = await api.jev({ state: gradeState(searchedBrand, brand), questions: GRADE_QUESTIONS });
+      if (!response.ok) return null;
+      return readGrade(await response.json());
+    } catch {
+      return null;
+    }
+  }));
+}
+
+/**
+ * The list as the grades say it should be: no retailers, services or media, no direct competitor,
+ * nothing without a believable bundle; each brand's lane and stage from Jev where it is sure;
+ * the unexpected lane held by the most surprising pairings; every lane kept to at least two
+ * where the candidates allow; the well-trodden cap kept. Ungraded brands are kept as they were.
+ */
+export function composeGraded(brands, grades, frequentBrands = [], thresholds = GRADE_THRESHOLDS) {
+  if (!grades.some(Boolean)) return brands;
+  const graded = brands.map((brand, i) => ({ brand, grade: grades[i] }));
+  const kept = graded.filter(({ brand, grade }) => {
+    if (!grade) return true;
+    if (grade.brand < thresholds.brand) { console.log(`[Discovery] Dropped ${brand.name}: ${grade.kind || 'not a brand'}`); return false; }
+    if (grade.competitor > thresholds.competitor) { console.log(`[Discovery] Dropped ${brand.name}: competitor (${grade.competitor})`); return false; }
+    if (grade.fit < thresholds.fit) { console.log(`[Discovery] Dropped ${brand.name}: no believable bundle (${grade.fit})`); return false; }
+    return true;
+  }).map(({ brand, grade }) => {
+    if (!grade) return brand;
+    const lane = grade.lane && grade.laneConfidence >= thresholds.laneConfidence ? grade.lane : (brand.lane === 'unexpected' ? 'parallel-premium' : brand.lane);
+    return { ...brand, lane, brandStage: grade.stage || brand.brandStage, grade };
+  });
+
+  // The unexpected lane: the most surprising pairings that still hold a bundle, whatever their relation.
+  const bySurprise = kept.filter(b => b.grade && b.grade.surprise >= thresholds.surprise).sort((a, b) => b.grade.surprise - a.grade.surprise);
+  const unexpectedNames = new Set(bySurprise.slice(0, UNEXPECTED_COUNT).map(b => b.name));
+  const composed = kept.map(b => (unexpectedNames.has(b.name) ? { ...b, lane: 'unexpected', category: 'unexpected-delight' } : b));
+
+  // Coverage: a lane below two takes the nearest fit from an over-full lane, by Jev's own second choice being unknown here, so by fit.
+  const counts = () => Object.fromEntries([...LANES].map(l => [l, composed.filter(b => b.lane === l).length]));
+  for (const lane of LANES) {
+    while (counts()[lane] < LANE_MIN) {
+      const donor = composed
+        .filter(b => b.lane !== lane && b.lane !== 'unexpected' && counts()[b.lane] > LANE_MIN && b.grade)
+        .sort((a, b) => b.grade.fit - a.grade.fit)[0];
+      if (!donor) break;
+      donor.lane = lane;
+    }
+  }
+  return capWellTrodden(composed.slice(0, RECOMMENDATIONS_MAX), frequentBrands);
 }
 
 // ============================================

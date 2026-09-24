@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -366,30 +366,42 @@ describe('topUpEmerging', () => {
 });
 
 describe('unexpectedCollabs and mergeUnexpected', () => {
-  const profile = { name: 'Fly By Jing', url: 'https://flybyjing.com' };
+  const profile = { name: 'Fly By Jing', url: 'https://flybyjing.com', description: 'Sichuan chili crisp' };
   const brand = (name, lane, brandStage = 'established') => ({ name, url: `https://${name.toLowerCase().replace(/ /g, '')}.com`, lane, category: 'same-moment', brandStage });
+  const ideasBody = gemini(JSON.stringify({ ideas: [
+    { brand: 'Who Gives A Crap', hook: 'Twenty-four days of spice needs a plan for the day after', their_product: 'Premium bamboo toilet paper', our_product: 'the advent calendar', why_yes: 'Everyone gets it', bundle_name: 'The Ring of Fire Kit', brandStage: 'established' },
+    { brand: 'Dude Wipes', hook: 'Same story, on the go', their_product: 'Flushable wipes', our_product: 'Chili crisp', why_yes: 'Obvious once said', bundle_name: 'Aftermath', brandStage: 'growing' },
+    { brand: 'Graza', hook: 'listed already', their_product: 'Sizzle', our_product: 'Chili crisp', why_yes: 'no', bundle_name: 'x' },
+    { brand: 'Lao Gan Ma', hook: 'a competitor', their_product: 'Chili crisp', our_product: 'Chili crisp', why_yes: 'no', bundle_name: 'x' },
+    { brand: 'Nowhere Co', hook: 'no site', their_product: 'thing', our_product: 'Chili crisp', why_yes: 'maybe', bundle_name: 'x' }
+  ] }));
+  const grades = { 'Who Gives A Crap': { surprise: 2.6, fit: 1.6 }, 'Dude Wipes': { surprise: 2.4, fit: 1.5 }, 'Lao Gan Ma': { surprise: 0.5, fit: 2.5, competitor: 0.9 }, 'Nowhere Co': { surprise: 2.9, fit: 1.4 } };
+  const jevFor = name => ({ answers: { kind: { probabilities: { consumer_brand: 1 } }, competitor: { noul: grades[name]?.competitor ?? 0.05 }, lane: { choice: 'adjacent-function', confidence: 0.8 }, stage: { choice: 'established' }, fit: { score: grades[name]?.fit ?? 2 }, surprise: { score: grades[name]?.surprise ?? 1 } } });
+  const api = {
+    gemini: async () => new Response(JSON.stringify(ideasBody), { status: 200 }),
+    jev: async (body) => new Response(JSON.stringify(jevFor(JSON.parse(body).state.candidate.name)), { status: 200 }),
+    serp: async (params) => {
+      const q = new URLSearchParams(params).get('q');
+      const sites = { 'Who Gives A Crap official site': ['https://www.instagram.com/whogivesacrap', 'https://whogivesacrap.org/'], 'Dude Wipes official site': ['https://dudewipes.com/collections/all'], 'Nowhere Co official site': [] };
+      return new Response(JSON.stringify({ organic_results: (sites[q] || []).map(link => ({ link })) }), { status: 200 });
+    }
+  };
 
-  it('asks a hotter call for pairings, keeps them as the unexpected lane, and skips what is listed or well-trodden', async () => {
-    const brands = [brand('Graza', 'same-shelf'), brand('Omsom', 'unexpected'), brand('Oatly', 'unexpected')];
-    const bodies = [];
-    const api = { gemini: async (body) => { bodies.push(body); return new Response(JSON.stringify(gemini(JSON.stringify({ brands: [
-      { name: 'Who Gives A Crap', url: 'https://whogivesacrap.org', brandStage: 'established', hook: 'Twenty-four days of spice' },
-      { name: 'Dude Wipes', url: 'https://dudewipes.com', brandStage: 'growing' },
-      { name: 'Graza', url: 'https://graza.co' },
-      { name: 'Brightland', url: 'https://brightland.co' },
-      { name: 'Hatch', url: 'https://hatch.co', lane: 'lifestyle', category: 'same-moment' }
-    ] }))), { status: 200 }); } };
+  it('ideates without grounding, lets Jev pick the surprising ideas that hold a bundle, and resolves each pick\'s real site', async () => {
+    const brands = [brand('Graza', 'same-shelf'), brand('Omsom', 'unexpected')];
     const picks = await unexpectedCollabs(api, { brandProfile: profile, brandName: 'Fly By Jing', domain: 'flybyjing.com', brands, frequentBrands: [{ name: 'Brightland' }] });
-    expect(picks.map(b => b.name)).toEqual(['Who Gives A Crap', 'Dude Wipes', 'Hatch']);
-    expect(picks.every(b => b.lane === 'unexpected' && b.category === 'unexpected-delight')).toBe(true);
-    expect(bodies[0].generationConfig.temperature).toBeGreaterThan(1);
-    expect(bodies[0].contents[0].parts[0].text).toContain('Who Gives A Crap');
-
-    const merged = mergeUnexpected(brands, picks);
-    expect(merged.map(b => b.name)).toEqual(['Graza', 'Who Gives A Crap', 'Dude Wipes', 'Hatch']);
+    expect(picks.map(b => [b.name, b.url])).toEqual([['Who Gives A Crap', 'https://whogivesacrap.org'], ['Dude Wipes', 'https://dudewipes.com']]);
+    expect(picks[0]).toMatchObject({ lane: 'unexpected', category: 'unexpected-delight', hook: 'Twenty-four days of spice needs a plan for the day after', brandStage: 'established' });
+    expect(picks[0].reasons[1]).toBe('Premium bamboo toilet paper with the advent calendar');
+    expect(picks[0].bundleIdea).toBe('The Ring of Fire Kit: Everyone gets it');
   });
 
-  it('keeps the main call\'s own unexpected picks only to fill the lane, and makes room in a full list', () => {
+  it('keeps the list as it was when ideation fails', async () => {
+    const failing = { ...api, gemini: async () => new Response(JSON.stringify({ error: 'down', status: 503 }), { status: 200 }) };
+    expect(await unexpectedCollabs(failing, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands: [] })).toEqual([]);
+  });
+
+  it('mergeUnexpected keeps the main call\'s own unexpected picks only to fill the lane, and makes room in a full list', () => {
     const others = Array.from({ length: 13 }, (_, i) => brand(`B${i}`, 'lifestyle', i === 12 ? 'emerging' : 'established'));
     const brands = [...others, brand('Own1', 'unexpected'), brand('Own2', 'unexpected')];
     const merged = mergeUnexpected(brands, [brand('Hot1', 'unexpected'), brand('Hot2', 'unexpected')]);
@@ -398,5 +410,53 @@ describe('unexpectedCollabs and mergeUnexpected', () => {
     expect(merged.find(b => b.name === 'B12')).toBeTruthy();
     expect(merged.find(b => b.name === 'B11')).toBeUndefined();
     expect(mergeUnexpected(brands, [])).toBe(brands);
+  });
+});
+
+describe('gradeCandidates and composeGraded', () => {
+  const brand = (name, lane, brandStage = 'established') => ({ name, url: `https://${name.toLowerCase().replace(/[^a-z]/g, '')}.com`, lane, category: 'same-moment', brandStage });
+  const grade = (over = {}) => ({ brand: 1, kind: 'consumer_brand', competitor: 0.05, lane: 'same-shelf', laneConfidence: 0.8, stage: 'growing', fit: 2.4, surprise: 1.5, ...over });
+
+  it('asks Jev about every candidate and reads the answers, tolerating a candidate it cannot grade', async () => {
+    const answers = { kind: { choice: 'media', probabilities: { consumer_brand: 0.02, media: 0.98 }, confidence: 0.9 }, competitor: { noul: 0.1 }, lane: { choice: 'lifestyle', confidence: 0.7 }, stage: { choice: 'established' }, fit: { score: 1.9 }, surprise: { score: 2.4 } };
+    let n = 0;
+    const api = { jev: async () => (n++ === 0 ? new Response(JSON.stringify({ answers }), { status: 200 }) : new Response('', { status: 500 })) };
+    const grades = await gradeCandidates(api, { name: 'X' }, [brand('Monocle', 'lifestyle'), brand('Y', 'same-shelf')]);
+    expect(grades[0]).toMatchObject({ brand: 0.02, kind: 'media', competitor: 0.1, lane: 'lifestyle', stage: 'established', fit: 1.9, surprise: 2.4 });
+    expect(grades[1]).toBeNull();
+    expect(await gradeCandidates({}, { name: 'X' }, [brand('Y', 'same-shelf')])).toEqual([null]);
+  });
+
+  it('drops non-brands, competitors and unbelievable bundles, takes Jev\'s lane and stage, and fills the unexpected lane by surprise', () => {
+    const brands = [
+      brand('Monocle', 'lifestyle'), brand('Wild One', 'adjacent-function'), brand('Field Skillet', 'unexpected'),
+      brand('Hatch', 'unexpected'), brand('Cadence', 'parallel-premium'), brand('Floyd', 'same-shelf'),
+      brand('Parachute', 'parallel-premium'), brand('Snow Peak', 'lifestyle'), brand('Flea Away', 'adjacent-function')
+    ];
+    const grades = [
+      grade({ brand: 0.02, kind: 'media' }),
+      grade({ competitor: 0.69 }),
+      grade({ fit: 1.0, surprise: 2.5 }),
+      grade({ lane: 'adjacent-function', laneConfidence: 0.91, stage: 'established', surprise: 1.4 }),
+      grade({ lane: 'adjacent-function', laneConfidence: 0.77, stage: 'emerging', surprise: 2.6 }),
+      grade({ lane: 'parallel-premium', laneConfidence: 0.67, surprise: 2.3 }),
+      grade({ lane: 'parallel-premium', laneConfidence: 0.74, surprise: 1.7 }),
+      grade({ lane: 'lifestyle', laneConfidence: 0.34, surprise: 2.0 }),
+      grade({ lane: 'adjacent-function', laneConfidence: 0.88, stage: 'emerging', surprise: 1.5 })
+    ];
+    const out = composeGraded(brands, grades);
+    expect(out.map(b => b.name)).toEqual(['Hatch', 'Cadence', 'Floyd', 'Parachute', 'Snow Peak', 'Flea Away']);
+    expect(out.find(b => b.name === 'Hatch')).toMatchObject({ lane: 'adjacent-function', brandStage: 'established' });
+    // Cadence and Floyd are the surprising ones; they hold the unexpected lane whatever their relation.
+    expect(out.filter(b => b.lane === 'unexpected').map(b => b.name)).toEqual(['Cadence', 'Floyd']);
+    expect(out.find(b => b.name === 'Cadence').category).toBe('unexpected-delight');
+    // Snow Peak: Jev was not sure, so the model's lane stands.
+    expect(out.find(b => b.name === 'Snow Peak').lane).toBe('lifestyle');
+    expect(out.find(b => b.name === 'Flea Away').brandStage).toBe('emerging');
+  });
+
+  it('leaves the list alone when nothing was graded', () => {
+    const brands = [brand('A', 'same-shelf')];
+    expect(composeGraded(brands, [null])).toBe(brands);
   });
 });
