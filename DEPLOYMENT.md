@@ -49,13 +49,16 @@ Secrets, set once with `wrangler secret put <NAME>`: `GEMINI_API_KEY`, `SERP_API
 default (`src/lib/shared/offerlab.js`). Optional vars: `CRAWL_MAX_DEPTH`, `CRAWL_EXPAND_PER_SEARCH`,
 `CRAWL_DAILY_LIMIT`.
 
-Deploy: `npm run deploy` (`vite build` then `wrangler deploy`). Migrations are applied by hand,
-before the deploy that needs them: `npm run db:migrate` (`wrangler d1 migrations apply
-offerlab-tools --remote`). The D1 database is the same one the Pages deployment used; nothing
-moves.
+Deploy: automatic. The `collab-finder` Worker is connected to this repo through Cloudflare Workers
+Builds: every push to `brand-collab-finder` runs `npm run build` and `npx wrangler deploy`, and
+other branches build as previews. By hand, `npm run deploy` does the same. Migrations are not
+part of the build: apply them before merging the PR that needs them, with `npm run db:migrate`
+(`wrangler d1 migrations apply offerlab-tools --remote`), and keep them additive so the running
+version never breaks.
 
-The custom domain (`collabfinder.offerlab.com`) is attached to the Worker under Settings →
-Domains & Routes, after it is removed from the Pages project.
+`collabfinder.offerlab.com` reaches the Worker through a route (`collabfinder.offerlab.com/*` →
+`collab-finder`) on the proxied DNS record the Pages project used. The old `offerlab-tools` Pages
+project is detached and its deployments are paused; it goes once the Worker has held up.
 
 ## Data store (Cloudflare D1)
 
