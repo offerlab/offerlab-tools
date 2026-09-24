@@ -26,6 +26,18 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Branch previews (Workers Builds runs `wrangler preview` for non-production branches). They
+  // share the production database, as the Pages previews did, and send their keyed API calls
+  // through the live site, so a preview needs no secrets and runs no cron.
+  "previews": {
+    "d1_databases": [
+      { "binding": "DB", "database_id": "10833831-1ee4-48b2-8a1b-36a207cd2579" }
+    ],
+    "vars": {
+      "UPSTREAM_API_ORIGIN": "https://collabfinder.offerlab.com",
+      "OFFERLAB_HOST": "https://demo-app.offerlab.com"
+    }
+  },
   // The crawl: every minute the Worker's scheduled() handler drains the queue in-process
   // (src/worker.js). This replaces the separate crawl-scheduler Worker.
   "triggers": {
