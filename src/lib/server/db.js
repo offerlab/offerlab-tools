@@ -20,6 +20,10 @@ export const DEFAULT_FEEDBACK_LIMIT = 100;
 export const DEFAULT_KNOWN_PARTNERS = 8;
 /** Drafts kept per searched brand, newest first. */
 export const DRAFTS_PER_BRAND = 20;
+/** The well-trodden set: brands recommended in at least this many of the last N searches. */
+export const FREQUENT_SEARCHES = 100;
+export const FREQUENT_MIN = 3;
+export const DEFAULT_FREQUENT_LIMIT = 25;
 
 /** "https://www.Graza.co/pages/x" -> "graza.co": the key every table shares. */
 export function canonicalDomain(input) {
@@ -221,6 +225,24 @@ export async function listKnownPartners(db, domain, limit = DEFAULT_KNOWN_PARTNE
       bundleIdea: recommendation.bundleIdea || null
     };
   });
+}
+
+/**
+ * The brands the finder recommends most, across its last searches: the recommender's habits,
+ * handed back to it so a search reaches past them. [{ domain, name, searches }], most first.
+ */
+export async function listFrequentBrands(db, { searches = FREQUENT_SEARCHES, min = FREQUENT_MIN, limit = DEFAULT_FREQUENT_LIMIT } = {}) {
+  const { results } = await db.prepare(
+    `SELECT sb.domain AS domain, MAX(json_extract(sb.brand, '$.name')) AS name, COUNT(DISTINCT sb.search_domain) AS searches
+       FROM search_brands sb
+       JOIN (SELECT domain FROM searches WHERE status = 'results' ORDER BY updated_at DESC LIMIT ?) recent
+         ON recent.domain = sb.search_domain
+      GROUP BY sb.domain
+     HAVING searches >= ?
+      ORDER BY searches DESC, sb.domain
+      LIMIT ?`
+  ).bind(searches, min, limit).all();
+  return (results || []).map(row => ({ domain: row.domain, name: row.name || row.domain, searches: row.searches }));
 }
 
 function withoutCatalog(brand) {

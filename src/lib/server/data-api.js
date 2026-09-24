@@ -7,6 +7,7 @@
  *   GET    searches/:domain?products=N   the stored search, brands' catalogs trimmed to N
  *   PUT    searches/:domain              store a finished search (results, empty or error)
  *   GET    partners/:domain?limit=N      brands whose search recommended this domain
+ *   GET    frequent?limit=N              the brands recommended most across recent searches
  *   GET    history?limit=N               recent searches, newest first
  *   POST   history        { domain }     a search just ran for this domain
  *   DELETE history/:domain               drop one; DELETE history drops them all
@@ -61,6 +62,11 @@ async function route({ method, segments, query, body, db }) {
       if (method === 'GET' && first && !second) {
         return { status: 200, body: await store.listKnownPartners(db, needDomain(first), intParam(query.limit, store.DEFAULT_KNOWN_PARTNERS, { max: 50 })) };
       }
+      break;
+    }
+
+    case 'frequent': {
+      if (method === 'GET' && !first) return { status: 200, body: await store.listFrequentBrands(db, { limit: intParam(query.limit, store.DEFAULT_FREQUENT_LIMIT, { max: 100 }) }) };
       break;
     }
 

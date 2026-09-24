@@ -87,15 +87,62 @@ function buildKnownPartnersContext(partners) {
   return `\n\nKNOWN PARTNERS FROM PAST SEARCHES (each of these brands was matched with this one when it was searched):\n${lines.join('\n')}\nInclude the ones that still fit this brand, after verifying they are active; they count toward the 12-15. Leave out any that do not fit.\n`;
 }
 
+const ANGLES = new Set(['same-moment', 'same-aesthetic', 'same-values', 'gift-pairing', 'lifestyle-stack', 'unexpected-delight']);
+const LANES = new Set(['same-shelf', 'adjacent-function', 'lifestyle', 'parallel-premium', 'unexpected']);
+// The angle a lane reads as when the model wrote something else, and the other way round.
+const LANE_ANGLE = { 'same-shelf': 'same-moment', 'adjacent-function': 'same-moment', lifestyle: 'lifestyle-stack', 'parallel-premium': 'same-aesthetic', unexpected: 'unexpected-delight' };
+const ANGLE_LANE = { 'same-moment': 'same-shelf', 'same-aesthetic': 'parallel-premium', 'same-values': 'adjacent-function', 'gift-pairing': 'parallel-premium', 'lifestyle-stack': 'lifestyle', 'unexpected-delight': 'unexpected' };
+
+/** Every brand carries one of the six angles and one of the five lanes, whatever the model wrote. */
+export function normalizeRecommendations(brands) {
+  return brands.map(brand => {
+    const lane = LANES.has(brand.lane) ? brand.lane : (ANGLE_LANE[brand.lane] || ANGLE_LANE[brand.category] || 'lifestyle');
+    const category = ANGLES.has(brand.category) ? brand.category : (LANE_ANGLE[lane] || 'same-moment');
+    return { ...brand, lane, category };
+  });
+}
+
+/** How many well-trodden brands a list may carry; a kitchen brand's list came back with seven. */
+export const WELL_TRODDEN_MAX = 2;
+const WELL_TRODDEN_FLOOR = 10;
+
 /**
- * Runs one search. `feedback` and `knownPartners` are what the store holds for it; the caller
- * loads them, the browser through store.js and the server from D1.
+ * Keeps the first two well-trodden picks and drops the rest, while the list stays long enough to
+ * be a list. The prompt asks for this; a hard prior does not always listen.
+ */
+export function capWellTrodden(brands, frequentBrands, { max = WELL_TRODDEN_MAX, floor = WELL_TRODDEN_FLOOR } = {}) {
+  const trodden = new Set((frequentBrands || []).map(b => (b.name || b.domain || '').trim().toLowerCase()).filter(Boolean));
+  if (!trodden.size) return brands;
+  let kept = 0;
+  let count = brands.length;
+  return brands.filter(brand => {
+    if (!trodden.has((brand.name || '').trim().toLowerCase())) return true;
+    if (kept < max || count <= floor) { kept++; return true; }
+    count--;
+    return false;
+  });
+}
+
+/**
+ * The brands the finder recommends most across recent searches. Left to itself the model reaches
+ * for the same famous DTC names for every brand (Brightland in 53 of the last 97 searches); told
+ * which those are, it reaches past them.
+ */
+export function buildFrequentContext(brands) {
+  const names = (brands || []).map(b => (b.name || b.domain || '').trim()).filter(Boolean);
+  if (!names.length) return '';
+  return `\n\nALREADY WELL-TRODDEN (recommended many times across other brands' searches): ${names.join(', ')}.\nDo not reach for these by habit. Include one only if it is clearly the single best fit in its lane, and at most 2 of them in total; otherwise find a brand beyond this list.\n`;
+}
+
+/**
+ * Runs one search. `feedback`, `knownPartners` and `frequentBrands` are what the store holds
+ * for it; the caller loads them, the browser through store.js and the server from D1.
  *
  * Callbacks: onProgress(step) with step 0-5, onBrandsReady({ searchedBrand, brands }) as soon
  * as the recommendations are in, onCatalog(brand) as each brand's catalog resolves.
  */
 export async function discoverComplementaryBrands(url, {
-  api, feedback = [], knownPartners = [],
+  api, feedback = [], knownPartners = [], frequentBrands = [],
   onProgress, onBrandsReady, onCatalog, config = {}
 }) {
   const settings = { ...SEARCH_DEFAULTS, ...config };
@@ -111,10 +158,10 @@ export async function discoverComplementaryBrands(url, {
   updateProgress(1);
 
   updateProgress(2);
-  const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners);
+  const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
-  const brands = (augmentedResults.brands || []).map(ensureHttps);
+  const brands = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -397,10 +444,19 @@ For each brand, classify using ONE of these collaboration angles:
 - **"lifestyle-stack"**: Part of the same customer's broader lifestyle/identity
 - **"unexpected-delight"**: Non-obvious pairing that tells a story
 
+=== BREADTH: COVER THESE LANES ===
+
+Spread the 12-15 brands across ALL five lanes, at least 2 in each, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
+1. **"same-shelf"**: products used alongside this brand's own, on the same shelf or in the same routine (never a direct competitor).
+2. **"adjacent-function"**: the next need this customer has around the product: for food and drink that is hydration, supplements, recovery or sleep; for beauty it is tools, skin health or wellness; for home it is care, storage or the rituals the product serves; for apparel it is gear, footwear or recovery.
+3. **"lifestyle"**: the apparel, equipment, spaces or services this customer's day runs on.
+4. **"parallel-premium"**: a category this customer already buys in at the same tier that is NOT this brand's own: beauty and personal care, home, kitchen, or wellness, whichever is furthest from this brand while still obviously the same person.
+5. **"unexpected"**: a pairing that tells a story only these two brands could tell, and that a buyer would still say yes to.
+
 === DIVERSITY REQUIREMENTS ===
 
-Your 12-15 brand recommendations MUST include:
-- At least 5 **emerging brands** (founded 2020+, under $10M revenue)
+Your 12-15 brand recommendations MUST also include:
+- At least 4 **emerging brands** (founded 2020+, under $10M revenue)
 - At least 4 **established brands** (well-known, proven track record)
 - At least 1 **non-obvious category** (digital product, subscription, experience)
 - Mix of price points that make sense for the input brand's customer
@@ -438,6 +494,7 @@ Return valid JSON only:
       "name": "Brand Name",
       "url": "https://actualbrandwebsite.com",
       "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
+      "lane": "same-shelf|adjacent-function|lifestyle|parallel-premium|unexpected",
       "brandStage": "emerging|growing|established",
       "reasons": ["3 short bullets on why this collab works with ${brandName}. Each is its own angle: the shared customer moment, the aesthetic or values overlap, and what the pairing unlocks commercially. Under 12 words each, playful and concrete, naming real products or details rather than generic praise. No em dashes, no restating the brand's tagline."],
       "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
@@ -466,7 +523,11 @@ Return valid JSON only:
 }
 
 Requirements:
-- 12-15 brands with diversity requirements met
+- 12-15 brands
+- EVERY one of the five lanes has at least 2 brands. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
+- At least 4 emerging brands (founded 2020+, under $10M revenue)
+- At most 2 brands from the ALREADY WELL-TRODDEN list, if one was given. The reader has seen those; the rest of the list must reach beyond them
+- "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
 - 20-25 products total
 - At least 2 products per recommended brand
 - ZERO products from ${brandName} - this is critical

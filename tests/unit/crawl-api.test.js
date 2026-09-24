@@ -78,7 +78,10 @@ describe('POST /api/crawl/next', () => {
     const { status, body } = await call({ method: 'POST', path: 'next', fetchImpl });
     expect(status).toBe(200);
     expect(body).toMatchObject({ domain: 'a.test', step: 'searching', status: 'queued', error: 'Brand analysis failed: 500 - no key' });
-    expect(fetchImpl.mock.calls[0][0]).toBe('https://finder.test/api/gemini');
+    // The site's own words and catalog are read first to ground the analysis; then Gemini.
+    const urls = fetchImpl.mock.calls.map(c => String(c[0]));
+    expect(urls[0]).toMatch('https://finder.test/api/opengraph?url=');
+    expect(urls).toContain('https://finder.test/api/gemini');
     expect((await call()).body.recent[0]).toMatchObject({ status: 'queued', attempts: 1, outcome: { error: 'Brand analysis failed: 500 - no key' } });
   });
 });

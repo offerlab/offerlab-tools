@@ -151,6 +151,32 @@ describe('drafts', () => {
   });
 });
 
+describe('listFrequentBrands', () => {
+  it('counts the searches each brand was recommended in, most first, above a floor', async () => {
+    for (const [domain, brands, at] of [
+      ['a.test', ['Graza', 'Olipop', 'Nutr'], 1],
+      ['b.test', ['Graza', 'Olipop'], 2],
+      ['c.test', ['Graza', 'Olipop', 'MiiR'], 3],
+      ['d.test', ['Graza'], 4]
+    ]) {
+      const search = searchFixture(domain, brands.length);
+      search.brands = brands.map(name => ({ name, url: `https://${name.toLowerCase()}.co` }));
+      await store.putSearch(db, domain, search, at);
+    }
+    // An empty search is not a search.
+    await store.putSearch(db, 'empty.test', { type: 'empty' }, 5);
+
+    expect(await store.listFrequentBrands(db, { min: 2 })).toEqual([
+      { domain: 'graza.co', name: 'Graza', searches: 4 },
+      { domain: 'olipop.co', name: 'Olipop', searches: 3 }
+    ]);
+    expect(await store.listFrequentBrands(db, { min: 2, limit: 1 })).toHaveLength(1);
+    // Only the most recent searches count.
+    expect(await store.listFrequentBrands(db, { searches: 2, min: 2 })).toEqual([{ domain: 'graza.co', name: 'Graza', searches: 2 }]);
+    expect(await store.listFrequentBrands(db, { min: 5 })).toEqual([]);
+  });
+});
+
 describe('listKnownPartners', () => {
   it('finds the searches that recommended a domain, newest first', async () => {
     const olderSearch = searchFixture('old.test', 1);
