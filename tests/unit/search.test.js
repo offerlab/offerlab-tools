@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -362,5 +362,41 @@ describe('topUpEmerging', () => {
     const brands = [brand('Vuori', 'established')];
     const api = { gemini: async () => new Response(JSON.stringify({ error: 'down', status: 503 }), { status: 200 }) };
     expect(await topUpEmerging(api, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands })).toEqual(brands);
+  });
+});
+
+describe('unexpectedCollabs and mergeUnexpected', () => {
+  const profile = { name: 'Fly By Jing', url: 'https://flybyjing.com' };
+  const brand = (name, lane, brandStage = 'established') => ({ name, url: `https://${name.toLowerCase().replace(/ /g, '')}.com`, lane, category: 'same-moment', brandStage });
+
+  it('asks a hotter call for pairings, keeps them as the unexpected lane, and skips what is listed or well-trodden', async () => {
+    const brands = [brand('Graza', 'same-shelf'), brand('Omsom', 'unexpected'), brand('Oatly', 'unexpected')];
+    const bodies = [];
+    const api = { gemini: async (body) => { bodies.push(body); return new Response(JSON.stringify(gemini(JSON.stringify({ brands: [
+      { name: 'Who Gives A Crap', url: 'https://whogivesacrap.org', brandStage: 'established', hook: 'Twenty-four days of spice' },
+      { name: 'Dude Wipes', url: 'https://dudewipes.com', brandStage: 'growing' },
+      { name: 'Graza', url: 'https://graza.co' },
+      { name: 'Brightland', url: 'https://brightland.co' },
+      { name: 'Hatch', url: 'https://hatch.co', lane: 'lifestyle', category: 'same-moment' }
+    ] }))), { status: 200 }); } };
+    const picks = await unexpectedCollabs(api, { brandProfile: profile, brandName: 'Fly By Jing', domain: 'flybyjing.com', brands, frequentBrands: [{ name: 'Brightland' }] });
+    expect(picks.map(b => b.name)).toEqual(['Who Gives A Crap', 'Dude Wipes', 'Hatch']);
+    expect(picks.every(b => b.lane === 'unexpected' && b.category === 'unexpected-delight')).toBe(true);
+    expect(bodies[0].generationConfig.temperature).toBeGreaterThan(1);
+    expect(bodies[0].contents[0].parts[0].text).toContain('Who Gives A Crap');
+
+    const merged = mergeUnexpected(brands, picks);
+    expect(merged.map(b => b.name)).toEqual(['Graza', 'Who Gives A Crap', 'Dude Wipes', 'Hatch']);
+  });
+
+  it('keeps the main call\'s own unexpected picks only to fill the lane, and makes room in a full list', () => {
+    const others = Array.from({ length: 13 }, (_, i) => brand(`B${i}`, 'lifestyle', i === 12 ? 'emerging' : 'established'));
+    const brands = [...others, brand('Own1', 'unexpected'), brand('Own2', 'unexpected')];
+    const merged = mergeUnexpected(brands, [brand('Hot1', 'unexpected'), brand('Hot2', 'unexpected')]);
+    expect(merged).toHaveLength(15);
+    expect(merged.filter(b => b.lane === 'unexpected').map(b => b.name)).toEqual(['Hot1', 'Hot2', 'Own1']);
+    expect(merged.find(b => b.name === 'B12')).toBeTruthy();
+    expect(merged.find(b => b.name === 'B11')).toBeUndefined();
+    expect(mergeUnexpected(brands, [])).toBe(brands);
   });
 });

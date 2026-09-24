@@ -149,7 +149,8 @@ describe('runStep: search', () => {
     await seed('seed.test', { status: 'searching', attempts: 1 });
     const result = await runStep(await row('seed.test'), { db, api, settings });
     expect(result).toMatchObject({ status: 'expand', reused: false, partners: 5, withCatalog: 5 });
-    expect(api.gemini).toHaveBeenCalledTimes(2);
+    // The analysis, the recommendations, and the unexpected lane's own call (which the fixture leaves unanswered).
+    expect(api.gemini).toHaveBeenCalledTimes(3);
     expect(api.serp).not.toHaveBeenCalled();
 
     const stored = await store.getSearch(db, 'seed.test');

@@ -174,7 +174,12 @@ export async function discoverComplementaryBrands(url, {
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
   const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
-  const brands = await topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands });
+  // Two follow-ups, side by side: the emerging count, and the unexpected lane at a higher temperature.
+  const [toppedUp, unexpected] = await Promise.all([
+    topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands }),
+    unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: capped, frequentBrands })
+  ]);
+  const brands = mergeUnexpected(toppedUp, unexpected);
 
   const searchedBrand = ensureHttps(resolvedBrandProfile);
   if (!searchedBrand.imageUrl && searchedBrand.url) {
@@ -666,6 +671,90 @@ Return valid JSON only:
     console.warn(`[Discovery] Emerging top-up skipped: ${err.message}`);
     return brands;
   }
+}
+
+// ============================================
+// PHASE 2c: The unexpected lane, on its own
+// ============================================
+
+/** How many unexpected pairings a list carries; the main call's own picks fill in below this. */
+export const UNEXPECTED_COUNT = 3;
+
+/**
+ * The unexpected lane as its own call, hotter than the main one. The main call is good at fit
+ * and safe with surprise; this one is briefed for the pairing a buyer would never have thought
+ * of and immediately gets, which is the kind that makes the finder worth opening.
+ */
+export async function unexpectedCollabs(api, { brandProfile, brandName, domain, brands, frequentBrands = [] }) {
+  const listed = brands.map(b => b.name).filter(Boolean);
+  const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
+  const prompt = `You are the creative director of a brand collaboration studio, and you are famous for one thing: pairings nobody saw coming that everyone immediately gets.
+
+=== THE BRAND ===
+${JSON.stringify({ name: brandProfile.name, url: brandProfile.url, tagline: brandProfile.tagline, productAnalysis: brandProfile.productAnalysis, brandDNA: brandProfile.brandDNA, targetCustomer: brandProfile.targetCustomer }, null, 2)}
+
+=== THE BAR ===
+Fly By Jing makes Sichuan chili crisp and just released a holiday advent calendar. The pairing: Who Gives A Crap, the toilet paper brand, a holiday bundle that plays on what 24 days of very spicy food does to you. Dude Wipes would have landed the same way. It is funny, but that is not the point: the point is that a buyer says "oh wow, that really works, and I never would have thought of it". Some of the best pairings of this kind are not funny at all: they connect two rituals, two moments, or two feelings that belong together and nobody had put side by side.
+
+TASK: Propose ${UNEXPECTED_COUNT + 1} pairings for ${brandName} that clear that bar.
+- Each must be a real, active brand with its own products; verify it with web search and use its actual homepage URL.
+- Name the specific product on each side that the pairing is built on, and the cultural or bodily or seasonal hook that makes it click.
+- A buyer must still say yes: the two products are bought by the same person, or the pairing is the reason to buy.
+- Not a direct competitor of ${brandName}. Not one of the brands already recommended (${listed.join(', ') || 'none'}). Not one of the brands recommended everywhere (${trodden.join(', ') || 'none'}). Not the safe adjacent category everyone would suggest.
+- Not a joke for its own sake: if it is funny, it also has to be a bundle the buyer wants.
+
+Return valid JSON only:
+{
+  "brands": [
+    {
+      "name": "Brand Name",
+      "url": "https://actualbrandwebsite.com",
+      "category": "unexpected-delight",
+      "lane": "unexpected",
+      "brandStage": "emerging|growing|established",
+      "hook": "The one line that makes the pairing click, under 15 words",
+      "reasons": ["3 short bullets, under 12 words each, concrete, naming the real products on both sides"],
+      "bundleIdea": "One sentence describing the specific product bundle or campaign, with a name for it",
+      "social": { "tiktok": "handle or null", "instagram": "handle or null", "facebook": "handle or null" }
+    }
+  ]
+}`;
+
+  try {
+    const data = await geminiJson(api, 'Unexpected collabs', {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Use Google Search to verify every brand and take its real URL from the results. Return ONLY valid JSON.' }] },
+      tools: [{ google_search: {} }],
+      generationConfig: { temperature: 1.15, topK: 64, topP: 0.98, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
+    });
+    const seen = new Set(brands.flatMap(b => [b.name?.toLowerCase(), brandDomain(b.url || '')]).filter(Boolean));
+    const troddenSet = new Set(trodden.map(t => t.toLowerCase()));
+    const picks = normalizeRecommendations(parseJsonResponse(extractText(data)).brands || [])
+      .map(b => ({ ...b, lane: 'unexpected', category: 'unexpected-delight' }))
+      .map(ensureHttps)
+      .filter(b => b.name && !seen.has(b.name.toLowerCase()) && !seen.has(brandDomain(b.url || '')) && !troddenSet.has(b.name.toLowerCase()))
+      .slice(0, UNEXPECTED_COUNT);
+    console.log(`[Discovery] Unexpected collabs: ${picks.map(b => b.name).join(', ') || 'none'}`);
+    return picks;
+  } catch (err) {
+    console.warn(`[Discovery] Unexpected collabs skipped: ${err.message}`);
+    return [];
+  }
+}
+
+/**
+ * The hotter call's pairings take the unexpected lane. The main call's own unexpected picks stay
+ * only to fill the lane when the hotter call brought fewer than it holds; the list stays at
+ * most 15 by letting go of its last established picks in the other lanes.
+ */
+export function mergeUnexpected(brands, picks) {
+  if (!picks.length) return brands;
+  const others = brands.filter(b => b.lane !== 'unexpected');
+  const own = brands.filter(b => b.lane === 'unexpected').slice(0, Math.max(0, UNEXPECTED_COUNT - picks.length));
+  const lane = [...picks, ...own];
+  const overflow = others.length + lane.length - RECOMMENDATIONS_MAX;
+  const kept = overflow > 0 ? withoutLastEstablished(others, overflow) : others;
+  return [...kept, ...lane];
 }
 
 // ============================================
