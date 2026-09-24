@@ -60,7 +60,7 @@
       </div>
       <div class="picker-tray-actions">
         {#if primary !== 'working'}
-          <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="cross-large" size={14} /><span class="picker-tray-action-label">Clear</span></button>
+          <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="arrow-rotate-right-left" size={16} /><span class="picker-tray-action-label">Clear</span></button>
         {/if}
         {#if primary === 'working'}
           <!-- Still the primary button to look at, with nothing to press: the app's three dots looping beside a shimmering label until the draft is ready. -->
@@ -72,7 +72,7 @@
         {:else if primary === 'retry'}
           <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Try again</button>
         {:else if primary === 'create'}
-          <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Create bundle</button>
+          <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Bundle</button>
         {/if}
       </div>
     </div>
