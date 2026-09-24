@@ -10,7 +10,7 @@
   import { icon } from '$lib/client/icons.js';
   import Icon from './Icon.svelte';
   import { coverUrl, escape, findBundle, label, logoFor, LIGHTBOX_COVER_WIDTH, TILE_COVER_WIDTH } from '$lib/client/showcase.svelte.js';
-  import { board, isMobile } from '$lib/client/showcase-board.js';
+  import { board } from '$lib/client/showcase-board.js';
 
   // Closing is the plainer move: the card scales back onto the shelf, no turn.
   const CLOSE_MS = 380;
@@ -54,6 +54,8 @@
     card.style.transition = 'none';
     card.style.transform = 'none';
     const from = liftOrigin(tile, { turn: true });
+    // On a phone the flight is the entrance; without a tile to fly from, the sheet fades in.
+    lightbox.classList.toggle('is-lifting', !!from);
     if (from) {
       card.style.transformOrigin = from.origin;
       card.style.transform = from.transform;
@@ -86,7 +88,7 @@
     }
     closing = setTimeout(() => {
       lightbox.classList.add('hidden');
-      lightbox.classList.remove('is-closing');
+      lightbox.classList.remove('is-closing', 'is-lifting');
       card.style.transform = '';
       card.style.transformOrigin = '';
       tile?.classList.remove('is-lifted');
@@ -105,10 +107,11 @@
 
   /**
    * The transform that puts the card's cover over the tile at the tile's size, about the cover's
-   * center, and the origin that makes it so; turned a full circle away when `turn`. Null on a phone.
+   * center, and the origin that makes it so; turned a full circle away when `turn`. Null without
+   * a tile on screen to fly from.
    */
   function liftOrigin(tile, { turn = false } = {}) {
-    if (isMobile() || !tile?.isConnected) return null;
+    if (!tile?.isConnected) return null;
     const t = tile.getBoundingClientRect();
     const cover = card.querySelector('.library-lightbox-cover').getBoundingClientRect();
     const c = card.getBoundingClientRect();

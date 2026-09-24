@@ -8305,11 +8305,19 @@ button.social-link:disabled {
     height: 48px;
   }
 
-  /* The phone card lands in 0.3s, so the close control follows sooner. */
-  .library-lightbox.is-open .library-lightbox-close {
-    transition-delay: 0.3s;
+  /* The sheet fades in only when there is no tile to fly from; with one, the flight is the
+     entrance (the same full turn as the desktop card) and the sheet is solid from its first frame. */
+  .library-lightbox.is-lifting .library-lightbox-card {
+    opacity: 1;
+    transition: transform 0.65s cubic-bezier(0.32, 0.72, 0.1, 1);
   }
 
+  .library-lightbox.is-lifting.is-closing .library-lightbox-card {
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Fixed inside the card, so during the flight the transformed card would carry it: it arrives
+     after the card has landed, like the close control, and goes at once on close. */
   .library-lightbox-open {
     position: fixed;
     left: 16px;
@@ -8318,6 +8326,25 @@ button.social-link:disabled {
     z-index: 2;
     justify-content: center;
     margin: 0;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .library-lightbox.is-open .library-lightbox-open {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.2s ease 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s;
+  }
+
+  /* The phone sheet lands in 0.3s when it fades in, and in 0.65s when it flies. */
+  .library-lightbox.is-open .library-lightbox-close {
+    transition-delay: 0.3s;
+  }
+
+  .library-lightbox.is-lifting.is-open .library-lightbox-close,
+  .library-lightbox.is-lifting.is-open .library-lightbox-open {
+    transition-delay: 0.6s;
   }
 
   .library-lightbox.is-open .library-lightbox-card {
