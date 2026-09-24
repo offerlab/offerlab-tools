@@ -7290,32 +7290,16 @@ button.social-link:disabled {
     margin-inline-start: 0;
   }
 
-  /* Clear becomes an eyebrow tucked under the pill's top edge instead of a third thing in a row
-     that is already carrying the pile, the count and the primary. Out of flow, so the pill's own
-     row is just those three. The tray is its containing block and the pill fills the tray, so
-     bottom: 100% is the pill's top edge; the 2px past it hides this one's bottom border under it. */
+  /* Reset stays in the row beside the primary, as the icon alone: the row is already carrying
+     the pile, the count and the primary, and the arrows say it. */
   .picker-tray-actions .btn--overlay {
-    position: absolute;
-    /* Inset from the tray on both sides rather than centred on a width: no transform to be wiped
-       out by the one .btn:active applies. */
-    left: 20px;
-    right: 20px;
-    bottom: calc(100% - 2px);
-    /* Behind the pill's surface. The tray is the stacking context, and its background is
-       transparent, so this lands under the pill's fill rather than under the page. */
-    z-index: -1;
-    height: 36px;
-    padding: 0 16px 2px;
-    border-radius: 20px 20px 0 0;
-    background: var(--content-background-base);
-    border: none;
-    box-shadow: none;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
   }
 
-  /* Opaque, unlike the overlay fill this variant hovers to elsewhere: the eyebrow is over the page,
-     not over a surface, and a translucent one would show the catalog through it. */
-  .picker-tray-actions .btn--overlay:hover {
-    background: var(--content-background-elevated);
+  .picker-tray-action-label {
+    display: none;
   }
 
   /* A pair of long brand names runs past the pill on its own */
