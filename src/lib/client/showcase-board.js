@@ -172,8 +172,8 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
   // only on hover, so it is added the first time a tile is hovered or focused.
   const scrimHtml = src => `
     <span class="library-tile-scrim" aria-hidden="true">
-      <img class="library-tile-scrim-soft" src="${src}" alt="" decoding="async">
-      <img class="library-tile-scrim-deep" src="${src}" alt="" decoding="async">
+      <img class="library-tile-scrim-soft" src="${src}" alt="" decoding="async" loading="lazy">
+      <img class="library-tile-scrim-deep" src="${src}" alt="" decoding="async" loading="lazy">
     </span>`;
 
   function makeTile(bundle) {
@@ -185,7 +185,8 @@ export function createBoard({ section, viewport, el, media, coverUrl, escape, on
     tile.dataset.width = String(width);
     tile.setAttribute('aria-label', `${bundle.name}, ${bundle.brands.join(', ')}`);
     const src = escape(coverUrl(bundle.cover, width));
-    tile.innerHTML = `<span class="library-tile-cover"><img src="${src}" alt="" decoding="async"></span>${phone() ? scrimHtml(src) : ''}<span class="library-tile-name">${escape(bundle.name)}</span>`;
+    // Lazy: a phone deals every shelf at once, and only the covers in view should cost a request.
+    tile.innerHTML = `<span class="library-tile-cover"><img src="${src}" alt="" decoding="async" loading="lazy"></span>${phone() ? scrimHtml(src) : ''}<span class="library-tile-name">${escape(bundle.name)}</span>`;
     tile.querySelector('img').addEventListener('error', () => tile.classList.add('is-bare'), { once: true });
     return tile;
   }

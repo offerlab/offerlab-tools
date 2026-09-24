@@ -2,12 +2,14 @@
  * GET /api/library (src/routes/api/library/+server.js): the Showcase's bundles.
  *
  * D1 holds every bundle (library_bundles), seeded from the committed snapshot
- * (static/library/snapshot.json) the first time it is read. Each read then syncs the table with
- * the store's public listing: a bundle published from OfferLab reaches that listing the moment it
- * is put on the Online Store channel, so it shows in the Showcase as soon as it has a
- * storefront URL. A new bundle is classified once and kept; one the store stops listing is
- * dated unlisted and left out until it is listed again. Without a database (or a store that
- * cannot be read) the snapshot and the additions still go out, only nothing is remembered.
+ * (static/library/snapshot.json) by the first sync. A read is the table alone, so it answers in
+ * the time of one query. A sync (the Worker's cron each minute, and a read with `?sync=1`, which
+ * is what the open Showcase polls) brings the table up to the store's public listing: a bundle
+ * published from OfferLab reaches that listing the moment it is put on the Online Store channel,
+ * so it shows in the Showcase as soon as it has a storefront URL. A new bundle is classified once
+ * and kept; one the store stops listing is dated unlisted and left out until it is listed again.
+ * Without a database (or a store that cannot be read) the snapshot and the additions still go
+ * out, only nothing is remembered.
  */
 import {
   fetchStoreProducts, showcaseRecords, classifyBatch, applyClassification, carryClassification, finished, CLASSIFY_BATCH
@@ -161,12 +163,44 @@ export async function liveLibrary({ snapshot, curation, db, apiKey, fetchImpl = 
   };
 }
 
+/**
+ * The table as it stands, listed bundles only, newest first. Before the first sync (or without a
+ * database) it is the snapshot, in the same order.
+ */
+export async function readLibrary({ snapshot, db, log = () => {} }) {
+  let stored = [];
+  if (db) stored = await getLibraryBundles(db).catch(err => { log(`stored read failed: ${err.message}`); return []; });
+  const bundles = stored.length ? stored.filter(bundle => !bundle.unlistedAt) : [...snapshot.bundles];
+  bundles.sort(newestFirst);
+  return {
+    ...snapshot,
+    readAt: new Date().toISOString(),
+    bundles: bundles.map(bundle => {
+      const { unlistedAt: _u, ...record } = bundle;
+      return record;
+    })
+  };
+}
+
+/** A tag that changes when the set of bundles or any bundle's copy does; the ETag and the poll compare it. */
+export function libraryTag(library) {
+  let h = 5381;
+  for (const bundle of library.bundles) {
+    for (const ch of `${bundle.id}:${bundle.hash || ''}|`) h = ((h << 5) + h + ch.charCodeAt(0)) | 0;
+  }
+  return `"${library.bundles.length}-${(h >>> 0).toString(36)}"`;
+}
+
 /** @returns {Promise<{status:number, body:unknown}>} */
-export async function handleLibraryRequest({ method, snapshot, curation, db, apiKey, fetchImpl, log }) {
+export async function handleLibraryRequest({ method, snapshot, curation, db, apiKey, fetchImpl, log, sync = false }) {
   if (method !== 'GET' && method !== 'HEAD') return { status: 405, body: { error: 'Method not allowed' } };
   if (!snapshot) return { status: 500, body: { error: 'No snapshot' } };
   try {
-    return { status: 200, body: await liveLibrary({ snapshot, curation, db, apiKey, fetchImpl, log }) };
+    // Without a database there is nothing to read back, so a read is the live merge.
+    const body = sync || !db
+      ? await liveLibrary({ snapshot, curation, db, apiKey, fetchImpl, log })
+      : await readLibrary({ snapshot, db, log });
+    return { status: 200, body };
   } catch (err) {
     log?.(`failed: ${err.message}`);
     return { status: 200, body: snapshot };
