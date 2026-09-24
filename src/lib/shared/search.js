@@ -40,7 +40,9 @@ export function httpApi(base = '', fetchImpl = (...args) => fetch(...args), { si
     // `refresh` crawls the storefront now rather than serving the stored catalog (a day old at most).
     catalog: (domain, { refresh = false } = {}) => get(`/api/catalog?domain=${encodeURIComponent(domain)}${refresh ? '&refresh=1' : ''}`),
     socials: (domain) => get(`/api/socials?domain=${encodeURIComponent(domain)}`),
-    opengraph: (url) => get(`/api/opengraph?url=${encodeURIComponent(url)}`)
+    opengraph: (url) => get(`/api/opengraph?url=${encodeURIComponent(url)}`),
+    // Jev grades one candidate against the searched brand (src/lib/shared/jev.js).
+    jev: (body) => fetchImpl(at('/api/jev'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...(signal ? { signal } : {}) })
   };
 }
 
