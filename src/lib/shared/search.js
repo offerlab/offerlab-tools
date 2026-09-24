@@ -512,7 +512,6 @@ For EACH brand you recommend:
 1. Use web search to verify the brand exists and is active
 2. Find their actual website URL from search results
 3. Search for their social media handles
-4. Find 2-4 specific products from that brand
 
 CRITICAL - For brand URLs: Search for the brand and use their ACTUAL homepage URL from search results. Never guess URLs.
 
@@ -536,21 +535,6 @@ Return valid JSON only:
         "facebook": "handle or null"
       }
     }
-  ],
-  "products": [
-    {
-      "productName": "EXACT Product Name as it appears on the brand's website",
-      "brandName": "Brand Name (MUST be different from ${brandName})",
-      "brandDomain": "brandname.com",
-      "whyThisProduct": "1 sentence on why this specific product pairs well",
-      "suggestedBundle": "What ${brandName} product would this pair with?",
-      "estimatedPrice": "$XX",
-      "social": {
-        "tiktok": "handle or null",
-        "instagram": "handle or null",
-        "facebook": "handle or null"
-      }
-    }
   ]
 }
 
@@ -560,10 +544,6 @@ Requirements:
 - At least 4 emerging brands (founded 2020+, under $10M revenue)
 - At most 2 brands from the ALREADY WELL-TRODDEN list, if one was given. The reader has seen those; the rest of the list must reach beyond them
 - "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
-- 20-25 products total
-- At least 2 products per recommended brand
-- ZERO products from ${brandName} - this is critical
-- Specific, REAL product names that can be found via search
 - Brand URLs must be real homepage URLs from search results`;
 
   const systemInstruction = `You are an expert brand collaboration curator. Your recommendations should be specific, creative, and commercially viable.
@@ -601,10 +581,12 @@ CRITICAL INSTRUCTIONS:
 export const EMERGING_MIN = 4;
 const RECOMMENDATIONS_MAX = 15;
 
+// Room is made from the end of the list, never from an emerging brand or a pairing that was
+// ideated for the unexpected lane (those sit at the end, and are the point).
 function withoutLastEstablished(brands, count) {
   const out = [...brands];
   for (let i = out.length - 1; i >= 0 && count > 0; i--) {
-    if (out[i].brandStage === 'emerging') continue;
+    if (out[i].brandStage === 'emerging' || out[i].hook || out[i].lane === 'unexpected') continue;
     out.splice(i, 1);
     count--;
   }
@@ -1260,10 +1242,13 @@ export function parseJsonResponse(text) {
 
   let jsonStr = text;
 
-  // Handle markdown code blocks
+  // Handle markdown code blocks: a closed fence anywhere, else an opening fence with no close,
+  // which is what a reply cut off mid-object looks like and what jsonrepair salvages below.
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1];
+  } else {
+    jsonStr = text.replace(/^\s*```(?:json)?\s*/, '');
   }
 
   try {

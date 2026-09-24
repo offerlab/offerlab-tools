@@ -21,6 +21,11 @@ describe('parseJsonResponse', () => {
     expect(result.brands[0]).toEqual({ name: 'Graza', url: 'https://graza.co' });
   });
 
+  it('salvages a fenced reply cut off before its closing fence', () => {
+    const result = parseJsonResponse('\n```json\n{"brands": [{"name": "Graza", "url": "https://graza.co"}, {"name": "Fishw');
+    expect(result.brands[0]).toEqual({ name: 'Graza', url: 'https://graza.co' });
+  });
+
   it('throws on nothing', () => {
     expect(() => parseJsonResponse('')).toThrow('No response from AI');
   });
@@ -350,6 +355,20 @@ describe('topUpEmerging', () => {
     expect(result).toHaveLength(15);
     expect(result.filter(b => b.brandStage === 'emerging').map(b => b.name)).toEqual(['Brand14', 'New1', 'New2', 'New3', 'New4']);
     expect(result.map(b => b.name).slice(0, 10)).toEqual(brands.slice(0, 10).map(b => b.name));
+  });
+
+  it('never lets go of an ideated pairing to make room', async () => {
+    const brands = [...Array.from({ length: 12 }, (_, i) => brand(`Brand${i}`, 'established')), { ...brand('Van Leeuwen', 'established', 'unexpected'), hook: 'eating in bed' }, { ...brand('Carhartt', 'established', 'unexpected'), hook: 'the grind' }, brand('Last', 'established')];
+    const api = { gemini: async () => new Response(JSON.stringify(gemini(JSON.stringify({ brands: [
+      { name: 'New1', url: 'https://new1.com', lane: 'lifestyle', category: 'lifestyle-stack' },
+      { name: 'New2', url: 'https://new2.com', lane: 'lifestyle', category: 'lifestyle-stack' },
+      { name: 'New3', url: 'https://new3.com', lane: 'lifestyle', category: 'lifestyle-stack' },
+      { name: 'New4', url: 'https://new4.com', lane: 'lifestyle', category: 'lifestyle-stack' }
+    ] }))), { status: 200 }) };
+    const result = await topUpEmerging(api, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands });
+    expect(result).toHaveLength(15);
+    expect(result.filter(b => b.hook).map(b => b.name)).toEqual(['Van Leeuwen', 'Carhartt']);
+    expect(result.find(b => b.name === 'Last')).toBeUndefined();
   });
 
   it('leaves a list with enough emerging brands alone, without a call', async () => {
