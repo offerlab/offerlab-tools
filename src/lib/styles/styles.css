@@ -7024,6 +7024,10 @@ button.social-link:disabled {
   padding-inline: 12px;
 }
 
+.picker-tray-busy .ol-loader {
+  width: 24px;
+}
+
 /* The shimmer on the dark primary button: paper-toned, peaking at white. */
 .picker-tray-busy .text-shimmer-ink {
   --shimmer-peak: #fff;
@@ -7083,15 +7087,10 @@ button.social-link:disabled {
     padding-bottom: var(--picker-bottom-gap);
   }
 
-  /* A screenful less the two bars that float over it, so a panel's own bottom edge lands above the
-     footer rather than behind it. Same terms as the padding, so the two cannot drift. */
+  /* A full screen of catalog to browse; the panel scrolls on under the footer. */
   .picker-column {
-    height: calc(
-      100vh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
-    );
-    height: calc(
-      100dvh - var(--header-h, 0px) - var(--search-footer-h) - var(--picker-bottom-gap)
-    );
+    height: 100vh;
+    height: 100dvh;
   }
 
   /* Rounded on all four now that the panel ends inside the viewport instead of running past it */
@@ -7302,8 +7301,8 @@ button.social-link:disabled {
     display: none;
   }
 
-  /* A pair of long brand names runs past the pill on its own */
-  .picker-tray-summary span {
+  /* A pair of long brand names runs past the pill on its own; what went wrong must still show. */
+  .picker-tray-summary span:not(.picker-tray-problem) {
     display: none;
   }
 }
