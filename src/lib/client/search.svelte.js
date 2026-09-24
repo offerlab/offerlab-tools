@@ -129,11 +129,12 @@ async function markBrandsNotSetUp(brands) {
 
 // `signal` cancels every request the search makes, so leaving the search stops it.
 function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog, signal }) {
-  return Promise.all([getFeedbackHistory(), store.loadKnownPartners(extractDomain(url))]).then(([feedback, knownPartners]) =>
+  return Promise.all([getFeedbackHistory(), store.loadKnownPartners(extractDomain(url)), store.loadFrequentBrands()]).then(([feedback, knownPartners, frequentBrands]) =>
     search.discoverComplementaryBrands(url, {
       api: signal ? httpApi('', undefined, { signal }) : searchApi,
       feedback,
       knownPartners,
+      frequentBrands,
       onProgress: (step) => onProgress(LOADING_MESSAGES[step] ?? LOADING_MESSAGES[0]),
       onBrandsReady,
       onCatalog,

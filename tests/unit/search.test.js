@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -252,5 +252,15 @@ describe('brandFacts', () => {
     const facts = await brandFacts(down, 'nowhere.example');
     expect(factsBlock(facts)).toBe('');
     expect(factsBlock(null)).toBe('');
+  });
+});
+
+describe('buildFrequentContext', () => {
+  it('names the well-trodden brands and caps them, and says nothing with none', () => {
+    const context = buildFrequentContext([{ name: 'Brightland', domain: 'brightland.co' }, { domain: 'ourplace.com' }]);
+    expect(context).toContain('Brightland, ourplace.com');
+    expect(context).toContain('at most 2 of them');
+    expect(buildFrequentContext([])).toBe('');
+    expect(buildFrequentContext(undefined)).toBe('');
   });
 });

@@ -82,6 +82,11 @@ export function loadKnownPartners(domain) {
   return attempt([], () => call(`partners/${encodeURIComponent(domain)}`));
 }
 
+/** The brands the finder recommends most, so a search reaches past them. */
+export function loadFrequentBrands() {
+  return attempt([], () => call('frequent'));
+}
+
 /* -------------------------------------------------------------------------- */
 /* Search history                                                              */
 /* -------------------------------------------------------------------------- */

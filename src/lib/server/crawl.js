@@ -107,8 +107,8 @@ async function search(row, { db, api, settings }) {
   const reused = stored?.type === 'results';
 
   if (!reused) {
-    const [feedback, knownPartners] = await Promise.all([store.listFeedback(db), store.listKnownPartners(db, row.domain)]);
-    const results = await discoverComplementaryBrands(row.domain, { api, feedback, knownPartners });
+    const [feedback, knownPartners, frequentBrands] = await Promise.all([store.listFeedback(db), store.listKnownPartners(db, row.domain), store.listFrequentBrands(db)]);
+    const results = await discoverComplementaryBrands(row.domain, { api, feedback, knownPartners, frequentBrands });
     await store.putSearch(db, row.domain, searchRecord(results, `crawl-${Date.now()}`, { keepCatalogs: true }));
     stored = await store.getSearch(db, row.domain, { products: 0 });
   }

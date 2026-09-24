@@ -88,14 +88,25 @@ function buildKnownPartnersContext(partners) {
 }
 
 /**
- * Runs one search. `feedback` and `knownPartners` are what the store holds for it; the caller
- * loads them, the browser through store.js and the server from D1.
+ * The brands the finder recommends most across recent searches. Left to itself the model reaches
+ * for the same famous DTC names for every brand (Brightland in 53 of the last 97 searches); told
+ * which those are, it reaches past them.
+ */
+export function buildFrequentContext(brands) {
+  const names = (brands || []).map(b => (b.name || b.domain || '').trim()).filter(Boolean);
+  if (!names.length) return '';
+  return `\n\nALREADY WELL-TRODDEN (recommended many times across other brands' searches): ${names.join(', ')}.\nDo not reach for these by habit. Include one only if it is clearly the single best fit in its lane, and at most 2 of them in total; otherwise find a brand beyond this list.\n`;
+}
+
+/**
+ * Runs one search. `feedback`, `knownPartners` and `frequentBrands` are what the store holds
+ * for it; the caller loads them, the browser through store.js and the server from D1.
  *
  * Callbacks: onProgress(step) with step 0-5, onBrandsReady({ searchedBrand, brands }) as soon
  * as the recommendations are in, onCatalog(brand) as each brand's catalog resolves.
  */
 export async function discoverComplementaryBrands(url, {
-  api, feedback = [], knownPartners = [],
+  api, feedback = [], knownPartners = [], frequentBrands = [],
   onProgress, onBrandsReady, onCatalog, config = {}
 }) {
   const settings = { ...SEARCH_DEFAULTS, ...config };
@@ -111,7 +122,7 @@ export async function discoverComplementaryBrands(url, {
   updateProgress(1);
 
   updateProgress(2);
-  const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners);
+  const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
   const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
   const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
   const brands = (augmentedResults.brands || []).map(ensureHttps);
@@ -397,10 +408,19 @@ For each brand, classify using ONE of these collaboration angles:
 - **"lifestyle-stack"**: Part of the same customer's broader lifestyle/identity
 - **"unexpected-delight"**: Non-obvious pairing that tells a story
 
+=== BREADTH: COVER THESE LANES ===
+
+Spread the 12-15 brands across ALL five lanes, at least 2 in each, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
+1. **"same-shelf"**: products used alongside this brand's own, on the same shelf or in the same routine (never a direct competitor).
+2. **"adjacent-function"**: the next need this customer has around the product: for food and drink that is hydration, supplements, recovery or sleep; for beauty it is tools, skin health or wellness; for home it is care, storage or the rituals the product serves; for apparel it is gear, footwear or recovery.
+3. **"lifestyle"**: the apparel, equipment, spaces or services this customer's day runs on.
+4. **"parallel-premium"**: a category this customer already buys in at the same tier that is NOT this brand's own: beauty and personal care, home, kitchen, or wellness, whichever is furthest from this brand while still obviously the same person.
+5. **"unexpected"**: a pairing that tells a story only these two brands could tell, and that a buyer would still say yes to.
+
 === DIVERSITY REQUIREMENTS ===
 
-Your 12-15 brand recommendations MUST include:
-- At least 5 **emerging brands** (founded 2020+, under $10M revenue)
+Your 12-15 brand recommendations MUST also include:
+- At least 4 **emerging brands** (founded 2020+, under $10M revenue)
 - At least 4 **established brands** (well-known, proven track record)
 - At least 1 **non-obvious category** (digital product, subscription, experience)
 - Mix of price points that make sense for the input brand's customer
@@ -438,6 +458,7 @@ Return valid JSON only:
       "name": "Brand Name",
       "url": "https://actualbrandwebsite.com",
       "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
+      "lane": "same-shelf|adjacent-function|lifestyle|parallel-premium|unexpected",
       "brandStage": "emerging|growing|established",
       "reasons": ["3 short bullets on why this collab works with ${brandName}. Each is its own angle: the shared customer moment, the aesthetic or values overlap, and what the pairing unlocks commercially. Under 12 words each, playful and concrete, naming real products or details rather than generic praise. No em dashes, no restating the brand's tagline."],
       "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
@@ -466,7 +487,8 @@ Return valid JSON only:
 }
 
 Requirements:
-- 12-15 brands with diversity requirements met
+- 12-15 brands, every lane covered by at least 2, diversity requirements met
+- "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
 - 20-25 products total
 - At least 2 products per recommended brand
 - ZERO products from ${brandName} - this is critical
