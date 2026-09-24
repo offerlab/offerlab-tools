@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -215,5 +215,42 @@ describe('fetchWithRetry', () => {
     let seen;
     await httpApi('', async (_url, options) => { seen = options?.signal; return res(200); }, { signal: controller.signal }).catalog('a.com');
     expect(seen).toBe(controller.signal);
+  });
+});
+
+// The analysis has to describe the site that was typed: web search for a short domain lands on
+// whichever company owns the name in the news (built.com sells protein bars; "Built" in search is
+// a construction-finance platform).
+describe('brandFacts', () => {
+  const json = body => new Response(JSON.stringify(body), { status: 200 });
+  const api = {
+    opengraph: async () => json({ imageUrl: null, faviconUrl: null, title: 'BUILT Protein Bars | The Best Tasting Protein Bar', description: 'Discover a protein bar that actually tastes good!', siteName: 'BUILT' }),
+    catalog: async () => json({ status: 'shopify', products: [
+      { title: 'Strawberry Cheesecake Puff', vendor: 'BUILT', productType: 'Protein Bar' },
+      { title: 'Orange Cream Pop Puff', vendor: 'BUILT', productType: 'Protein Bar' }
+    ] })
+  };
+
+  it('reads the site\'s own words and what it sells', async () => {
+    const facts = await brandFacts(api, 'built.com');
+    expect(facts).toEqual({
+      title: 'BUILT Protein Bars | The Best Tasting Protein Bar',
+      description: 'Discover a protein bar that actually tastes good!',
+      siteName: 'BUILT',
+      vendor: 'BUILT',
+      productTypes: ['Protein Bar'],
+      products: ['Strawberry Cheesecake Puff', 'Orange Cream Pop Puff']
+    });
+    const block = factsBlock(facts);
+    expect(block).toContain('Site title: BUILT | BUILT Protein Bars');
+    expect(block).toContain('Products on sale: Strawberry Cheesecake Puff; Orange Cream Pop Puff');
+    expect(block).toContain('ignore them');
+  });
+
+  it('says nothing when nothing could be read', async () => {
+    const down = { opengraph: async () => new Response('', { status: 500 }), catalog: async () => new Response('', { status: 500 }) };
+    const facts = await brandFacts(down, 'nowhere.example');
+    expect(factsBlock(facts)).toBe('');
+    expect(factsBlock(null)).toBe('');
   });
 });
