@@ -590,6 +590,16 @@ CRITICAL INSTRUCTIONS:
 export const EMERGING_MIN = 4;
 const RECOMMENDATIONS_MAX = 15;
 
+function withoutLastEstablished(brands, count) {
+  const out = [...brands];
+  for (let i = out.length - 1; i >= 0 && count > 0; i--) {
+    if (out[i].brandStage === 'emerging') continue;
+    out.splice(i, 1);
+    count--;
+  }
+  return out;
+}
+
 /**
  * Brings the list up to EMERGING_MIN emerging brands with one more, smaller grounded call, aimed
  * at the lanes with the fewest brands. Nothing already listed or well-trodden; a failure leaves
@@ -645,8 +655,11 @@ Return valid JSON only:
       .map(ensureHttps)
       .filter(b => b.name && !seen.has(b.name.toLowerCase()) && !seen.has(brandDomain(b.url || '')) && !troddenSet.has(b.name.toLowerCase()))
       .slice(0, Math.max(need, 0) + 1);
-    console.log(`[Discovery] Emerging top-up: had ${have}, added ${added.length}`);
-    return [...brands, ...added].slice(0, RECOMMENDATIONS_MAX);
+    // A full list makes room by letting go of its last established picks, never an emerging one.
+    const overflow = brands.length + added.length - RECOMMENDATIONS_MAX;
+    const kept = overflow > 0 ? withoutLastEstablished(brands, overflow) : brands;
+    console.log(`[Discovery] Emerging top-up: had ${have}, added ${added.length}, list ${kept.length + added.length}`);
+    return [...kept, ...added];
   } catch (err) {
     console.warn(`[Discovery] Emerging top-up skipped: ${err.message}`);
     return brands;

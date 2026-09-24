@@ -338,6 +338,20 @@ describe('topUpEmerging', () => {
     expect(calls[0]).toContain('Brightland');
   });
 
+  it('makes room in a full list by letting go of its last established picks', async () => {
+    const brands = Array.from({ length: 15 }, (_, i) => brand(`Brand${i}`, i === 14 ? 'emerging' : 'established'));
+    const api = { gemini: async () => new Response(JSON.stringify(gemini(JSON.stringify({ brands: [
+      { name: 'New1', url: 'https://new1.com', lane: 'unexpected', category: 'unexpected-delight' },
+      { name: 'New2', url: 'https://new2.com', lane: 'unexpected', category: 'unexpected-delight' },
+      { name: 'New3', url: 'https://new3.com', lane: 'unexpected', category: 'unexpected-delight' },
+      { name: 'New4', url: 'https://new4.com', lane: 'unexpected', category: 'unexpected-delight' }
+    ] }))), { status: 200 }) };
+    const result = await topUpEmerging(api, { brandProfile: profile, brandName: 'X', domain: 'x.com', brands });
+    expect(result).toHaveLength(15);
+    expect(result.filter(b => b.brandStage === 'emerging').map(b => b.name)).toEqual(['Brand14', 'New1', 'New2', 'New3', 'New4']);
+    expect(result.map(b => b.name).slice(0, 10)).toEqual(brands.slice(0, 10).map(b => b.name));
+  });
+
   it('leaves a list with enough emerging brands alone, without a call', async () => {
     const brands = ['A', 'B', 'C', 'D'].map(n => brand(n, 'emerging'));
     const api = { gemini: async () => { throw new Error('must not call'); } };
