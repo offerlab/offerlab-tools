@@ -2558,7 +2558,7 @@ position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .thread-turn-line::before,
@@ -2566,7 +2566,8 @@ position: relative;
   content: "";
   flex: 1;
   height: 8px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4c3-3 6-3 9 0s6 3 9 0 4.5-1.5 6 0' fill='none' stroke='%23342e26' stroke-opacity='0.25' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x center;
+  /* One sine period per 32px tile, so the repeat is seamless: a gentle 3px swell, a 1px line. */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='8' viewBox='0 0 32 8'%3E%3Cpath d='M0 4C4 1.6 12 1.6 16 4S28 6.4 32 4' fill='none' stroke='%23342e26' stroke-opacity='0.3' stroke-width='1'/%3E%3C/svg%3E") repeat-x center;
 }
 
 .thread-turn-note {
