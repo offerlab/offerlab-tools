@@ -9,8 +9,7 @@ import { toggleProduct, clearSelection, applyConcept } from './picker-selection.
 import { generateConcepts, cancelConcepts } from './picker-concepts.js';
 import { addBrand, replaceBrand, removeBrand } from './picker-brands.js';
 import { showAddPopover, hideAddPopover, showUrlDialog } from './picker-add.js';
-import { createDraft } from './picker-draft.js';
-import { openProductDialog, retryStandIns } from './picker-standins.js';
+import { createDraft, cancelDraft } from './picker-draft.js';
 
 export function handleAction(e) {
   const target = e.target.closest('[data-action]');
@@ -29,6 +28,7 @@ export function handleAction(e) {
       break;
     }
     case 'create-bundle': createDraft(); break;
+    case 'stop-bundling': cancelDraft(); break;
     case 'open-draft':
       if (picker.draft.url) window.open(picker.draft.url, '_blank', 'noopener');
       break;
