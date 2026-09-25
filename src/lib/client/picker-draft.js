@@ -17,8 +17,20 @@ function draftName() {
  * Turns the current selection into a draft collab in OfferLab and opens the builder on it.
  * Signing in comes first when there is no session; the operator lands back here and clicks again.
  */
+// Each build gets a run number; a stop bumps it, and the build it interrupted hands back nothing.
+let run = 0;
+
+/** Stops waiting on the build in flight: the tray goes back to Bundle with the picks as they were. */
+export function cancelDraft() {
+  if (picker.draft.status !== 'working') return;
+  run++;
+  setDraft('idle', '');
+}
+
 export async function createDraft(name) {
   if (picker.draft.status === 'working') return;
+  const thisRun = ++run;
+  const stillWanted = () => run === thisRun;
 
   // Off for everyone the handoff is not for. It signs in against an internal demo environment,
   // so the alternative to saying this is sending a guest to a login they cannot pass.
@@ -56,13 +68,16 @@ export async function createDraft(name) {
       picks,
       // The bundle presents as whichever brand leads it, and it is being pitched to the one that
       // was searched for, so that is the brand whose products go first.
-      presentingDomain: sellerEntry()?.domain
+      presentingDomain: sellerEntry()?.domain,
+      onProgress: (message) => { if (stillWanted()) setDraft('working', message); }
     });
+    if (!stillWanted()) return;
     offerlab.rememberDraft(sellerEntry()?.domain, draft);
     setDraft('done', draft.name || draftName(), draft.url);
     // A draft nobody looks at is not a handoff. Opened here, off the click that started it.
     window.open(draft.url, '_blank', 'noopener');
   } catch (err) {
+    if (!stillWanted()) return;
     console.warn('[OfferLab] draft failed:', err);
     setDraft('error', err.message || 'Could not create the draft');
   }

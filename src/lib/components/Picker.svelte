@@ -16,6 +16,7 @@
   import PickerColumn from './PickerColumn.svelte';
   import PickerAddPopover from './PickerAddPopover.svelte';
   import PickerTray from './PickerTray.svelte';
+  import BundlingOverlay from './BundlingOverlay.svelte';
   import PickerUrlDialog from './PickerUrlDialog.svelte';
   import PickerProductDialog from './PickerProductDialog.svelte';
 
@@ -78,6 +79,7 @@
   </div>
   <PickerAddPopover />
   <PickerTray />
+  <BundlingOverlay />
   <PickerUrlDialog />
   <PickerProductDialog />
 </section>

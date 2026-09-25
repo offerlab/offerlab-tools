@@ -9,7 +9,9 @@ import { SvelteMap } from 'svelte/reactivity';
 export const picker = $state({
   brands: [],                 // [{ domain, brand }], the searched brand first (on stand-ins when it has no catalog)
   selection: new SvelteMap(), // "domain:id" -> { domain, product, sequence }
-  draft: { status: 'idle', message: '', url: null },
+  // `startedAt` is when the current build began; the overlay (BundlingOverlay.svelte) takes over
+  // once a build has run past its patience.
+  draft: { status: 'idle', message: '', url: null, startedAt: 0 },
   sequence: 0,
   concepts: [],               // [{ name, hook, why, picks: [{ domain, product }], discountPercent, edited }]
   activeConcept: -1,
@@ -96,8 +98,12 @@ export function brandNames() {
   return picker.brands.map(e => e.brand.name);
 }
 
+// The dev server only: lets a browser probe stage the draft states without an OfferLab session.
+if (import.meta.env?.DEV && typeof window !== 'undefined') window.__pickerState = { picker, setDraft: (...args) => setDraft(...args) };
+
 export function setDraft(status, message, url = null) {
-  picker.draft = { status, message, url };
+  const startedAt = status === 'working' ? (picker.draft.status === 'working' ? picker.draft.startedAt : Date.now()) : 0;
+  picker.draft = { status, message, url, startedAt };
 }
 
 // The concepts card has re-rendered from state; play whatever entrance the change calls for.
