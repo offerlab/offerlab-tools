@@ -2641,13 +2641,9 @@ position: relative;
 }
 
 .results-more-rating {
-  display: inline-flex;
-  gap: 8px;
-}
-
-.results-more-actions .btn--icon {
-  width: 40px;
-  padding: 0;
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
 }
 
 .results-more-actions {
@@ -3580,8 +3576,22 @@ button.social-link:disabled {
    -------------------------------------------------------------------------- */
 
 .feedback-btn {
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+  background: transparent;
   color: var(--content-primary);
+  cursor: pointer;
+}
+
+.feedback-btn:hover {
+  transform: scale(1.05);
+  background: var(--content-background-base);
 }
 
 .feedback-positive:hover {
@@ -3596,22 +3606,24 @@ button.social-link:disabled {
   transform: scale(0.95);
 }
 
+.feedback-btn.selected {
+  box-shadow: var(--shadow-md);
+}
+
 .feedback-positive.selected {
   background: var(--green-100);
-  border-color: var(--green-100);
   color: var(--green-600);
 }
 
 .feedback-negative.selected {
   background: var(--red-100);
-  border-color: var(--red-100);
   color: var(--red-600);
 }
 
 .feedback-icon {
-  width: 18px;
-  --icon-rendered: 18;
-  height: 18px;
+  width: 20px;
+  --icon-rendered: 20;
+  height: 20px;
 }
 
 /* --------------------------------------------------------------------------

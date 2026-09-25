@@ -35,9 +35,9 @@
       <button type="button" class="btn btn--md btn--secondary" disabled={!ready} onclick={() => extendResults({ kind: 'more' })}>More like these</button>
       <button type="button" class="btn btn--md btn--secondary" disabled={!ready} onclick={() => extendResults({ kind: 'surprise' })}>Surprise me</button>
     {/if}
-    <span class="results-more-rating" style:pointer-events={app.feedback ? 'none' : 'auto'}>
-      <button type="button" class="btn btn--md btn--secondary btn--icon feedback-btn feedback-positive" class:selected={app.feedback === 'positive'} id="feedbackPositive" aria-label="These results were relevant" onclick={() => rate('positive')}><Icon name="thumb-up" class="feedback-icon" /></button>
-      <button type="button" class="btn btn--md btn--secondary btn--icon feedback-btn feedback-negative" class:selected={app.feedback === 'negative'} id="feedbackNegative" aria-label="These results were not relevant" onclick={() => rate('negative')}><Icon name="thumb-down" class="feedback-icon" /></button>
-    </span>
+  </div>
+  <div class="results-more-rating" style:pointer-events={app.feedback ? 'none' : 'auto'}>
+    <button type="button" class="feedback-btn feedback-positive" class:selected={app.feedback === 'positive'} id="feedbackPositive" aria-label="These results were relevant" onclick={() => rate('positive')}><Icon name="thumb-up" class="feedback-icon" /></button>
+    <button type="button" class="feedback-btn feedback-negative" class:selected={app.feedback === 'negative'} id="feedbackNegative" aria-label="These results were not relevant" onclick={() => rate('negative')}><Icon name="thumb-down" class="feedback-icon" /></button>
   </div>
 </div>
