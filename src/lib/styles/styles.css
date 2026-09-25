@@ -192,8 +192,8 @@
   --pill-pad: 5px;
   --pill-btn: 30px;
   --pill-max: 360px;
-  /* body-lg */
-  --pill-font: var(--font-size-base);
+  /* Small in the nav row: the pill is a control here, not the landing page's field. */
+  --pill-font: 13px;
   --pill-tracking: -0.0125em;
   --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1126,7 +1126,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   --pill-pad: 8px;
   --pill-btn: 40px;
   --pill-max: 600px;
-  --pill-font: var(--font-size-lg);
+  --pill-font: var(--font-size-sm);
   /* 0 rather than normal: a keyword has nothing to interpolate towards. */
   --pill-tracking: 0em;
   --pill-avatar: 28px;
@@ -2611,7 +2611,8 @@ position: relative;
   color: var(--content-sentiment-negative);
 }
 
-/* The results footer: the orb, a word, and one row of controls, centered under the last card */
+/* The results footer: the orb, a word, and one row of controls, centered under the last card.
+   Gone while a follow-up runs (its divider carries the progress) and fades back in with the cards. */
 .results-more {
   display: flex;
   flex-direction: column;
@@ -2619,6 +2620,7 @@ position: relative;
   gap: 20px;
   padding: 40px 16px 48px;
   text-align: center;
+  animation: cardFadeIn 0.4s ease both;
 }
 
 .results-more-copy .results-group-title {
@@ -2629,7 +2631,7 @@ position: relative;
 .results-more-rating {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-lg);
+  gap: 2px;
 }
 
 .results-more-actions {

@@ -107,9 +107,9 @@
       showHistory: () => { renderHistoryRows(list, app.history); refreshSearchHistory(); },
       favicon: getFaviconUrl
     });
-    typing = createTypingAnimation(placeholderEl, input);
-    if (!results) typing?.start();
-    // Results placeholder starts hidden (results page not visible); it starts on blur if empty.
+    // The rotating hints belong to the landing page; the results bar keeps its one invitation.
+    typing = results ? null : createTypingAnimation(placeholderEl, input);
+    typing?.start();
 
     // Escape puts the dropdown away, whatever it holds, and leaves the text alone.
     const onKeydown = (e) => { if (e.key === 'Escape') hideHistory(); };
@@ -144,7 +144,7 @@
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
-      data-placeholder-focus={results ? 'Ask for changes, or search another brand' : 'Brand name or website'}
+      data-placeholder-focus={results ? 'Want different picks? Just ask' : 'Brand name or website'}
       bind:this={input}
       bind:value
       onfocus={onFocus}
