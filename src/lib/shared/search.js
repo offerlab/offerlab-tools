@@ -201,8 +201,11 @@ export async function discoverComplementaryBrands(url, {
     brandDNA: searchedBrand.brandDNA,
     targetCustomer: searchedBrand.targetCustomer,
     // What it sells and at what price, which is what its stand-in products are made from.
-    productAnalysis: searchedBrand.productAnalysis
+    productAnalysis: searchedBrand.productAnalysis,
+    // The two lines above the list, written for this brand; the results view has a default.
+    listHeading: listHeading(augmentedResults.heading)
   };
+  console.log(`[Discovery] Heading: ${JSON.stringify(augmentedResults.heading ?? null)} -> ${JSON.stringify(searchedBrandData.listHeading)}`);
 
   console.log(`[Discovery] Brands ready: ${brands.length} brands found`);
   if (typeof onBrandsReady === 'function') onBrandsReady({ searchedBrand: searchedBrandData, brands });
@@ -692,11 +695,19 @@ For EACH brand you recommend:
 
 CRITICAL - For brand URLs: Search for the brand and use their ACTUAL homepage URL from search results. Never guess URLs.
 
+=== THE LIST'S HEADING ===
+
+Also write the two lines that sit above the list, in the finder's own voice: playful, warm, specific to ${brandName} and to what the list actually holds. The default is "Recommended brands" over "Here's some great options that would make killer collabs." Yours replaces it:
+- "title": two or three words. A headline for this list, not a sentence.
+- "subtitle": one sentence, at most twelve words, that says what these picks are for this brand.
+No em dashes, no exclamation points, no quotation marks, no brand names from the list.
+
 === OUTPUT FORMAT ===
 
 Return valid JSON only:
 
 {
+  "heading": { "title": "Two or three words", "subtitle": "One sentence, at most twelve words" },
   "brands": [
     {
       "name": "Brand Name",
@@ -747,6 +758,20 @@ CRITICAL INSTRUCTIONS:
   // Store grounding metadata for later use
   results._groundingMetadata = data.candidates?.[0]?.groundingMetadata;
   return results;
+}
+
+const HEADING_TITLE_WORDS = 4;
+const HEADING_SUBTITLE_WORDS = 14;
+
+/** The model's two lines above the list, or null when they are missing or run long. */
+export function listHeading(heading) {
+  const clean = (text, max) => {
+    const words = String(text || '').replace(/["\u201c\u201d]/g, '').trim().split(/\s+/).filter(Boolean);
+    return words.length >= 1 && words.length <= max ? words.join(' ') : null;
+  };
+  const title = clean(heading?.title, HEADING_TITLE_WORDS);
+  const subtitle = clean(heading?.subtitle, HEADING_SUBTITLE_WORDS);
+  return title && subtitle ? { title, subtitle } : null;
 }
 
 // ============================================

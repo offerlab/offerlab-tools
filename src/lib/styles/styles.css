@@ -193,7 +193,7 @@
   --pill-btn: 30px;
   --pill-max: 360px;
   /* Small in the nav row: the pill is a control here, not the landing page's field. */
-  --pill-font: 13px;
+  --pill-font: var(--font-size-sm);
   --pill-tracking: -0.0125em;
   --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2912,6 +2912,58 @@ position: relative;
   animation: cardFadeIn 0.4s ease forwards;
   opacity: 0;
   transition: transform var(--transition-base);
+}
+
+/* The list arrives the way the app's recommendation cards do (atelier/onboarding.css): the block
+   fades and rises as one, the cards inside cascade in by position, and they wait for the heading
+   that introduces them to finish writing. Paused at t=0 a card sits on its opacity 0, and the
+   release runs the stagger from its first frame. */
+.results-block-enter {
+  animation:
+    resultsBlockFadeIn 0.32s ease backwards,
+    resultsBlockRiseIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.results-grid.is-holding-cards .result-card-group {
+  animation-play-state: paused;
+}
+
+.result-card-group {
+  animation-delay: calc(var(--card-index, 0) * 40ms);
+}
+
+@keyframes resultsBlockFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes resultsBlockRiseIn {
+  from { transform: translateY(12px); }
+  to { transform: translateY(0); }
+}
+
+/* Streamed text (client/actions/stream_text.js): every word is in place from the first frame and
+   arrives on its own delay, opacity and 0.14em of rise, nothing else. The app's rule
+   (atelier/onboarding.css), verbatim. */
+.is-streaming .stream-word {
+  display: inline-block;
+  animation: streamWordIn var(--stream-fade, 480ms) var(--stream-ease, cubic-bezier(0.22, 1, 0.36, 1)) backwards;
+  animation-delay: var(--stream-delay, 0ms);
+}
+
+@keyframes streamWordIn {
+  from { opacity: 0; transform: translateY(0.14em); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-block-enter {
+    animation: resultsBlockFadeIn 0.2s ease backwards;
+  }
+
+  .is-streaming .stream-word {
+    animation: none;
+  }
 }
 
 .searched-brand-card-group:hover,
@@ -7438,6 +7490,13 @@ button.social-link:disabled {
   height: 40px;
   border-radius: 10px;
   object-fit: contain;
+}
+
+.picker-product-noart--plain {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--content-tertiary);
 }
 
 .picker-product-edit {

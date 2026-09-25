@@ -33,7 +33,10 @@
   let ask = $state(null);
 
   // The results composer rests empty with its invitation; the searched brand is on its card.
+  // While the first search runs there is nothing to ask about yet (the loading view says what is
+  // being searched), so the field just names itself.
   const showingDisplay = false;
+  const invitation = $derived(app.view === 'loading' ? 'Find collabs' : 'Want different picks? Just ask');
 
   // The suggestions (resolve.js) open and close the same dropdown imperatively, so the classes
   // are set directly as well: a directive only acts when its own value changes.
@@ -139,12 +142,12 @@
       class="search-input"
       class:focused
       id={ids.input}
-      placeholder={results ? 'Want different picks? Just ask' : 'Brand name or website'}
+      placeholder={results ? invitation : 'Brand name or website'}
       autocomplete="off"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
-      data-placeholder-focus={results ? 'Want different picks? Just ask' : 'Brand name or website'}
+      data-placeholder-focus={results ? invitation : 'Brand name or website'}
       bind:this={input}
       bind:value
       onfocus={onFocus}
