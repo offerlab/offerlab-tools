@@ -314,6 +314,15 @@ const gemini = text => ({ candidates: [{ content: { parts: [{ text }] } }] });
 const answers = (...bodies) => { let i = 0; return { gemini: async () => new Response(JSON.stringify(bodies[Math.min(i++, bodies.length - 1)]), { status: 200 }) }; };
 
 describe('geminiJson', () => {
+  it('tries once more when the answer is not the JSON asked for', async () => {
+    // jsonrepair turns prose into a JSON string, so the parse has to want an object.
+    const wantObject = text => { const r = parseJsonResponse(text); if (!r || typeof r !== 'object') throw new Error('No object in the answer'); return r; };
+    const api = answers(gemini('The brand sells protein bars and'), gemini('{"brands": []}'));
+    const { parsed } = await geminiJson(api, 'Test', {}, { parse: wantObject });
+    expect(parsed).toEqual({ brands: [] });
+    await expect(geminiJson(answers(gemini('prose'), gemini('more prose')), 'Test', {}, { parse: wantObject })).rejects.toThrow('Test failed: No object in the answer');
+  });
+
   it('reads the answer, tries once more after a failure the proxy reports in the body, and gives up on the rest', async () => {
     const ok = gemini('{"a":1}');
     expect(await geminiJson(answers({ error: 'Gemini did not answer in time', status: 504 }, ok), 'Test', {})).toEqual(ok);
@@ -445,7 +454,7 @@ describe('gradeCandidates and composeGraded', () => {
     expect(await gradeCandidates({}, { name: 'X' }, [brand('Y', 'same-shelf')])).toEqual([null]);
   });
 
-  it('drops non-brands, competitors and unbelievable bundles, takes Jev\'s lane and stage, and fills the unexpected lane by surprise', () => {
+  it('drops non-brands, competitors and unbelievable bundles, keeps the model\'s lanes and stages, and fills the unexpected lane by surprise', () => {
     const brands = [
       brand('Monocle', 'lifestyle'), brand('Wild One', 'adjacent-function'), brand('Field Skillet', 'unexpected'),
       brand('Hatch', 'unexpected'), brand('Cadence', 'parallel-premium'), brand('Floyd', 'same-shelf'),
@@ -464,13 +473,13 @@ describe('gradeCandidates and composeGraded', () => {
     ];
     const out = composeGraded(brands, grades);
     expect(out.map(b => b.name)).toEqual(['Hatch', 'Cadence', 'Floyd', 'Parachute', 'Snow Peak', 'Flea Away']);
-    expect(out.find(b => b.name === 'Hatch')).toMatchObject({ lane: 'adjacent-function', brandStage: 'established' });
+    // The model's lane and stage stand; Hatch called itself unexpected and was not surprising, so it joins its angle's lane.
+    expect(out.find(b => b.name === 'Hatch')).toMatchObject({ lane: 'same-shelf', brandStage: 'established' });
     // Cadence and Floyd are the surprising ones; they hold the unexpected lane whatever their relation.
     expect(out.filter(b => b.lane === 'unexpected').map(b => b.name)).toEqual(['Cadence', 'Floyd']);
     expect(out.find(b => b.name === 'Cadence').category).toBe('unexpected-delight');
-    // Snow Peak: Jev was not sure, so the model's lane stands.
     expect(out.find(b => b.name === 'Snow Peak').lane).toBe('lifestyle');
-    expect(out.find(b => b.name === 'Flea Away').brandStage).toBe('emerging');
+    expect(out.find(b => b.name === 'Flea Away').brandStage).toBe('established');
   });
 
   it('pins the ideated pairings to the unexpected lane, never fills it by fit, and keeps the model\'s stage when Jev is unsure', () => {
