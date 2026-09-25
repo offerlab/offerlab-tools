@@ -5,7 +5,7 @@
  * and `batch([...])`. On Pages that is `env.DB`; the Express dev server passes the SQLite
  * adapter from shared/sqlite-d1.js, which speaks the same subset. Runtime-neutral otherwise.
  *
- * Schema: migrations/0001_init.sql.
+ * Schema: migrations/0001_init.sql; the well-trodden list's stored answer, 0006_frequent_brands.sql.
  */
 import { normalizeDomain } from '$lib/shared/catalog.js';
 import { HIDDEN_CATALOG, isProductsHidden, moderationFor } from './moderation.js';
@@ -24,6 +24,10 @@ export const DRAFTS_PER_BRAND = 20;
 export const FREQUENT_SEARCHES = 100;
 export const FREQUENT_MIN = 3;
 export const DEFAULT_FREQUENT_LIMIT = 25;
+/** How long a counted list is served before the next caller counts again. */
+export const FREQUENT_TTL_MS = 30 * 60 * 1000;
+/** The most a counted list keeps: the data route's cap on `limit`. */
+export const FREQUENT_KEPT = 100;
 
 /** "https://www.Graza.co/pages/x" -> "graza.co": the key every table shares. */
 export function canonicalDomain(input) {
@@ -230,19 +234,51 @@ export async function listKnownPartners(db, domain, limit = DEFAULT_KNOWN_PARTNE
 /**
  * The brands the finder recommends most, across its last searches: the recommender's habits,
  * handed back to it so a search reaches past them. [{ domain, name, searches }], most first.
+ *
+ * Every search asks, so the answer is kept in frequent_brands (migrations/0006) and served until
+ * it is FREQUENT_TTL_MS old; the next caller after that counts again. A few searches more or less
+ * out of the last hundred barely moves the list. At most FREQUENT_KEPT brands are kept.
  */
-export async function listFrequentBrands(db, { searches = FREQUENT_SEARCHES, min = FREQUENT_MIN, limit = DEFAULT_FREQUENT_LIMIT } = {}) {
+export async function listFrequentBrands(db, { searches = FREQUENT_SEARCHES, min = FREQUENT_MIN, limit = DEFAULT_FREQUENT_LIMIT } = {}, now = Date.now()) {
+  const id = `${searches}:${min}`;
+  const stored = await withFrequentTable(() => db.prepare('SELECT brands, computed_at FROM frequent_brands WHERE id = ?').bind(id).first(), null);
+  let brands = stored && now - stored.computed_at < FREQUENT_TTL_MS ? parse(stored.brands) : null;
+  if (!Array.isArray(brands)) {
+    brands = await countFrequentBrands(db, searches, min);
+    await withFrequentTable(() => db.prepare(
+      `INSERT INTO frequent_brands (id, brands, computed_at) VALUES (?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET brands = excluded.brands, computed_at = excluded.computed_at`
+    ).bind(id, JSON.stringify(brands), now).run(), null);
+  }
+  return brands.slice(0, limit);
+}
+
+// The count starts from the last `searches` searches (the searches_recent index) and looks up
+// only their brands. CROSS JOIN pins that order: with a plain JOIN SQLite walked all of
+// search_brands by domain and every search besides. Reads stay near searches × brands per search
+// however large the tables grow. Migration 0006 backfills with the same query.
+async function countFrequentBrands(db, searches, min) {
   const { results } = await db.prepare(
     `SELECT sb.domain AS domain, MAX(json_extract(sb.brand, '$.name')) AS name, COUNT(DISTINCT sb.search_domain) AS searches
-       FROM search_brands sb
-       JOIN (SELECT domain FROM searches WHERE status = 'results' ORDER BY updated_at DESC LIMIT ?) recent
-         ON recent.domain = sb.search_domain
+       FROM (SELECT domain FROM searches WHERE status = 'results' ORDER BY updated_at DESC LIMIT ?) recent
+      CROSS JOIN search_brands sb ON sb.search_domain = recent.domain
       GROUP BY sb.domain
      HAVING searches >= ?
       ORDER BY searches DESC, sb.domain
       LIMIT ?`
-  ).bind(searches, min, limit).all();
+  ).bind(searches, min, FREQUENT_KEPT).all();
   return (results || []).map(row => ({ domain: row.domain, name: row.name || row.domain, searches: row.searches }));
+}
+
+// A deploy that lands before migration 0006 has no frequent_brands table: the list is then
+// counted on every call, as it was before.
+async function withFrequentTable(query, fallback) {
+  try {
+    return await query();
+  } catch (err) {
+    if (/no such table: frequent_brands/i.test(err?.message || '')) return fallback;
+    throw err;
+  }
 }
 
 function withoutCatalog(brand) {

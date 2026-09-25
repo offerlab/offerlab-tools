@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as store from '$lib/server/db.js';
-import { createTestDb, resetDb, searchFixture } from './helpers/d1.js';
+import { createTestDb, migrationStatements, resetDb, searchFixture } from './helpers/d1.js';
 
 let ctx, db;
 beforeAll(async () => { ctx = await createTestDb(); db = ctx.db; });
@@ -174,6 +174,80 @@ describe('listFrequentBrands', () => {
     // Only the most recent searches count.
     expect(await store.listFrequentBrands(db, { searches: 2, min: 2 })).toEqual([{ domain: 'graza.co', name: 'Graza', searches: 2 }]);
     expect(await store.listFrequentBrands(db, { min: 5 })).toEqual([]);
+  });
+
+  const recommend = async (domain, names, at) => {
+    const search = searchFixture(domain, names.length);
+    search.brands = names.map(name => ({ name, url: `https://${name.toLowerCase()}.co` }));
+    await store.putSearch(db, domain, search, at);
+  };
+
+  it('serves the stored count until it is FREQUENT_TTL_MS old, then counts again', async () => {
+    await recommend('a.test', ['Graza'], 1);
+    await recommend('b.test', ['Graza'], 2);
+    const first = await store.listFrequentBrands(db, { min: 2 }, 1000);
+    expect(first).toEqual([{ domain: 'graza.co', name: 'Graza', searches: 2 }]);
+
+    await recommend('c.test', ['Graza', 'Olipop'], 3);
+    await recommend('d.test', ['Olipop'], 4);
+    expect(await store.listFrequentBrands(db, { min: 2 }, 1000 + store.FREQUENT_TTL_MS - 1)).toEqual(first);
+    expect(await store.listFrequentBrands(db, { min: 2 }, 1000 + store.FREQUENT_TTL_MS)).toEqual([
+      { domain: 'graza.co', name: 'Graza', searches: 3 },
+      { domain: 'olipop.co', name: 'Olipop', searches: 2 }
+    ]);
+    // Another window or floor is its own row; a smaller limit is a slice of the stored one.
+    expect(await store.listFrequentBrands(db, { searches: 1, min: 1 }, 1000)).toEqual([{ domain: 'olipop.co', name: 'Olipop', searches: 1 }]);
+    expect(await store.listFrequentBrands(db, { min: 2, limit: 1 }, 1000 + store.FREQUENT_TTL_MS)).toHaveLength(1);
+  });
+
+  it('reads the last searches and their brands, not the whole table', async () => {
+    for (let i = 0; i < 60; i++) await recommend(`s${i}.test`, ['Graza', 'Olipop', 'Nutr', 'MiiR', 'Haus'], i);
+    let rowsRead = 0;
+    const counting = {
+      prepare: sql => {
+        const wrap = statement => ({
+          bind: (...args) => wrap(statement.bind(...args)),
+          first: () => statement.first(),
+          run: () => statement.run(),
+          all: async () => { const result = await statement.all(); rowsRead += result.meta.rows_read; return result; }
+        });
+        return wrap(db.prepare(sql));
+      }
+    };
+    const brands = await store.listFrequentBrands(counting, { searches: 3, min: 1 });
+    expect(brands).toHaveLength(5);
+    expect(brands[0].searches).toBe(3);
+    // 3 searches and their 15 brands, give or take SQLite's sorting; 360 rows are stored.
+    expect(rowsRead).toBeGreaterThan(0);
+    expect(rowsRead).toBeLessThan(60);
+  });
+
+  it('counts on every call before migration 0006 has made its table', async () => {
+    await recommend('a.test', ['Graza'], 1);
+    const missing = {
+      prepare: sql => sql.includes('frequent_brands')
+        ? { bind: () => ({ first: () => Promise.reject(new Error('D1_ERROR: no such table: frequent_brands: SQLITE_ERROR')), run: () => Promise.reject(new Error('D1_ERROR: no such table: frequent_brands: SQLITE_ERROR')) }) }
+        : db.prepare(sql)
+    };
+    expect(await store.listFrequentBrands(missing, { min: 1 })).toEqual([{ domain: 'graza.co', name: 'Graza', searches: 1 }]);
+  });
+
+  it('is backfilled by migration 0006 with the same answer the store counts', async () => {
+    for (const [domain, names, at] of [
+      ['a.test', ['Graza', 'Olipop', 'Nutr'], 1],
+      ['b.test', ['Graza', 'Olipop'], 2],
+      ['c.test', ['Graza', 'Olipop', 'MiiR'], 3],
+      ['d.test', ['Graza', 'Nutr'], 4],
+      ['e.test', ['Nutr'], 5]
+    ]) await recommend(domain, names, at);
+    await db.prepare(migrationStatements().find(sql => sql.startsWith('INSERT OR REPLACE INTO frequent_brands'))).run();
+    const backfilled = await db.prepare(`SELECT brands, computed_at FROM frequent_brands WHERE id = '100:3'`).first();
+    expect(JSON.parse(backfilled.brands)).toEqual([
+      { domain: 'graza.co', name: 'Graza', searches: 4 },
+      { domain: 'nutr.co', name: 'Nutr', searches: 3 },
+      { domain: 'olipop.co', name: 'Olipop', searches: 3 }
+    ]);
+    expect(await store.listFrequentBrands(db, {}, backfilled.computed_at)).toEqual(JSON.parse(backfilled.brands));
   });
 });
 
