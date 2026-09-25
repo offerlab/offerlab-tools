@@ -2669,6 +2669,14 @@ position: relative;
   opacity: 0.6;
 }
 
+.more-card-actions .btn[aria-busy] {
+  opacity: 1;
+}
+
+.more-card-actions .ol-loader {
+  width: 20px;
+}
+
 /* --------------------------------------------------------------------------
    Searched Brand Card (top of results)
    -------------------------------------------------------------------------- */
@@ -7225,15 +7233,17 @@ button.social-link:disabled {
   width: 24px;
 }
 
-/* The shimmer on the moola button: paper-toned, peaking at white. */
-.picker-tray-busy .text-shimmer-ink {
+/* The shimmer on a moola button: paper-toned, peaking at white. */
+.picker-tray-busy .text-shimmer-ink,
+.more-card-actions .btn--ai .text-shimmer-ink {
   --shimmer-peak: #fff;
   --shimmer-edge: rgba(255, 255, 255, 0);
   color: rgba(255, 255, 255, 0.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker-tray-busy .text-shimmer-ink {
+  .picker-tray-busy .text-shimmer-ink,
+  .more-card-actions .btn--ai .text-shimmer-ink {
     color: #fff;
   }
 }

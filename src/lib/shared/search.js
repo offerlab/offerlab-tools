@@ -814,7 +814,7 @@ Return valid JSON only:
 export const UNEXPECTED_COUNT = 3;
 
 // Hosts a search for a brand name lands on that are never the brand's own site.
-const NOT_THE_BRAND = new Set(['amazon', 'instagram', 'facebook', 'tiktok', 'youtube', 'wikipedia', 'reddit', 'linkedin', 'pinterest', 'twitter', 'x', 'walmart', 'target', 'etsy', 'ebay', 'google', 'apple', 'crunchbase', 'bloomberg', 'yelp', 'trustpilot', 'threads', 'shopify']);
+const NOT_THE_BRAND = new Set(['amazon', 'instagram', 'facebook', 'tiktok', 'youtube', 'wikipedia', 'reddit', 'linkedin', 'pinterest', 'twitter', 'x', 'walmart', 'target', 'etsy', 'ebay', 'google', 'apple', 'crunchbase', 'bloomberg', 'yelp', 'trustpilot', 'threads', 'shopify', 'ubereats', 'doordash', 'grubhub', 'instacart', 'costco', 'wholefoodsmarket', 'thrivemarket']);
 const secondLevel = host => host.split('.').slice(-2, -1)[0] || host;
 const IDEAS = 12;
 const IDEATION_MODEL = 'gemini-2.5-pro';

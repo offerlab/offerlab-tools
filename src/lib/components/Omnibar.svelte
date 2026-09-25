@@ -71,6 +71,9 @@
     focused = true;
     showHistory();
     suggest?.sync();
+    // The results bar holds the searched domain; a tap into it is to type something else, so the
+    // domain is selected and the first keystroke replaces it. After the browser's own caret placement.
+    if (results) setTimeout(() => { if (document.activeElement === input) input.select(); }, 0);
   }
 
   function onBlur() {

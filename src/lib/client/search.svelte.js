@@ -333,8 +333,9 @@ export async function extendResults({ kind = 'note', text = '' } = {}) {
   const results = app.results;
   if (!results?.brands?.length || app.extending) return;
   const domain = app.searchDomain;
-  const turn = { id: generateId(), kind, text: kind === 'note' ? text.trim() : TURN_LABELS[kind], status: 'pending', error: '' };
-  app.turns.push(turn);
+  app.turns.push({ id: generateId(), kind, text: kind === 'note' ? text.trim() : TURN_LABELS[kind], status: 'pending', error: '' });
+  // The reactive copy: what the divider renders, and what the status below is written to.
+  const turn = app.turns[app.turns.length - 1];
   app.extending = turn.id;
   app.extendingText = EXTEND_MESSAGES[kind]?.[0] || '';
   extendAbort = new AbortController();
