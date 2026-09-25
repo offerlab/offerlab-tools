@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded
+  parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded,
+  extendRecommendations, threadOf, gateGraded, EXTEND_COUNT, UNEXPECTED_COUNT
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -502,5 +503,104 @@ describe('gradeCandidates and composeGraded', () => {
   it('leaves the list alone when nothing was graded', () => {
     const brands = [brand('A', 'same-shelf')];
     expect(composeGraded(brands, [null])).toBe(brands);
+  });
+});
+
+describe('threadOf', () => {
+  it('splits a list into the first search and each follow-up in order', () => {
+    const t1 = { id: 't1', kind: 'note', text: 'more like Liquid Death' };
+    const t2 = { id: 't2', kind: 'more', text: 'More like these' };
+    const brands = [{ name: 'A' }, { name: 'B' }, { name: 'C', turn: t1 }, { name: 'D', turn: t2 }, { name: 'E', turn: t1 }];
+    const thread = threadOf(brands);
+    expect(thread.base.map(b => b.name)).toEqual(['A', 'B']);
+    expect(thread.turns.map(({ turn, brands }) => [turn.id, turn.kind, brands.map(b => b.name)])).toEqual([['t1', 'note', ['C', 'E']], ['t2', 'more', ['D']]]);
+  });
+
+  it('is only a base for a list without follow-ups, and nothing for nothing', () => {
+    expect(threadOf([{ name: 'A' }]).turns).toEqual([]);
+    expect(threadOf(undefined)).toEqual({ base: [], turns: [] });
+  });
+});
+
+describe('gateGraded', () => {
+  it('drops what is not a brand, a competitor, or no bundle, and keeps the rest with their grades', () => {
+    const brands = [{ name: 'Retailer' }, { name: 'Rival' }, { name: 'Dud' }, { name: 'Keeper' }, { name: 'Ungraded' }];
+    const grades = [
+      { brand: 0.1, competitor: 0, fit: 2, surprise: 1, kind: 'retailer' },
+      { brand: 0.9, competitor: 0.8, fit: 2, surprise: 1 },
+      { brand: 0.9, competitor: 0, fit: 0.5, surprise: 1 },
+      { brand: 0.9, competitor: 0.1, fit: 2.4, surprise: 2 },
+      null
+    ];
+    const kept = gateGraded(brands, grades);
+    expect(kept.map(b => b.name)).toEqual(['Keeper', 'Ungraded']);
+    expect(kept[0].grade.fit).toBe(2.4);
+    expect(kept[1].grade).toBeUndefined();
+  });
+});
+
+describe('extendRecommendations', () => {
+  const profile = { name: 'Built', url: 'https://built.com', description: 'Protein bars' };
+  const listed = [{ name: 'Liquid Death', url: 'https://liquiddeath.com', lane: 'lifestyle' }, { name: 'Olipop', url: 'https://drinkolipop.com', lane: 'same-shelf' }];
+  const okJson = body => new Response(JSON.stringify(body), { status: 200 });
+  // A Jev answer in the shape readGrade reads: a consumer brand with a bundle, or a retailer.
+  const jevAnswer = kind => ({ answers: {
+    kind: { choice: kind, probabilities: { consumer_brand: kind === 'brand' ? 0.95 : 0.05 } },
+    competitor: { noul: 0.05 }, lane: { choice: 'lifestyle', confidence: 0.5 }, stage: { choice: 'growing', confidence: 0.5 },
+    fit: { score: 2.2 }, surprise: { score: 1.5 }
+  } });
+  const fakeApi = ({ brands, onGemini = () => {} }) => ({
+    gemini: async (body) => { onGemini(body); return okJson(gemini(JSON.stringify({ brands }))); },
+    jev: async (body) => okJson(jevAnswer(body.state.candidate.name === 'Costco' ? 'retailer' : 'brand')),
+    catalog: async (domain) => okJson({ status: 'shopify', domain, count: 1, products: [{ id: '1', title: 'Thing', url: `https://${domain}/products/thing`, image: '', price: 9 }] }),
+    socials: async () => okJson({ socials: {} }),
+    serp: async () => okJson({ shopping_results: [] })
+  });
+
+  it('asks with the note and the list, keeps only what is new and passes the gate, and attaches catalogs', async () => {
+    const prompts = [];
+    const answer = [
+      { name: 'Olipop', url: 'https://drinkolipop.com', lane: 'same-shelf', category: 'same-moment', brandStage: 'growing', reasons: ['a'] },
+      { name: 'Costco', url: 'https://costco.com', lane: 'lifestyle', category: 'lifestyle-stack', brandStage: 'established', reasons: ['a'] },
+      { name: 'Ghia', url: 'https://drinkghia.com', lane: 'same-shelf', category: 'same-moment', brandStage: 'emerging', reasons: ['a'] },
+      { name: 'Ghia', url: 'https://www.drinkghia.com', lane: 'same-shelf', category: 'same-moment', brandStage: 'emerging', reasons: ['a'] },
+      { name: 'Graza', url: 'https://graza.co', lane: 'adjacent-function', category: 'same-moment', brandStage: 'emerging', reasons: ['a'] }
+    ];
+    const api = fakeApi({ brands: answer, onGemini: body => prompts.push(body.contents[0].parts[0].text) });
+    const steps = [];
+    const added = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'note', brief: 'more like Liquid Death, less pantry', frequentBrands: [{ name: 'Brightland' }], onProgress: s => steps.push(s) });
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain('more like Liquid Death, less pantry');
+    expect(prompts[0]).toContain('Liquid Death (lifestyle), Olipop (same-shelf)');
+    expect(prompts[0]).toContain('Brightland');
+    expect(added.map(b => b.name)).toEqual(['Ghia', 'Graza']);
+    expect(added[0].catalog.status).toBe('shopify');
+    expect(added[0].grade).toBeTruthy();
+    expect(steps).toEqual([0, 1, 2]);
+  });
+
+  it('caps a note at EXTEND_COUNT and says nothing when nothing new came back', async () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({ name: `Brand ${i}`, url: `https://brand${i}.com`, lane: 'lifestyle', category: 'lifestyle-stack', brandStage: 'growing', reasons: ['a'] }));
+    const api = fakeApi({ brands: many });
+    expect((await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'more' })).length).toBe(EXTEND_COUNT);
+    const same = fakeApi({ brands: listed.map(b => ({ ...b, category: 'same-moment', brandStage: 'growing', reasons: ['a'] })) });
+    expect(await extendRecommendations(same, { brandProfile: profile, brands: listed, kind: 'more' })).toEqual([]);
+  });
+
+  it('uses the ideation for a surprise, skipping what is on screen, and caps at UNEXPECTED_COUNT', async () => {
+    const ideas = ['Liquid Death', 'Who Gives A Crap', 'Crocs', 'Heinz', 'Bombas'].map(brand => ({ brand, hook: `${brand} hook`, their_product: 'x', our_product: 'y', why_yes: 'z', bundle_name: 'n', brandStage: 'established' }));
+    const prompts = [];
+    const api = {
+      gemini: async (body) => { prompts.push(body.contents[0].parts[0].text); return okJson(gemini(JSON.stringify({ ideas }))); },
+      jev: async () => okJson(jevAnswer('brand')),
+      serp: async (params) => okJson({ organic_results: [{ link: `https://${new URLSearchParams(params).get('q').replace(' official site', '').toLowerCase().replace(/[^a-z]/g, '')}.com/` }] }),
+      catalog: async (domain) => okJson({ status: 'none', domain, count: 0, products: [] }),
+      socials: async () => okJson({ socials: {} })
+    };
+    const added = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'surprise' });
+    expect(prompts[0]).toContain("Not one already on the reader's list: Liquid Death, Olipop");
+    expect(added.length).toBe(UNEXPECTED_COUNT);
+    expect(added.map(b => b.name)).not.toContain('Liquid Death');
+    expect(added.every(b => b.hook && b.lane === 'unexpected')).toBe(true);
   });
 });

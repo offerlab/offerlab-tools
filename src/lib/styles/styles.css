@@ -1891,6 +1891,15 @@ body.showing-results .main-content {
   pointer-events: none;
 }
 
+/* A follow-up in flight: the disc is the stop control; the field stays open for the next note */
+.view-header--extending .search-button:not(.search-button--stop) {
+  display: none;
+}
+
+.view-header--extending .search-button--stop {
+  display: flex;
+}
+
 @media (min-width: 768px) {
   .md\:max-w-\[600px\] {
       max-width: 600px;
@@ -2233,6 +2242,39 @@ position: relative;
   line-height: var(--line-height-sm);
 }
 
+/* The composer's question: one or two words that are surely a brand. The history and the
+   suggestions give the dropdown up to it. */
+.search-history-dropdown.is-asking .history-header,
+.search-history-dropdown.is-asking .history-list {
+  display: none;
+}
+
+.composer-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px 8px;
+}
+
+.composer-ask-text {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  padding-left: 4px;
+}
+
+.composer-ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.composer-ask-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Brand suggestions share the history rows. The arrow keys walk them; the name leads and the
    domain follows in the quieter ink. */
 .history-item.is-active {
@@ -2494,6 +2536,137 @@ position: relative;
 
 .result-card {
   max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   The thread: a follow-up's divider across the grid, and the end card
+   -------------------------------------------------------------------------- */
+.thread-turn {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 8px;
+  animation: cardFadeIn 0.4s ease forwards;
+  opacity: 0;
+}
+
+/* The note sits on a hairline that runs the grid's width, the way a day divider does in a thread */
+.thread-turn-line {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.thread-turn-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--content-border-neutral);
+}
+
+.thread-turn-note {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: min(100%, 720px);
+  padding: 10px 18px;
+  border-radius: 24px;
+  background: var(--content-background-elevated);
+  border: 0.5px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-base);
+  line-height: 1.35;
+  color: var(--content-primary);
+  text-align: left;
+}
+
+.thread-turn-note--ask {
+  align-items: center;
+  color: var(--moola-vivid);
+  font-weight: 500;
+}
+
+.thread-turn-who {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--content-tertiary);
+}
+
+.thread-turn-text {
+  overflow-wrap: anywhere;
+}
+
+.thread-turn-status {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  text-align: center;
+}
+
+.thread-turn-status .ol-loader {
+  width: 20px;
+  color: var(--agent-ink);
+}
+
+.thread-turn-status--failed {
+  color: var(--content-sentiment-negative);
+}
+
+/* The end card reads as a card without being one: no cursor, its actions its only targets */
+.more-card {
+  cursor: default;
+  justify-content: space-between;
+  min-height: 220px;
+  background: var(--content-background-base);
+}
+
+.more-card-group:hover {
+  transform: none;
+}
+
+.more-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 4px 0;
+}
+
+.more-card-icon {
+  display: inline-flex;
+  color: var(--moola-vivid);
+}
+
+.more-card-title {
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: -0.5px;
+  font-weight: 600;
+  color: var(--content-primary);
+}
+
+.more-card-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+}
+
+.more-card-actions .btn[disabled] {
+  opacity: 0.6;
 }
 
 /* --------------------------------------------------------------------------

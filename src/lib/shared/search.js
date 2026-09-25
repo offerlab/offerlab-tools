@@ -210,38 +210,154 @@ export async function discoverComplementaryBrands(url, {
   // Public catalogs for the searched brand and every recommendation
   await attachCatalogs(api, [searchedBrandData, ...brands], { onCatalog, concurrency: settings.catalogConcurrency });
 
-  // Google Shopping only for brands without a public catalog (paid, 1 search per brand). A brand
-  // whose Google Shopping catalog the store served fresh is not searched again; a stale one is,
-  // and one whose products staff hid never is.
-  const fallbackBrands = brands.filter(b => !b.catalog?.hidden && !hasCatalog(b.catalog)).slice(0, settings.serpFallbackBrands);
   // The searched brand with no catalog gets stand-in products instead, so the picker can still
   // lead with it. Kept with the search, beside the catalog rather than as one.
   const standInsPending = needsStandIns(searchedBrandData)
     ? gatherStandIns(api, searchedBrandData).catch(err => { console.warn(`[Stand-ins] ${err.message}`); return null; })
     : null;
-  let serpApiOutOfCredits = false;
-  if (fallbackBrands.length > 0) {
-    console.log(`[Discovery] SERP fallback for ${fallbackBrands.length} brands without a catalog`);
-    const serpResult = await fetchProductsFromBrands(api, fallbackBrands);
-    if (serpResult && serpResult.outOfCredits) {
-      serpApiOutOfCredits = true;
-    } else if (Array.isArray(serpResult)) {
-      fallbackBrands.forEach(brand => {
-        const products = serpResult
-          .filter(p => p.brandName === brand.name)
-          .map(p => ({ id: p.url, title: p.productName, url: p.url, image: p.imageUrl, price: typeof p.price === 'number' ? p.price : null }));
-        if (products.length === 0) return;
-        brand.catalog = { ...brand.catalog, status: 'serp', count: products.length, products };
-        if (onCatalog) onCatalog(brand);
-      });
-    }
-  }
+  const serpApiOutOfCredits = await attachSerpFallback(api, brands, { limit: settings.serpFallbackBrands, onCatalog });
 
   const standIns = await standInsPending;
   if (standIns) searchedBrandData.standIns = standIns;
 
   console.log(`[Discovery] Complete. ${brands.length} brands, ${brands.filter(b => b.catalog?.products?.length).length} with products`);
   return { searchedBrand: searchedBrandData, brands, serpApiOutOfCredits };
+}
+
+/**
+ * Google Shopping only for brands without a public catalog (paid, 1 search per brand). A brand
+ * whose Google Shopping catalog the store served fresh is not searched again; a stale one is, and
+ * one whose products staff hid never is. True when the SERP account is out of credits.
+ */
+async function attachSerpFallback(api, brands, { limit, onCatalog }) {
+  const fallbackBrands = brands.filter(b => !b.catalog?.hidden && !hasCatalog(b.catalog)).slice(0, limit);
+  if (fallbackBrands.length === 0) return false;
+  console.log(`[Discovery] SERP fallback for ${fallbackBrands.length} brands without a catalog`);
+  const serpResult = await fetchProductsFromBrands(api, fallbackBrands);
+  if (serpResult && serpResult.outOfCredits) return true;
+  if (Array.isArray(serpResult)) {
+    fallbackBrands.forEach(brand => {
+      const products = serpResult
+        .filter(p => p.brandName === brand.name)
+        .map(p => ({ id: p.url, title: p.productName, url: p.url, image: p.imageUrl, price: typeof p.price === 'number' ? p.price : null }));
+      if (products.length === 0) return;
+      brand.catalog = { ...brand.catalog, status: 'serp', count: products.length, products };
+      if (onCatalog) onCatalog(brand);
+    });
+  }
+  return false;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Follow-ups: a note, more like these, surprise me                            */
+/* -------------------------------------------------------------------------- */
+
+/** How many brands a note or "More like these" adds; "Surprise me" adds UNEXPECTED_COUNT. */
+export const EXTEND_COUNT = 6;
+
+export const TURN_KINDS = ['note', 'more', 'surprise'];
+
+/** What the divider says for a follow-up that carries no note of its own. */
+export const TURN_LABELS = { more: 'More like these', surprise: 'Surprise me' };
+
+const MORE_BRIEF = 'More in the same spirit as the list so far: the same customer and the same tier, fresh names rather than the famous ones, and favor whichever lanes are thinnest so far.';
+
+/**
+ * One more round for a list already on screen: a note from the person, "more like these", or
+ * "surprise me". Answers with the brands to append, graded and with catalogs attached, or []
+ * when nothing new came back. Nothing in `brands` comes back again.
+ *
+ * Callbacks: onProgress(step) with step 0-2 (reading, finding, catalogs).
+ */
+export async function extendRecommendations(api, {
+  brandProfile, brands, kind = 'note', brief = '', frequentBrands = [], onProgress, onCatalog, config = {}
+}) {
+  const settings = { ...SEARCH_DEFAULTS, ...config };
+  const domain = brandDomain(brandProfile?.url || '');
+  const brandName = brandProfile?.name || extractBrandName(domain);
+  const progress = (step) => { if (typeof onProgress === 'function') onProgress(step); };
+
+  progress(0);
+  const candidates = kind === 'surprise'
+    ? await unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands, listed: brands })
+    : await moreRecommendations(api, { brandProfile, brandName, domain, brands, brief: kind === 'more' ? MORE_BRIEF : brief, frequentBrands });
+  progress(1);
+
+  const fresh = withoutListed(candidates, brands);
+  const gated = fresh.length ? gateGraded(fresh, await gradeCandidates(api, brandProfile, fresh)) : [];
+  const added = gated.slice(0, kind === 'surprise' ? UNEXPECTED_COUNT : EXTEND_COUNT);
+  console.log(`[Discovery] Follow-up (${kind}): ${added.length} of ${candidates.length} candidates kept`);
+  if (!added.length) return [];
+
+  progress(2);
+  await attachCatalogs(api, added, { onCatalog, concurrency: settings.catalogConcurrency });
+  await attachSerpFallback(api, added, { limit: settings.serpFallbackBrands, onCatalog });
+  return added;
+}
+
+/** The candidates not already on the list, by name or site, each once. */
+function withoutListed(candidates, brands) {
+  const seen = new Set(brands.flatMap(b => [b.name?.toLowerCase(), brandDomain(b.url || '')]).filter(Boolean));
+  return candidates.filter(brand => {
+    const keys = [brand.name?.toLowerCase(), brandDomain(brand.url || '')].filter(Boolean);
+    if (!keys.length || keys.some(key => seen.has(key))) return false;
+    keys.forEach(key => seen.add(key));
+    return true;
+  });
+}
+
+/**
+ * The grounded call again, told what is already listed and what the reader asked for. The ask
+ * decides the category, tier, tone and lane of every brand; the rest of the rules stand.
+ */
+async function moreRecommendations(api, { brandProfile, brandName, domain, brands, brief, frequentBrands }) {
+  const listed = brands.map(b => (b.lane ? `${b.name} (${b.lane})` : b.name)).filter(Boolean);
+  const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
+  const ask = String(brief || '').trim() || MORE_BRIEF;
+
+  const prompt = `You are a world-class brand collaboration curator. You already recommended collaboration partners for the brand below, and the person reading the list has asked for more.
+
+=== THE BRAND SEEKING COLLABORATORS ===
+${JSON.stringify(brandProfile, null, 2)}
+
+=== ALREADY ON THE LIST (never repeat these) ===
+${listed.join(', ') || 'nothing yet'}
+
+=== THE ASK ===
+"${ask}"
+
+Answer the ask directly. It is the reader's steer: let it decide the category, the tier, the tone and the lane of every brand you add. If it names a brand, treat that brand as the reference point (add it only if it is not already listed and fits; otherwise find brands in its spirit). If it rules something out, rule it out. If it is open-ended, reach past the list for what the reader has not seen yet.
+
+Add ${EXTEND_COUNT + 2} brands. Every one:
+- Real, active, and selling its own products. Verify each with web search and use its ACTUAL homepage URL from the results; never guess a URL.
+- Not ${brandName} (${domain}), not a direct competitor, and not already on the list above.
+- Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}.
+- The strongest fit for THIS ask and THIS customer, not the most famous name you can think of.
+- Complementary, with a bundle you can picture.
+
+Return valid JSON only:
+{
+  "brands": [
+    {
+      "name": "Brand Name",
+      "url": "https://actualbrandwebsite.com",
+      "category": "same-moment|same-aesthetic|same-values|gift-pairing|lifestyle-stack|unexpected-delight",
+      "lane": "same-shelf|adjacent-function|lifestyle|parallel-premium|unexpected",
+      "brandStage": "emerging|growing|established",
+      "reasons": ["3 short bullets on why this collab works with ${brandName} and answers the ask. Under 12 words each, playful and concrete, naming real products. No em dashes."],
+      "bundleIdea": "One sentence describing a specific product bundle or campaign concept",
+      "social": { "tiktok": "handle or null", "instagram": "handle or null", "facebook": "handle or null" }
+    }
+  ]
+}`;
+
+  const { parsed } = await geminiJson(api, 'Follow-up', {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: { parts: [{ text: `You are an expert brand collaboration curator. Use Google Search to verify every brand and take its URL from the results. Return ONLY valid JSON. Do NOT recommend ${brandName} or a direct competitor of it.` }] },
+    tools: [{ google_search: {} }],
+    generationConfig: { temperature: 0.9, topK: 50, topP: 0.97, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
+  }, { parse: text => { const r = parseJsonResponse(text); if (!Array.isArray(r?.brands)) throw new Error('No brands in the answer'); return r; } });
+  return normalizeRecommendations(parsed.brands).map(ensureHttps);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -310,6 +426,27 @@ export function catalogForStore(brand) {
  * the store writes them itself instead of relying on the catalog proxy's deferred write; the
  * server does, since it expands a search straight from the store.
  */
+/**
+ * A stored list read back as its thread: the first search's brands, then each follow-up in the
+ * order it was made with the brands it added. A brand names its follow-up in `turn`.
+ */
+export function threadOf(brands) {
+  const base = [];
+  const turns = [];
+  const byId = new Map();
+  for (const brand of brands || []) {
+    const turn = brand?.turn;
+    if (!turn?.id) { base.push(brand); continue; }
+    if (!byId.has(turn.id)) {
+      const entry = { turn: { id: turn.id, kind: turn.kind || 'note', text: turn.text || '' }, brands: [] };
+      byId.set(turn.id, entry);
+      turns.push(entry);
+    }
+    byId.get(turn.id).brands.push(brand);
+  }
+  return { base, turns };
+}
+
 export function searchRecord(results, searchId, { keepCatalogs = false } = {}) {
   if (!results.brands?.length) return { type: 'empty', searchId };
   const forStore = keepCatalogs ? (brand) => brand : catalogForStore;
@@ -723,8 +860,9 @@ export async function resolveHomepage(api, name) {
  * Jev picking the most surprising ideas that still hold a bundle; a web search for each pick's
  * real homepage. A brand with no findable site is dropped.
  */
-export async function unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands = [] }) {
+export async function unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands = [], listed = [] }) {
   const trodden = (frequentBrands || []).map(b => b.name || b.domain).filter(Boolean);
+  const onScreen = (listed || []).map(b => b.name).filter(Boolean);
   const prompt = `You are the creative director of a brand collaboration studio, famous for one thing: pairings nobody saw coming that everyone immediately gets.
 
 === THE BRAND ===
@@ -749,7 +887,7 @@ Start from the product, never from a category. Work each angle and keep only wha
 6. A season or a cultural moment where the two belong on the same shelf for six weeks.
 7. The opposite: the brand whose product is the exact counterweight to this one, so the pair is a whole.
 
-RULES: real brands that sell their own products (you know them; do not invent any). Not a direct competitor of ${brandName}. Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}. Not the safe adjacent category everyone would suggest, and not the obvious wellness or gear pairing. Name the exact product on each side and say the tension and the truth in the hook. If it is funny it must also be a bundle the buyer wants.
+RULES: real brands that sell their own products (you know them; do not invent any). Not a direct competitor of ${brandName}. Not one of these, recommended everywhere: ${trodden.join(', ') || 'none'}.${onScreen.length ? ` Not one already on the reader's list: ${onScreen.join(', ')}.` : ''} Not the safe adjacent category everyone would suggest, and not the obvious wellness or gear pairing. Name the exact product on each side and say the tension and the truth in the hook. If it is funny it must also be a bundle the buyer wants.
 
 Return valid JSON only, ${IDEAS} ideas, strongest first:
 {
@@ -772,7 +910,7 @@ Return valid JSON only, ${IDEAS} ideas, strongest first:
       systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Think first, then return ONLY valid JSON.' }] },
       generationConfig: { temperature: 1.2, topK: 64, topP: 0.98, maxOutputTokens: 8192 }
     }, { model: IDEATION_MODEL });
-    const seen = new Set(trodden.map(n => n.toLowerCase()));
+    const seen = new Set([...trodden, ...onScreen].map(n => n.toLowerCase()));
     const ideas = (parseJsonResponse(extractText(data)).ideas || [])
       .filter(idea => idea?.brand && !seen.has(String(idea.brand).toLowerCase()))
       .map(idea => ({
@@ -855,6 +993,20 @@ export async function gradeCandidates(api, searchedBrand, brands) {
 }
 
 /**
+ * The brands Jev lets through, each carrying its grade: no retailers, services or media, no direct
+ * competitor, nothing without a believable bundle. Ungraded brands are kept as they were.
+ */
+export function gateGraded(brands, grades, thresholds = GRADE_THRESHOLDS) {
+  return brands.map((brand, i) => ({ brand, grade: grades[i] })).filter(({ brand, grade }) => {
+    if (!grade) return true;
+    if (grade.brand < thresholds.brand) { console.log(`[Discovery] Dropped ${brand.name}: ${grade.kind || 'not a brand'}`); return false; }
+    if (grade.competitor > thresholds.competitor) { console.log(`[Discovery] Dropped ${brand.name}: competitor (${grade.competitor})`); return false; }
+    if (grade.fit < thresholds.fit) { console.log(`[Discovery] Dropped ${brand.name}: no believable bundle (${grade.fit})`); return false; }
+    return true;
+  }).map(({ brand, grade }) => (grade ? { ...brand, grade } : brand));
+}
+
+/**
  * The list as the grades say it should be: no retailers, services or media, no direct competitor,
  * nothing without a believable bundle; the unexpected lane held by the most surprising pairings;
  * every lane kept to at least two where the candidates allow; the well-trodden cap kept. The
@@ -864,14 +1016,7 @@ export async function gradeCandidates(api, searchedBrand, brands) {
  */
 export function composeGraded(brands, grades, frequentBrands = [], thresholds = GRADE_THRESHOLDS) {
   if (!grades.some(Boolean)) return brands;
-  const graded = brands.map((brand, i) => ({ brand, grade: grades[i] }));
-  const kept = graded.filter(({ brand, grade }) => {
-    if (!grade) return true;
-    if (grade.brand < thresholds.brand) { console.log(`[Discovery] Dropped ${brand.name}: ${grade.kind || 'not a brand'}`); return false; }
-    if (grade.competitor > thresholds.competitor) { console.log(`[Discovery] Dropped ${brand.name}: competitor (${grade.competitor})`); return false; }
-    if (grade.fit < thresholds.fit) { console.log(`[Discovery] Dropped ${brand.name}: no believable bundle (${grade.fit})`); return false; }
-    return true;
-  }).map(({ brand, grade }) => (grade ? { ...brand, grade } : brand));
+  const kept = gateGraded(brands, grades, thresholds);
 
   // The unexpected lane: the ideated pairings (they carry a hook), then the most surprising of
   // the rest that still hold a bundle, whatever their relation. Never filled by fit.

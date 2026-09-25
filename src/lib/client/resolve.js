@@ -201,6 +201,10 @@ export function attachBrandSuggestions({ input, dropdown, list, history, showHis
   });
 
   return {
+    /** The suggestion the arrow keys are on, or null. */
+    picked() {
+      return activeDomain();
+    },
     /** The domain the form should search, or null when the text resolves to nothing. */
     async resolve() {
       const picked = activeDomain();
