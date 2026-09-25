@@ -1,10 +1,17 @@
 /**
- * Shopify public catalog reader, shared by the Express dev server and the
- * Cloudflare Pages function. Runtime-neutral: only uses global fetch.
+ * Public storefront catalog reader (Shopify's products.json, WooCommerce's Store API), shared by
+ * the Express dev server and the Cloudflare Pages function. Runtime-neutral: only uses global fetch.
  */
 
 export const CATALOG_LIMIT = 250;
 const FETCH_TIMEOUT_MS = 10000;
+// The Store API serves at most 100 products a page.
+const WOO_PAGE_SIZE = 100;
+
+/** A catalog read from the brand's own storefront, as opposed to one assembled from Google Shopping. */
+export function isStorefrontCatalog(catalog) {
+  return catalog?.status === 'shopify' || catalog?.status === 'woocommerce';
+}
 
 /** "https://www.Graza.co/pages/x" -> "www.graza.co" */
 export function normalizeDomain(input) {
@@ -58,18 +65,23 @@ function toNumber(value) {
 
 const DESCRIPTION_LIMIT = 200;
 
+const NAMED_ENTITIES = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' };
+
+// WordPress escapes names too, so a title can arrive as "Alfajor &#8211; Box x 4".
+function decodeEntities(text) {
+  return String(text || '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, code) => {
+    if (code[0] !== '#') return NAMED_ENTITIES[code.toLowerCase()] ?? entity;
+    const point = code[1] === 'x' || code[1] === 'X' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+    return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity;
+  });
+}
+
 // body_html is the merchant's own copy about what a product is for, which is the signal a
 // recommender needs; it arrives as markup and is often padded with care instructions.
 function plainDescription(html) {
-  const text = String(html || '')
+  const text = decodeEntities(String(html || '')
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .replace(/<[^>]+>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
   if (text.length <= DESCRIPTION_LIMIT) return text;
@@ -110,15 +122,84 @@ function normalizeProduct(product, storeUrl) {
   };
 }
 
+// Store API prices are strings in the currency's minor unit: "3199" with a minor unit of 2 is 31.99.
+function wooAmount(value, minorUnit) {
+  const n = toNumber(value);
+  return n === null ? null : n / 10 ** minorUnit;
+}
+
+function normalizeWooProduct(product) {
+  // Woo's own word that the product cannot be bought here: an external (affiliate) listing, or one
+  // without a price.
+  if (!product?.is_purchasable) return null;
+  const prices = product.prices || {};
+  const minorUnit = Number.isInteger(prices.currency_minor_unit) ? prices.currency_minor_unit : 2;
+  // A variable product's price is its cheapest variation's, which the range states outright.
+  const price = wooAmount(prices.price_range?.min_amount ?? prices.price, minorUnit);
+  if (price === null || price <= 0) return null;
+  const image = product.images?.[0]?.src || null;
+  if (!image) return null;
+  const regular = product.on_sale ? wooAmount(prices.regular_price, minorUnit) : null;
+  const variations = Array.isArray(product.variations) ? product.variations : [];
+
+  return {
+    id: product.id,
+    handle: product.slug,
+    title: decodeEntities(product.name),
+    url: product.permalink,
+    image,
+    price,
+    compareAtPrice: regular !== null && regular > price ? regular : null,
+    available: Boolean(product.is_in_stock),
+    vendor: decodeEntities(product.brands?.[0]?.name),
+    productType: decodeEntities(product.categories?.[0]?.name),
+    description: plainDescription(product.description || product.short_description),
+    tags: Array.isArray(product.tags) ? product.tags.map(tag => decodeEntities(tag?.name)).filter(Boolean) : [],
+    variantCount: variations.length || 1
+  };
+}
+
 /**
- * Resolves a domain's public catalog.
- * status: "shopify" (products found), "none" (no public catalog), "error" (every attempt failed to connect).
+ * A host's Store API products, page by page up to CATALOG_LIMIT, or null when the host has none.
+ * A failure past the first page keeps what came before it.
  */
-export async function fetchShopifyCatalog(input, { fetchImpl = fetch } = {}) {
+async function fetchWooProducts(host, fetchImpl) {
+  let origin = null;
+  const products = [];
+  for (let page = 1; products.length < CATALOG_LIMIT; page++) {
+    const url = `https://${host}/wp-json/wc/store/v1/products?per_page=${WOO_PAGE_SIZE}&page=${page}`;
+    let result;
+    try {
+      result = await fetchJson(url, fetchImpl);
+    } catch (err) {
+      if (page === 1) throw err;
+      break;
+    }
+    // Another WordPress route, or a plugin's, can answer an array too; a Store API product has prices.
+    const isProducts = result.ok && Array.isArray(result.data) && result.data.every(p => p?.prices);
+    if (!isProducts) {
+      if (page === 1) return null;
+      break;
+    }
+    origin ??= new URL(result.url).origin;
+    products.push(...result.data);
+    if (result.data.length < WOO_PAGE_SIZE) break;
+  }
+  return { origin, products: products.slice(0, CATALOG_LIMIT) };
+}
+
+/**
+ * Resolves a domain's public catalog: Shopify's products.json on any host, then WooCommerce's Store
+ * API on the hosts that answered.
+ * status: "shopify" or "woocommerce" (catalog found), "none" (no public catalog), "error" (every
+ * attempt failed to connect).
+ */
+export async function fetchStorefrontCatalog(input, { fetchImpl = fetch } = {}) {
   const domain = normalizeDomain(input);
   if (!domain) return { status: 'none', domain: '', storeUrl: null, count: 0, products: [] };
 
   let sawError = false;
+  const reached = [];
   for (const host of hostCandidates(domain)) {
     let result;
     try {
@@ -127,11 +208,25 @@ export async function fetchShopifyCatalog(input, { fetchImpl = fetch } = {}) {
       sawError = true;
       continue;
     }
+    reached.push(host);
     if (!result.ok || !Array.isArray(result.data?.products)) continue;
 
     const storeUrl = new URL(result.url).origin;
     const products = result.data.products.map(p => normalizeProduct(p, storeUrl)).filter(Boolean);
     return { status: 'shopify', domain: new URL(storeUrl).hostname, storeUrl, count: products.length, products };
+  }
+
+  for (const host of reached) {
+    let woo;
+    try {
+      woo = await fetchWooProducts(host, fetchImpl);
+    } catch {
+      continue;
+    }
+    if (!woo) continue;
+
+    const products = woo.products.map(normalizeWooProduct).filter(Boolean);
+    return { status: 'woocommerce', domain: new URL(woo.origin).hostname, storeUrl: woo.origin, count: products.length, products };
   }
 
   return { status: sawError ? 'error' : 'none', domain, storeUrl: null, count: 0, products: [] };

@@ -400,7 +400,7 @@ export async function deleteDrafts(db, searchedDomain) {
 /* -------------------------------------------------------------------------- */
 
 /** A catalog with products holds for a day; a store with no public catalog is looked at again sooner. */
-export const CATALOG_TTL_MS = { shopify: 24 * 60 * 60 * 1000, serp: 24 * 60 * 60 * 1000, none: 6 * 60 * 60 * 1000 };
+export const CATALOG_TTL_MS = { shopify: 24 * 60 * 60 * 1000, woocommerce: 24 * 60 * 60 * 1000, serp: 24 * 60 * 60 * 1000, none: 6 * 60 * 60 * 1000 };
 export const SOCIALS_TTL_MS = { found: 7 * 24 * 60 * 60 * 1000, none: 24 * 60 * 60 * 1000 };
 
 export function isFresh(stored, ttls, now = Date.now()) {

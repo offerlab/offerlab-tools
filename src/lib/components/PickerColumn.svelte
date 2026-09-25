@@ -8,6 +8,7 @@
   import { money } from '$lib/client/picker-concepts.js';
   import { sellable } from '$lib/client/picker-prompt.js';
   import { getFaviconUrl, catalogThumbUrl } from '$lib/client/util.js';
+  import { isStorefrontCatalog } from '$lib/shared/catalog.js';
   import Icon from './Icon.svelte';
 
   let { entry } = $props();
@@ -18,7 +19,7 @@
   const isSeller = $derived(domain === sellerEntry()?.domain);
   const filter = $derived((picker.filters[domain] || '').trim().toLowerCase());
   const products = $derived(catalog.products.filter(p => !filter || p.title.toLowerCase().includes(filter)));
-  const loadingMore = $derived(catalog.status === 'shopify' && (catalog.truncated || catalog.products.length < catalog.count));
+  const loadingMore = $derived(isStorefrontCatalog(catalog) && (catalog.truncated || catalog.products.length < catalog.count));
   const removable = $derived(!isSeller && picker.brands.length > 2);
 </script>
 

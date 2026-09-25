@@ -1,0 +1,7 @@
+<!-- WooCommerce. Redrawn, not an official asset: the purple speech bubble with "woo" in white, drawn at the Shopify mark's size so the two sit alike. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 32 32">
+  <path fill="#7F54B3" d="M5 7h22a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4h-3l1.5 4.5L19 24H5a4 4 0 0 1-4-4v-9a4 4 0 0 1 4-4Z"/>
+  <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="m5.5 11.5 2.5 8.5 3-6 3 6 2.5-8.5"/>
+  <circle cx="20.6" cy="16.3" r="2.5" stroke="#fff" stroke-width="1.9"/>
+  <circle cx="27" cy="16.3" r="2.5" stroke="#fff" stroke-width="1.9"/>
+</svg>

@@ -8,6 +8,7 @@
   import CatalogThumbs from './CatalogThumbs.svelte';
   import CatalogChinstrap from './CatalogChinstrap.svelte';
   import { extractDomain, fullUrlOf, getFaviconUrl, catalogThumbUrl } from '$lib/client/util.js';
+  import { isStorefrontCatalog } from '$lib/shared/catalog.js';
 
   let { brand } = $props();
 
@@ -42,7 +43,7 @@
           <div class="searched-brand-card-link-slot">
             <!-- The platform mark (when known) beside the external-link icon, styled as an elevated button. -->
             <span class="btn btn--md btn--secondary searched-brand-card-link" aria-hidden="true">
-              {#if brand.catalog?.status === 'shopify'}<span class="searched-brand-card-link-ghost"><Icon name="shopify" class="searched-brand-card-link-platform" size={18} /></span>{/if}<span class="searched-brand-card-link-ghost searched-brand-card-link-ghost--external"><Icon name="square-arrow-top-right-2" /></span>
+              {#if isStorefrontCatalog(brand.catalog)}<span class="searched-brand-card-link-ghost"><Icon name={brand.catalog.status} class="searched-brand-card-link-platform" size={18} /></span>{/if}<span class="searched-brand-card-link-ghost searched-brand-card-link-ghost--external"><Icon name="square-arrow-top-right-2" /></span>
             </span>
           </div>
         </div>
