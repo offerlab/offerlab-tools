@@ -2941,17 +2941,17 @@ position: relative;
 }
 
 /* Streamed text (client/actions/stream_text.js): every word is in place from the first frame and
-   arrives on its own delay, rising a hair as its ink fades in. Mirrors the app's agent turns. */
-.stream-word {
+   arrives on its own delay, opacity and 0.14em of rise, nothing else. The app's rule
+   (atelier/onboarding.css), verbatim. */
+.is-streaming .stream-word {
   display: inline-block;
-  opacity: 0;
-  transform: translateY(0.14em);
-  animation: streamWordIn 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: streamWordIn var(--stream-fade, 480ms) var(--stream-ease, cubic-bezier(0.22, 1, 0.36, 1)) backwards;
   animation-delay: var(--stream-delay, 0ms);
 }
 
 @keyframes streamWordIn {
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(0.14em); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2959,10 +2959,8 @@ position: relative;
     animation: cardFadeIn 0.4s ease forwards;
   }
 
-  .stream-word {
+  .is-streaming .stream-word {
     animation: none;
-    opacity: 1;
-    transform: none;
   }
 }
 
