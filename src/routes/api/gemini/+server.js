@@ -15,14 +15,19 @@ import { foldStream } from '$lib/server/gemini-stream.js';
 // keeps a Gemini connection that never answers from holding the Worker open behind it.
 const UPSTREAM_TIMEOUT_MS = 180_000;
 const KEEPALIVE_EVERY_MS = 10_000;
+// A grounded call that has not started answering by now is, about one time in three, one that
+// never will for another minute or two; a fresh attempt usually answers in under a minute. The
+// first attempt on the kept-alive path gets this long to start, then is asked again with the
+// full budget. Gemini's answers are not billed until they are produced.
+const FIRST_ANSWER_MS = 60_000;
 
 // The kept-alive path streams from Google too, or the Worker's own fetch is the silent leg.
-async function askGemini(endpoint, body, { stream = false } = {}) {
+async function askGemini(endpoint, body, { stream = false, timeoutMs = UPSTREAM_TIMEOUT_MS } = {}) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+    signal: AbortSignal.timeout(timeoutMs)
   });
   if (!response.ok) {
     const errorText = await response.text();
@@ -50,7 +55,11 @@ function streamed(endpoint, body) {
   (async () => {
     const pulse = setInterval(() => writer.write(encoder.encode(' ')).catch(() => {}), KEEPALIVE_EVERY_MS);
     try {
-      const answer = await askGemini(endpoint, body, { stream: true }).catch(failure);
+      const answer = await askGemini(endpoint, body, { stream: true, timeoutMs: FIRST_ANSWER_MS }).catch(err => {
+        if (err?.name !== 'TimeoutError') return failure(err);
+        console.warn(`[Gemini Proxy] No answer within ${FIRST_ANSWER_MS / 1000}s, asking again`);
+        return askGemini(endpoint, body, { stream: true }).catch(failure);
+      });
       await writer.write(encoder.encode(JSON.stringify(answer.body)));
     } finally {
       clearInterval(pulse);
