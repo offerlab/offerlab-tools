@@ -5907,6 +5907,11 @@ button.social-link:disabled {
   position: relative;
 }
 
+/* No filter row (fewer than two products): the head alone, so the rows start 36px higher */
+.picker-column.is-unfiltered {
+  --picker-column-top: 96px;
+}
+
 .picker-column-top {
   position: absolute;
   top: 0;
@@ -7031,6 +7036,176 @@ button.social-link:disabled {
   92.929% { background-position: 50.000% 70.833%; animation-timing-function: cubic-bezier(0.500, 0.000, 0.500, 1.000); }
   98.124% { background-position: 50.000% 29.167%; animation-timing-function: cubic-bezier(0.435, 0.000, 0.744, 0.413); }
   100% { background-position: 50.000% 37.654%; }
+}
+
+/* --------------------------------------------------------------------------
+   Stand-in products: the searched brand's column when it has no public catalog. The grid opens
+   with a tile that adds one, each stand-in carries an Edit pill, and the dialog makes or edits one.
+   -------------------------------------------------------------------------- */
+.picker-product-new-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--content-border-neutral);
+  color: var(--content-secondary);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .picker-product--new:hover .picker-product-new-art {
+    border-color: var(--content-primary);
+    color: var(--content-primary);
+  }
+}
+
+.picker-product--new:focus-visible .picker-product-new-art {
+  box-shadow: 0 0 0 2px var(--content-primary);
+}
+
+.picker-standins-retry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.picker-standins-retry p {
+  margin: 0;
+}
+
+.picker-standins-retry .btn {
+  gap: 6px;
+}
+
+.picker-product-noart {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--content-background-overlay);
+}
+
+.picker-product-noart img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.picker-product-edit {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--rounded-full);
+  background: var(--content-background-elevated);
+  color: var(--content-primary);
+  box-shadow: var(--shadow-sm);
+  outline: 1px solid var(--content-border-neutral);
+  outline-offset: -1px;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+/* Shown on hover where a pointer hovers; always there on touch, which has no hover to find it by. */
+@media (hover: hover) {
+  .picker-product-edit {
+    opacity: 0;
+  }
+
+  .picker-product:hover .picker-product-edit,
+  .picker-product-edit:focus-visible {
+    opacity: 1;
+  }
+
+  .picker-product-edit:hover {
+    background: var(--content-background-base);
+  }
+}
+
+.picker-product-modal {
+  width: 560px;
+  max-height: calc(100dvh - 32px);
+}
+
+.picker-product-modal .dialog-body {
+  overflow-y: auto;
+}
+
+.picker-product-lede,
+.picker-product-note,
+.picker-product-pictures-empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+}
+
+.picker-product-note:empty {
+  display: none;
+}
+
+.picker-product-link {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-product-link .btn {
+  gap: 6px;
+}
+
+.picker-product-fields {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 8px;
+}
+
+.picker-product-pictures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+  max-height: 176px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.picker-product-picture {
+  display: block;
+  width: 100%; /* Safari sizes a <button> grid item to its content */
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.picker-product-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.picker-product-picture.is-selected {
+  box-shadow: 0 0 0 2px var(--content-primary);
+}
+
+.picker-product-pictures-empty {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 639px) {
+  .picker-product-fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* A product with no price cannot be picked: shown so the catalog reads whole, but quiet. */

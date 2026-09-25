@@ -260,6 +260,10 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
       console.warn('[performSearch] SERP API out of credits; brands without a public catalog show no products');
     }
 
+    // The stand-ins arrive last, after the reactive copy was taken.
+    if (results.searchedBrand?.standIns && app.liveResults.searchedBrand) {
+      app.liveResults.searchedBrand.standIns = results.searchedBrand.standIns;
+    }
     // The reactive copy is the one on screen; it becomes the search of record.
     app.results = app.liveResults;
     store.saveSearch(domain, {

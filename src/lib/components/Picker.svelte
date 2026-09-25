@@ -1,12 +1,13 @@
 <script>
   /**
    * The bundle picker section: the concepts card, the rail of brand columns, and the layers it
-   * owns (add popover, selection tray, URL dialog). Mounted once and kept; `app.view` shows it.
+   * owns (add popover, selection tray, URL dialog, stand-in product dialog). Mounted once and kept; `app.view` shows it.
    */
   import { onMount, tick } from 'svelte';
   import { app } from '$lib/client/state.svelte.js';
   import { picker, runtime, view } from '$lib/client/picker-state.svelte.js';
   import { hideAddPopover, hideUrlDialog } from '$lib/client/picker-add.js';
+  import { hideProductDialog } from '$lib/client/picker-standins.js';
   import { handleAction } from '$lib/client/picker-dispatch.js';
   import { delegateActions } from '$lib/client/actions/delegate_actions.js';
   import { columnRail } from '$lib/client/actions/column_rail.js';
@@ -16,6 +17,7 @@
   import PickerAddPopover from './PickerAddPopover.svelte';
   import PickerTray from './PickerTray.svelte';
   import PickerUrlDialog from './PickerUrlDialog.svelte';
+  import PickerProductDialog from './PickerProductDialog.svelte';
 
   let section = $state(null);
   const hasTray = $derived(picker.selection.size > 0);
@@ -35,7 +37,7 @@
       if (!e.target.closest('#pickerAddPopover') && !e.target.closest('[data-action="add-brand"]')) hideAddPopover();
     };
     const onKeydown = (e) => {
-      if (e.key === 'Escape') { hideAddPopover(); hideUrlDialog(); }
+      if (e.key === 'Escape') { hideAddPopover(); hideUrlDialog(); hideProductDialog(); }
     };
     document.addEventListener('click', onDocumentClick);
     document.addEventListener('keydown', onKeydown);
@@ -77,4 +79,5 @@
   <PickerAddPopover />
   <PickerTray />
   <PickerUrlDialog />
+  <PickerProductDialog />
 </section>

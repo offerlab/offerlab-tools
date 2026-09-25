@@ -2,7 +2,7 @@
   /**
    * The chinstrap tucked under a card: source on the left, product count on the right. Only while
    * the catalog is loading or once it has products; a brand without one gets no strip. The
-   * searched card's `none` variant says the picker leads with a partner instead.
+   * searched card's `none` variant says its bundles use stand-in products instead.
    */
   import Icon from './Icon.svelte';
 
@@ -21,7 +21,7 @@
 {#if variant === 'none'}
   <div class="tuck-banner tuck-banner--chinstrap card-chinstrap card-chinstrap--none" style="--tuck-radius: {radius}px">
     <span class="card-chinstrap-source"><Icon name="cross-large" size={12} /> No public catalog</span>
-    <span class="card-chinstrap-count">Bundles start from the partner you pick</span>
+    <span class="card-chinstrap-count">Bundles use stand-in products</span>
     <div class="tuck-banner__notch tuck-banner__notch--left"></div>
     <div class="tuck-banner__notch tuck-banner__notch--right"></div>
   </div>

@@ -1,5 +1,6 @@
 /**
- * Bundle picker: one catalog column per brand (the searched brand first, then partners),
+ * Bundle picker: one catalog column per brand (the searched brand first, on stand-in products
+ * when it has no catalog, then partners),
  * multi-select across them, and Gemini bundle concepts. Tiles and the floating selection
  * tray follow the main app's collab-builder catalog picker (OL-3571).
  *
@@ -13,6 +14,7 @@ import { picker, runtime, resetState, view } from './picker-state.svelte.js';
 import { canBuildWith, pushPickUrl, ensureFullCatalog } from './picker-brands.js';
 import { refreshConceptsCopy } from './picker-concepts.js';
 import { hideAddPopover, hideUrlDialog } from './picker-add.js';
+import { standInEntry, ensureStandIns, isStandIns, hideProductDialog } from './picker-standins.js';
 
 export { canBuildWith };
 
@@ -25,18 +27,21 @@ export function openPicker(partner, { skipUrlUpdate = false } = {}) {
 }
 
 /**
- * The first column presents the bundle. That is the searched brand when it has a public catalog;
- * when it has none (a headless storefront, no products.json) the partner clicked leads instead,
- * and the searched brand is simply not on the rail, so a build never dead-ends on it.
+ * The first column presents the bundle, and it is always the searched brand: on its own catalog
+ * when it has a public one, and on stand-in products when it has none (a headless storefront, no
+ * products.json), so the brand still sees and builds a bundle of its own.
  */
 async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
   const seller = getResults()?.searchedBrand;
-  const lead = seller && canBuildWith(seller) ? [seller] : [];
   const usable = partners.filter(canBuildWith);
   if (usable.length === 0) return false;
 
   resetState();
-  picker.brands = [...lead, ...usable].map(brand => ({ domain: extractDomain(brand.url || ''), brand }));
+  // Staff hiding a brand's products hides its stand-ins too.
+  const leads = Boolean(seller?.url) && !seller.catalog?.hidden;
+  const lead = leads ? [canBuildWith(seller) ? { domain: extractDomain(seller.url), brand: seller } : standInEntry(seller)] : [];
+  const taken = new Set(lead.map(entry => entry.domain));
+  picker.brands = [...lead, ...usable.map(brand => ({ domain: extractDomain(brand.url || ''), brand })).filter(entry => !taken.has(entry.domain))];
   if (!skipUrlUpdate) pushPickUrl();
 
   view.reveal();
@@ -44,8 +49,9 @@ async function openPickerWith(partners, { skipUrlUpdate = false } = {}) {
   showSection('picker');
   window.scrollTo({ top: 0 });
 
-  // A stored search carries a trimmed catalog per brand; the picker wants the whole thing.
-  await Promise.all(picker.brands.map(entry => ensureFullCatalog(entry.brand)));
+  // A stored search carries a trimmed catalog per brand; the picker wants the whole thing. A lead
+  // on stand-ins from a search that predates them finds some now.
+  await Promise.all(picker.brands.map(entry => (isStandIns(entry.brand.catalog) ? ensureStandIns(entry.domain) : ensureFullCatalog(entry.brand))));
   return true;
 }
 
@@ -56,6 +62,7 @@ export function closePicker() {
   }
   hideAddPopover();
   hideUrlDialog();
+  hideProductDialog();
   resetState();
   showSection('results');
 }

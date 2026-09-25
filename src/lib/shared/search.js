@@ -11,6 +11,7 @@ import { mergeSocial } from './socials.js';
 import { GRADE_QUESTIONS, gradeState, readGrade } from './jev.js';
 import { jsonrepair } from './vendor/jsonrepair/regular/jsonrepair.js';
 import { isStorefrontCatalog } from './catalog.js';
+import { needsStandIns, gatherStandIns } from './standins.js';
 
 export const SEARCH_DEFAULTS = {
   catalogConcurrency: 6,
@@ -43,6 +44,8 @@ export function httpApi(base = '', fetchImpl = (...args) => fetch(...args), { si
     catalog: (domain, { refresh = false } = {}) => get(`/api/catalog?domain=${encodeURIComponent(domain)}${refresh ? '&refresh=1' : ''}`),
     socials: (domain) => get(`/api/socials?domain=${encodeURIComponent(domain)}`),
     opengraph: (url) => get(`/api/opengraph?url=${encodeURIComponent(url)}`),
+    // One page read for its products and product pictures (shared/page.js).
+    page: (url) => get(`/api/page?url=${encodeURIComponent(url)}`),
     // Jev grades one candidate against the searched brand (src/lib/shared/jev.js).
     jev: (body) => fetchImpl(at('/api/jev'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...(signal ? { signal } : {}) })
   };
@@ -196,7 +199,9 @@ export async function discoverComplementaryBrands(url, {
     imageUrl: searchedBrand.imageUrl,
     description: searchedBrand.description,
     brandDNA: searchedBrand.brandDNA,
-    targetCustomer: searchedBrand.targetCustomer
+    targetCustomer: searchedBrand.targetCustomer,
+    // What it sells and at what price, which is what its stand-in products are made from.
+    productAnalysis: searchedBrand.productAnalysis
   };
 
   console.log(`[Discovery] Brands ready: ${brands.length} brands found`);
@@ -209,6 +214,11 @@ export async function discoverComplementaryBrands(url, {
   // whose Google Shopping catalog the store served fresh is not searched again; a stale one is,
   // and one whose products staff hid never is.
   const fallbackBrands = brands.filter(b => !b.catalog?.hidden && !hasCatalog(b.catalog)).slice(0, settings.serpFallbackBrands);
+  // The searched brand with no catalog gets stand-in products instead, so the picker can still
+  // lead with it. Kept with the search, beside the catalog rather than as one.
+  const standInsPending = needsStandIns(searchedBrandData)
+    ? gatherStandIns(api, searchedBrandData).catch(err => { console.warn(`[Stand-ins] ${err.message}`); return null; })
+    : null;
   let serpApiOutOfCredits = false;
   if (fallbackBrands.length > 0) {
     console.log(`[Discovery] SERP fallback for ${fallbackBrands.length} brands without a catalog`);
@@ -226,6 +236,9 @@ export async function discoverComplementaryBrands(url, {
       });
     }
   }
+
+  const standIns = await standInsPending;
+  if (standIns) searchedBrandData.standIns = standIns;
 
   console.log(`[Discovery] Complete. ${brands.length} brands, ${brands.filter(b => b.catalog?.products?.length).length} with products`);
   return { searchedBrand: searchedBrandData, brands, serpApiOutOfCredits };
@@ -986,7 +999,7 @@ async function fetchProductsFromBrands(api, brands) {
 // FETCH TOP PRODUCTS FOR A SINGLE BRAND
 // Uses Google Shopping to get real, purchasable products
 // ============================================
-async function fetchBrandTopProducts(api, brand) {
+export async function fetchBrandTopProducts(api, brand) {
   const brandName = brand.name;
   const storeDomain = brandDomain(brand.url || '');
   

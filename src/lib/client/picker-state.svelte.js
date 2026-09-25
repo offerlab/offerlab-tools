@@ -7,7 +7,7 @@ import { tick } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 export const picker = $state({
-  brands: [],                 // [{ domain, brand }], the searched brand first
+  brands: [],                 // [{ domain, brand }], the searched brand first (on stand-ins when it has no catalog)
   selection: new SvelteMap(), // "domain:id" -> { domain, product, sequence }
   draft: { status: 'idle', message: '', url: null },
   sequence: 0,
@@ -22,7 +22,9 @@ export const picker = $state({
   swapDomain: null,           // the column the popover is replacing, when it was opened from one
   filters: {},                // domain -> text
   popover: { open: false, top: 0, left: 0 },
-  dialog: { open: false, error: '', busy: false, label: 'Add brand' }
+  dialog: { open: false, error: '', busy: false, label: 'Add brand' },
+  // Making or editing one stand-in product (picker-standins.js)
+  productDialog: { open: false, domain: null, id: null, title: '', price: '', image: '', link: '', busy: false, error: '', note: '' }
 });
 
 // In-flight requests and DOM handles: nothing renders from these, so they stay out of $state.
@@ -46,7 +48,8 @@ export const view = {
   scrollToColumn() {},
   updateRail() {},
   fitPopoverList() {},
-  focusUrlInput() {}
+  focusUrlInput() {},
+  focusProductInput() {}
 };
 
 export function resetState() {
@@ -63,6 +66,7 @@ export function resetState() {
   runtime.abort = null;
   if (runtime.copyAbort) runtime.copyAbort.abort();
   picker.swapDomain = null;
+  picker.productDialog.open = false;
   picker.copy = null;
   picker.copyKey = null;
   runtime.copyAbort = null;
