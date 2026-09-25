@@ -411,7 +411,7 @@ Return your analysis as JSON:
 
 Be specific and insightful. This analysis will drive high-quality collaboration recommendations.`;
 
-  const data = await geminiJson(api, 'Brand analysis', {
+  const { parsed } = await geminiJson(api, 'Brand analysis', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: {
         parts: [{ text: 'You are a brand analyst. Use web search to research thoroughly. Return only valid JSON.' }]
@@ -424,20 +424,31 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
         maxOutputTokens: 2048,
         thinkingConfig: { thinkingBudget: 0 }
       }
-  });
-  return parseJsonResponse(extractText(data));
+  }, { parse: text => { const r = parseJsonResponse(text); if (!r || typeof r !== 'object' || Array.isArray(r)) throw new Error('No profile in the answer'); return r; } });
+  return parsed;
 }
 
 /**
  * A grounded Gemini call, kept alive by the proxy, read as JSON. A failure the proxy reports in
- * the body (its own 504, Gemini's 5xx) is tried once more; anything else is thrown as it is.
+ * the body (its own 504, Gemini's 5xx) is tried once more, and so is an answer that is not the
+ * JSON asked for (a grounded call now and then answers in prose); anything else is thrown as it
+ * is. Returns { data, parsed } when `parse` is given, else the data alone.
  */
-export async function geminiJson(api, label, body, { attempts = 2, model = undefined } = {}) {
+export async function geminiJson(api, label, body, { attempts = 2, model = undefined, parse = null } = {}) {
   let failure = null;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const response = await api.gemini(body, model, { keepalive: true });
     const data = await response.json().catch(() => ({}));
-    if (response.ok && !data.error) return data;
+    if (response.ok && !data.error) {
+      if (!parse) return data;
+      try {
+        return { data, parsed: parse(extractText(data)) };
+      } catch (err) {
+        failure = new Error(`${label} failed: ${err.message}`);
+        console.warn(`[API] ${label}: ${err.message.slice(0, 80)}, trying once more`);
+        continue;
+      }
+    }
     const status = data.status || response.status;
     failure = new Error(`${label} failed: ${status} - ${data.error || 'Unknown error'}`);
     if (!(status >= 500)) break;
@@ -478,7 +489,7 @@ For each brand, classify using ONE of these collaboration angles:
 
 === BREADTH: COVER THESE LANES ===
 
-Spread the 15-18 brands across ALL five lanes, at least 3 in each, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
+Spread the 14-16 brands across ALL five lanes, at least 2 in each and no more than 4, chosen for THIS brand's customer. In every lane pick the STRONGEST fit, not the most famous brand you can think of.
 1. **"same-shelf"**: products used alongside this brand's own, on the same shelf or in the same routine (never a direct competitor).
 2. **"adjacent-function"**: the next need this customer has around the product: for food and drink that is hydration, supplements, recovery or sleep; for beauty it is tools, skin health or wellness; for home it is care, storage or the rituals the product serves; for apparel it is gear, footwear or recovery.
 3. **"lifestyle"**: the apparel, equipment, spaces or services this customer's day runs on.
@@ -487,7 +498,7 @@ Spread the 15-18 brands across ALL five lanes, at least 3 in each, chosen for TH
 
 === DIVERSITY REQUIREMENTS ===
 
-Your 15-18 brand recommendations MUST also include:
+Your 14-16 brand recommendations MUST also include:
 - At least 4 **emerging brands** (founded 2020+, under $10M revenue)
 - At least 4 **established brands** (well-known, proven track record)
 - At least 1 **non-obvious category** (digital product, subscription, experience)
@@ -539,8 +550,8 @@ Return valid JSON only:
 }
 
 Requirements:
-- 15-18 brands
-- EVERY one of the five lanes has at least 3 brands. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
+- 14-16 brands
+- EVERY one of the five lanes has at least 2 brands and no lane has more than 4. If a lane seems hard for this brand, that is the lane that makes the list worth reading: fill it with the strongest real fit rather than skipping it
 - At least 4 emerging brands (founded 2020+, under $10M revenue)
 - At most 2 brands from the ALREADY WELL-TRODDEN list, if one was given. The reader has seen those; the rest of the list must reach beyond them
 - "category" is one of the six collaboration angles exactly as written above; "lane" is one of the five lanes
@@ -555,7 +566,7 @@ CRITICAL INSTRUCTIONS:
 4. Be specific in your reasoning—generic explanations indicate lazy thinking
 5. Do NOT recommend any products from ${brandName}`;
 
-  const data = await geminiJson(api, 'Recommendations', {
+  const { data, parsed: results } = await geminiJson(api, 'Recommendations', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: { parts: [{ text: systemInstruction }] },
       tools: [{ google_search: {} }],
@@ -566,8 +577,7 @@ CRITICAL INSTRUCTIONS:
         maxOutputTokens: 8192,
         thinkingConfig: { thinkingBudget: 0 }
       }
-  });
-  const results = parseJsonResponse(extractText(data));
+  }, { parse: text => { const r = parseJsonResponse(text); if (!Array.isArray(r?.brands)) throw new Error('No brands in the answer'); return r; } });
   // Store grounding metadata for later use
   results._groundingMetadata = data.candidates?.[0]?.groundingMetadata;
   return results;
@@ -808,7 +818,7 @@ export function mergeUnexpected(brands, picks) {
 // ============================================
 
 /** A candidate below any of these is out. Lanes come from Jev when it is at least this sure. */
-export const GRADE_THRESHOLDS = { brand: 0.5, competitor: 0.5, fit: 1.2, laneConfidence: 0.35, stageConfidence: 0.5, surprise: 2.2 };
+export const GRADE_THRESHOLDS = { brand: 0.5, competitor: 0.5, fit: 1.2, surprise: 2.2 };
 const LANE_MIN = 2;
 
 /**
@@ -832,9 +842,11 @@ export async function gradeCandidates(api, searchedBrand, brands) {
 
 /**
  * The list as the grades say it should be: no retailers, services or media, no direct competitor,
- * nothing without a believable bundle; each brand's lane and stage from Jev where it is sure;
- * the unexpected lane held by the most surprising pairings; every lane kept to at least two
- * where the candidates allow; the well-trodden cap kept. Ungraded brands are kept as they were.
+ * nothing without a believable bundle; the unexpected lane held by the most surprising pairings;
+ * every lane kept to at least two where the candidates allow; the well-trodden cap kept. The
+ * lanes and stages stay the model's own: Jev's lane rubric reads too literally (electrolytes as
+ * "a parallel premium category"), and its stages skew to "growing", which had the emerging top-up
+ * padding lists with filler. Ungraded brands are kept as they were.
  */
 export function composeGraded(brands, grades, frequentBrands = [], thresholds = GRADE_THRESHOLDS) {
   if (!grades.some(Boolean)) return brands;
@@ -845,19 +857,18 @@ export function composeGraded(brands, grades, frequentBrands = [], thresholds = 
     if (grade.competitor > thresholds.competitor) { console.log(`[Discovery] Dropped ${brand.name}: competitor (${grade.competitor})`); return false; }
     if (grade.fit < thresholds.fit) { console.log(`[Discovery] Dropped ${brand.name}: no believable bundle (${grade.fit})`); return false; }
     return true;
-  }).map(({ brand, grade }) => {
-    if (!grade) return brand;
-    const lane = grade.lane && grade.laneConfidence >= thresholds.laneConfidence ? grade.lane : (brand.lane === 'unexpected' ? 'parallel-premium' : brand.lane);
-    const brandStage = grade.stage && grade.stageConfidence >= thresholds.stageConfidence ? grade.stage : brand.brandStage;
-    return { ...brand, lane, brandStage, grade };
-  });
+  }).map(({ brand, grade }) => (grade ? { ...brand, grade } : brand));
 
   // The unexpected lane: the ideated pairings (they carry a hook), then the most surprising of
   // the rest that still hold a bundle, whatever their relation. Never filled by fit.
   const pinned = kept.filter(b => b.hook);
   const bySurprise = kept.filter(b => !b.hook && b.grade && b.grade.surprise >= thresholds.surprise).sort((a, b) => b.grade.surprise - a.grade.surprise);
   const unexpectedNames = new Set([...pinned, ...bySurprise].slice(0, UNEXPECTED_COUNT).map(b => b.name));
-  const composed = kept.map(b => (unexpectedNames.has(b.name) ? { ...b, lane: 'unexpected', category: 'unexpected-delight' } : b));
+  // A pick the model itself called unexpected that did not make the lane keeps its angle and
+  // joins the relation lane its angle maps to.
+  const composed = kept.map(b => (unexpectedNames.has(b.name)
+    ? { ...b, lane: 'unexpected', category: 'unexpected-delight' }
+    : (b.lane === 'unexpected' ? { ...b, lane: ANGLE_LANE[b.category] === 'unexpected' ? 'parallel-premium' : (ANGLE_LANE[b.category] || 'parallel-premium') } : b)));
 
   // Coverage of the relation lanes: a lane below two takes the best fit from an over-full one.
   const counts = () => Object.fromEntries([...LANES].map(l => [l, composed.filter(b => b.lane === l).length]));
