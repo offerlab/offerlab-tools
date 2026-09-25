@@ -15,6 +15,7 @@
   import PickerColumn from './PickerColumn.svelte';
   import PickerAddPopover from './PickerAddPopover.svelte';
   import PickerTray from './PickerTray.svelte';
+  import BundlingOverlay from './BundlingOverlay.svelte';
   import PickerUrlDialog from './PickerUrlDialog.svelte';
 
   let section = $state(null);
@@ -76,5 +77,6 @@
   </div>
   <PickerAddPopover />
   <PickerTray />
+  <BundlingOverlay />
   <PickerUrlDialog />
 </section>

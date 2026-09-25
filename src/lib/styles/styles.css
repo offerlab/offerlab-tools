@@ -2691,6 +2691,201 @@ position: relative;
 }
 
 /* --------------------------------------------------------------------------
+   The bundling overlay (BundlingOverlay.svelte): the build takes the screen past the tray's patience
+   -------------------------------------------------------------------------- */
+.bundling {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+  animation: bundlingIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bundlingIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bundling-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 640px;
+}
+
+/* The pile: a fixed stage the tiles are placed on from its center, so the offsets read the same
+   whatever is around it. Scales down with the viewport on a phone. */
+.bundling-pile {
+  --tile: 200px;
+  position: relative;
+  width: min(100%, 560px);
+  height: 420px;
+}
+
+.bundling-tile-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--tile);
+  height: var(--tile);
+  margin: calc(var(--tile) / -2) 0 0 calc(var(--tile) / -2);
+  transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  animation: bundlingPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.bundling-tile {
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+  box-shadow: 0 0 0 4px #fff, 0 24px 60px rgba(52, 46, 38, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The drift rides on the slot's transform, so the two never fight over one property. */
+  animation: bundlingDrift var(--drift) ease-in-out var(--delay) infinite alternate;
+}
+
+.bundling-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bundling-tile .bundling-tile-favicon {
+  width: 40%;
+  height: 40%;
+  object-fit: contain;
+}
+
+@keyframes bundlingPop {
+  from { opacity: 0; transform: translate(0, 40px) rotate(0deg) scale(0.6); }
+  to { opacity: 1; transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); }
+}
+
+@keyframes bundlingDrift {
+  from { transform: translate(0, -6px) rotate(-1.5deg); }
+  to { transform: translate(0, 8px) rotate(1.5deg); }
+}
+
+/* The pairing, the way the Showcase names one: avatar and name, a times sign, avatar and name */
+.bundling-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 14px;
+  font-size: var(--font-size-xl, 20px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--content-primary);
+  text-align: center;
+}
+
+.bundling-pair-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bundling-pair-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  background: var(--content-background-base);
+  box-shadow: var(--shadow-sm);
+  object-fit: cover;
+}
+
+.bundling-pair-x {
+  color: var(--content-tertiary);
+  font-weight: 500;
+}
+
+/* The chip: the concepts card's working chip, carrying the step and the stop */
+.bundling-chip-shell {
+  animation: bundlingIn 0.4s ease 0.2s both;
+}
+
+.picker-concepts.bundling-chip {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 18px;
+  border-radius: 999px;
+}
+
+.bundling-chip .ol-loader {
+  width: 20px;
+  color: var(--agent-ink);
+}
+
+.bundling-chip-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  white-space: nowrap;
+}
+
+.bundling-stop {
+  --stop-size: 36px;
+}
+
+@media (max-width: 900px) {
+  .bundling-pile {
+    --tile: 34vw;
+    height: 62vw;
+    max-height: 380px;
+  }
+
+  .bundling-tile-slot {
+    transform: translate(calc(var(--tx) * 0.55), calc(var(--ty) * 0.6)) rotate(var(--rot));
+  }
+
+  @keyframes bundlingPop {
+    from { opacity: 0; transform: translate(0, 40px) rotate(0deg) scale(0.6); }
+    to { opacity: 1; transform: translate(calc(var(--tx) * 0.55), calc(var(--ty) * 0.6)) rotate(var(--rot)) scale(1); }
+  }
+
+  .bundling-tile {
+    border-radius: 20px;
+  }
+
+  .bundling-pair {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bundling,
+  .bundling-chip-shell {
+    animation: none;
+  }
+
+  .bundling-tile-slot {
+    animation: none;
+  }
+
+  .bundling-tile {
+    animation: none;
+  }
+
+  .bundling-chip-shell .picker-concepts-glow::before {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
    Searched Brand Card (top of results)
    -------------------------------------------------------------------------- */
 .searched-brand-card {
