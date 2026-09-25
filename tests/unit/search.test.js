@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded,
-  extendRecommendations, threadOf, gateGraded, EXTEND_COUNT, UNEXPECTED_COUNT
+  extendRecommendations, threadOf, gateGraded, turnLabel, EXTEND_COUNT, UNEXPECTED_COUNT
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -550,7 +550,7 @@ describe('extendRecommendations', () => {
     fit: { score: 2.2 }, surprise: { score: 1.5 }
   } });
   const fakeApi = ({ brands, onGemini = () => {} }) => ({
-    gemini: async (body) => { onGemini(body); return okJson(gemini(JSON.stringify({ brands }))); },
+    gemini: async (body) => { onGemini(body); return okJson(gemini(JSON.stringify({ label: 'Bolder beverage energy', brands }))); },
     jev: async (body) => okJson(jevAnswer(body.state.candidate.name === 'Costco' ? 'retailer' : 'brand')),
     catalog: async (domain) => okJson({ status: 'shopify', domain, count: 1, products: [{ id: '1', title: 'Thing', url: `https://${domain}/products/thing`, image: '', price: 9 }] }),
     socials: async () => okJson({ socials: {} }),
@@ -568,7 +568,8 @@ describe('extendRecommendations', () => {
     ];
     const api = fakeApi({ brands: answer, onGemini: body => prompts.push(body.contents[0].parts[0].text) });
     const steps = [];
-    const added = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'note', brief: 'more like Liquid Death, less pantry', frequentBrands: [{ name: 'Brightland' }], onProgress: s => steps.push(s) });
+    const { brands: added, label } = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'note', brief: 'more like Liquid Death, less pantry', frequentBrands: [{ name: 'Brightland' }], onProgress: s => steps.push(s) });
+    expect(label).toBe('Bolder beverage energy');
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).toContain('more like Liquid Death, less pantry');
     expect(prompts[0]).toContain('Liquid Death (lifestyle), Olipop (same-shelf)');
@@ -582,9 +583,9 @@ describe('extendRecommendations', () => {
   it('caps a note at EXTEND_COUNT and says nothing when nothing new came back', async () => {
     const many = Array.from({ length: 10 }, (_, i) => ({ name: `Brand ${i}`, url: `https://brand${i}.com`, lane: 'lifestyle', category: 'lifestyle-stack', brandStage: 'growing', reasons: ['a'] }));
     const api = fakeApi({ brands: many });
-    expect((await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'more' })).length).toBe(EXTEND_COUNT);
+    expect((await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'more' })).brands.length).toBe(EXTEND_COUNT);
     const same = fakeApi({ brands: listed.map(b => ({ ...b, category: 'same-moment', brandStage: 'growing', reasons: ['a'] })) });
-    expect(await extendRecommendations(same, { brandProfile: profile, brands: listed, kind: 'more' })).toEqual([]);
+    expect((await extendRecommendations(same, { brandProfile: profile, brands: listed, kind: 'more' })).brands).toEqual([]);
   });
 
   it('uses the ideation for a surprise, skipping what is on screen, and caps at UNEXPECTED_COUNT', async () => {
@@ -597,10 +598,23 @@ describe('extendRecommendations', () => {
       catalog: async (domain) => okJson({ status: 'none', domain, count: 0, products: [] }),
       socials: async () => okJson({ socials: {} })
     };
-    const added = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'surprise' });
+    const { brands: added, label } = await extendRecommendations(api, { brandProfile: profile, brands: listed, kind: 'surprise' });
+    expect(label).toBeNull();
     expect(prompts[0]).toContain("Not one already on the reader's list: Liquid Death, Olipop");
     expect(added.length).toBe(UNEXPECTED_COUNT);
     expect(added.map(b => b.name)).not.toContain('Liquid Death');
     expect(added.every(b => b.hook && b.lane === 'unexpected')).toBe(true);
+  });
+});
+
+describe('turnLabel', () => {
+  it('keeps a label of two to five words, trimmed of end punctuation', () => {
+    expect(turnLabel('Bolder beverage energy.', 'x')).toBe('Bolder beverage energy');
+  });
+
+  it('falls back to the first five words of the ask when the label is missing or runs long', () => {
+    expect(turnLabel('', 'more like Liquid Death, less pantry please')).toBe('more like Liquid Death, less');
+    expect(turnLabel('one two three four five six seven', 'the ask')).toBe('the ask');
+    expect(turnLabel('', '')).toBeNull();
   });
 });

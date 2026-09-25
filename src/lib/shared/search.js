@@ -262,10 +262,14 @@ export const TURN_LABELS = { more: 'More like these', surprise: 'Surprise me' };
 
 const MORE_BRIEF = 'More in the same spirit as the list so far: the same customer and the same tier, fresh names rather than the famous ones, and favor whichever lanes are thinnest so far.';
 
+/** The longest a divider's label runs, in words; the model is asked for two to five. */
+const LABEL_WORDS = 5;
+
 /**
  * One more round for a list already on screen: a note from the person, "more like these", or
- * "surprise me". Answers with the brands to append, graded and with catalogs attached, or []
- * when nothing new came back. Nothing in `brands` comes back again.
+ * "surprise me". Answers with `{ brands, label }`: the brands to append, graded and with catalogs
+ * attached ([] when nothing new came back), and for a note the model's two-to-five-word label for
+ * what they answer. Nothing in `brands` comes back again.
  *
  * Callbacks: onProgress(step) with step 0-2 (reading, finding, catalogs).
  */
@@ -278,21 +282,29 @@ export async function extendRecommendations(api, {
   const progress = (step) => { if (typeof onProgress === 'function') onProgress(step); };
 
   progress(0);
-  const candidates = kind === 'surprise'
-    ? await unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands, listed: brands })
+  const { candidates, label } = kind === 'surprise'
+    ? { candidates: await unexpectedCollabs(api, { brandProfile, brandName, domain, frequentBrands, listed: brands }), label: null }
     : await moreRecommendations(api, { brandProfile, brandName, domain, brands, brief: kind === 'more' ? MORE_BRIEF : brief, frequentBrands });
   progress(1);
 
   const fresh = withoutListed(candidates, brands);
   const gated = fresh.length ? gateGraded(fresh, await gradeCandidates(api, brandProfile, fresh)) : [];
   const added = gated.slice(0, kind === 'surprise' ? UNEXPECTED_COUNT : EXTEND_COUNT);
-  console.log(`[Discovery] Follow-up (${kind}): ${added.length} of ${candidates.length} candidates kept`);
-  if (!added.length) return [];
+  console.log(`[Discovery] Follow-up (${kind}): ${added.length} of ${candidates.length} candidates kept${label ? `, "${label}"` : ''}`);
+  if (!added.length) return { brands: [], label };
 
   progress(2);
   await attachCatalogs(api, added, { onCatalog, concurrency: settings.catalogConcurrency });
   await attachSerpFallback(api, added, { limit: settings.serpFallbackBrands, onCatalog });
-  return added;
+  return { brands: added, label };
+}
+
+/** A label of at most LABEL_WORDS words, or null: the model's own, else the first words of the ask. */
+export function turnLabel(label, fallback = '') {
+  const words = String(label || '').replace(/[.!?"]+$/g, '').trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 1 && words.length <= LABEL_WORDS) return words.join(' ');
+  const own = String(fallback || '').trim().split(/\s+/).filter(Boolean);
+  return own.length ? own.slice(0, LABEL_WORDS).join(' ') : null;
 }
 
 /** The candidates not already on the list, by name or site, each once. */
@@ -328,6 +340,8 @@ ${listed.join(', ') || 'nothing yet'}
 
 Answer the ask directly. It is the reader's steer: let it decide the category, the tier, the tone and the lane of every brand you add. If it names a brand, treat that brand as the reference point (add it only if it is not already listed and fits; otherwise find brands in its spirit). If it rules something out, rule it out. If it is open-ended, reach past the list for what the reader has not seen yet.
 
+Also write a LABEL for this round: two to five words that name what these additions are, the way a chat marks a section ("Bolder beverage energy", "Gifting, no pantry", "Cold-weather comfort"). Not a sentence, no punctuation, no brand names.
+
 Add ${EXTEND_COUNT + 2} brands. Every one:
 - Real, active, and selling its own products. Verify each with web search and use its ACTUAL homepage URL from the results; never guess a URL.
 - Not ${brandName} (${domain}), not a direct competitor, and not already on the list above.
@@ -337,6 +351,7 @@ Add ${EXTEND_COUNT + 2} brands. Every one:
 
 Return valid JSON only:
 {
+  "label": "Two to five words",
   "brands": [
     {
       "name": "Brand Name",
@@ -357,7 +372,7 @@ Return valid JSON only:
     tools: [{ google_search: {} }],
     generationConfig: { temperature: 0.9, topK: 50, topP: 0.97, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 } }
   }, { parse: text => { const r = parseJsonResponse(text); if (!Array.isArray(r?.brands)) throw new Error('No brands in the answer'); return r; } });
-  return normalizeRecommendations(parsed.brands).map(ensureHttps);
+  return { candidates: normalizeRecommendations(parsed.brands).map(ensureHttps), label: turnLabel(parsed.label, ask) };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -438,7 +453,7 @@ export function threadOf(brands) {
     const turn = brand?.turn;
     if (!turn?.id) { base.push(brand); continue; }
     if (!byId.has(turn.id)) {
-      const entry = { turn: { id: turn.id, kind: turn.kind || 'note', text: turn.text || '' }, brands: [] };
+      const entry = { turn: { id: turn.id, kind: turn.kind || 'note', text: turn.text || '', note: turn.note || '' }, brands: [] };
       byId.set(turn.id, entry);
       turns.push(entry);
     }

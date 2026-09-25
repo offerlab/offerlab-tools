@@ -2585,16 +2585,6 @@ position: relative;
   text-align: center;
 }
 
-.thread-turn-note--ask {
-  font-weight: 500;
-}
-
-.thread-turn-who {
-  flex: none;
-  font-weight: 600;
-  color: var(--content-tertiary);
-}
-
 .thread-turn-text {
   overflow-wrap: anywhere;
 }
