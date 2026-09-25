@@ -8,6 +8,7 @@
 
   const CATALOG_SOURCES = {
     shopify: { label: 'Shopify', icon: 'shopify' },
+    woocommerce: { label: 'WooCommerce', icon: 'woocommerce' },
     serp: { label: 'Google Shopping', icon: 'google' }
   };
 

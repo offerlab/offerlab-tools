@@ -1,9 +1,9 @@
 /**
- * Shopify public catalog proxy. Storefronts send no CORS headers on /products.json, so the browser
- * cannot read it directly. Every crawl is written to D1, and a fresh enough stored catalog is served
+ * Public storefront catalog proxy. Storefronts send no CORS headers on Shopify's /products.json or
+ * WooCommerce's Store API, so the browser cannot read them directly. Every crawl is written to D1, and a fresh enough stored catalog is served
  * instead of crawling again; `?refresh=1` forces the crawl. Without a DB binding it just proxies.
  */
-import { fetchShopifyCatalog } from '$lib/shared/catalog.js';
+import { fetchStorefrontCatalog } from '$lib/shared/catalog.js';
 import { readThrough, getCatalog, putCatalog, keepStoredSerp, CATALOG_TTL_MS } from '$lib/server/db.js';
 import { json, preflight, db, defer } from '$lib/server/api.js';
 
@@ -20,7 +20,7 @@ export async function GET({ url, platform }) {
     const catalog = await readThrough({
       db: db(platform), domain, refresh,
       get: getCatalog, put: putCatalog, ttl: CATALOG_TTL_MS, keep: keepStoredSerp,
-      crawl: fetchShopifyCatalog,
+      crawl: fetchStorefrontCatalog,
       defer: defer(platform)
     });
     return json(catalog, { cache: refresh ? 'no-store' : 'public, max-age=3600' });

@@ -10,6 +10,7 @@
 import { mergeSocial } from './socials.js';
 import { GRADE_QUESTIONS, gradeState, readGrade } from './jev.js';
 import { jsonrepair } from './vendor/jsonrepair/regular/jsonrepair.js';
+import { isStorefrontCatalog } from './catalog.js';
 
 export const SEARCH_DEFAULTS = {
   catalogConcurrency: 6,
@@ -275,18 +276,18 @@ async function attachCatalogs(api, brands, { onCatalog, concurrency }) {
   await Promise.all(Array.from({ length: Math.min(concurrency, brands.length) }, worker));
 }
 
-/** A catalog that needs no Google Shopping search: Shopify, or a fresh SERP result from the store. */
+/** A catalog that needs no Google Shopping search: the brand's storefront, or a fresh SERP result from the store. */
 export function hasCatalog(catalog) {
   if (!catalog) return false;
-  if (catalog.status === 'shopify') return true;
+  if (isStorefrontCatalog(catalog)) return true;
   return catalog.status === 'serp' && (catalog.products?.length || 0) > 0 && !catalog.stale;
 }
 
-// A Shopify catalog is already in the store from the crawl that fetched it, so only what the
+// A storefront catalog is already in the store from the crawl that fetched it, so only what the
 // search assembled itself (the Google Shopping fallback) travels with the search. The store
 // trims what it hands back per brand; the picker fetches the rest.
 export function catalogForStore(brand) {
-  if (!brand?.catalog || brand.catalog.status !== 'shopify') return brand;
+  if (!isStorefrontCatalog(brand?.catalog)) return brand;
   const { products, ...rest } = brand.catalog;
   return { ...brand, catalog: { ...rest, products: [] } };
 }

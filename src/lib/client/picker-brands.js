@@ -3,6 +3,7 @@
  * that names them.
  */
 import { extractDomain, fetchCatalog } from './util.js';
+import { isStorefrontCatalog } from '$lib/shared/catalog.js';
 import { getResults } from './state.svelte.js';
 import { pushUrl, PICK_PARAM } from './url.js';
 import { picker, entryFor, sellerEntry, view, conceptsRendered } from './picker-state.svelte.js';
@@ -10,15 +11,15 @@ import { refreshConceptsCopy } from './picker-concepts.js';
 import * as offerlab from './offerlab.js';
 
 /**
- * A brand with products can be built with. A public storefront's are imported by the build; a
- * Google Shopping brand's are created from what the finder knows, which only an OfferLab that
- * takes product descriptions can do, so those are offered unless it is known not to.
+ * A brand with products can be built with. A Shopify storefront's are imported by the build; a
+ * WooCommerce or Google Shopping brand's are created from what the finder knows, which only an
+ * OfferLab that takes product descriptions can do, so those are offered unless it is known not to.
  */
 export function canBuildWith(brand) {
   const products = brand?.catalog?.products?.length || 0;
   if (!products) return false;
   if (brand.catalog.status === 'shopify') return true;
-  return brand.catalog.status === 'serp' && offerlab.buildTakesSpecs() !== false;
+  return ['woocommerce', 'serp'].includes(brand.catalog.status) && offerlab.buildTakesSpecs() !== false;
 }
 
 // Every brand on the rail but the searched one, which the search itself names; when a partner
@@ -31,10 +32,10 @@ export function pushPickUrl() {
 // A stored search carries a trimmed catalog per brand; the picker wants the whole thing.
 export async function ensureFullCatalog(brand) {
   const catalog = brand.catalog;
-  if (catalog.status !== 'shopify') return;
+  if (!isStorefrontCatalog(catalog)) return;
   if (!catalog.truncated && catalog.products.length >= catalog.count) return;
   const fresh = await fetchCatalog(extractDomain(brand.url || ''));
-  if (fresh.status === 'shopify' && fresh.products.length) brand.catalog = fresh;
+  if (isStorefrontCatalog(fresh) && fresh.products.length) brand.catalog = fresh;
 }
 
 function forgetConcepts() {

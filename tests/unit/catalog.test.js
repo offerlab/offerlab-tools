@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { normalizeDomain, hostCandidates, fetchShopifyCatalog, CATALOG_LIMIT } from '$lib/shared/catalog.js';
+import { normalizeDomain, hostCandidates, fetchStorefrontCatalog, isStorefrontCatalog, CATALOG_LIMIT } from '$lib/shared/catalog.js';
 
 describe('normalizeDomain', () => {
   it('lowercases and keeps the host, www included', () => {
@@ -29,13 +29,16 @@ describe('hostCandidates', () => {
   });
 });
 
-// A stubbed storefront: products.json per host, as `fetchJson` reads it (status, url, text()).
-function storefront(byHost) {
+// A stubbed storefront: products.json per host, and Store API pages per host in `woo`, as
+// `fetchJson` reads them (status, url, text()).
+function storefront(byHost, woo = {}) {
   const calls = [];
   const fetchImpl = vi.fn(async (url) => {
     calls.push(url);
-    const host = new URL(url).hostname;
-    const entry = byHost[host];
+    const { hostname: host, pathname, searchParams } = new URL(url);
+    const entry = pathname.startsWith('/wp-json/')
+      ? (woo[host] === 'throw' ? 'throw' : woo[host]?.[Number(searchParams.get('page')) - 1])
+      : byHost[host];
     if (entry === 'throw') throw new Error('ECONNREFUSED');
     if (entry == null) return { ok: false, status: 404, url, text: async () => 'Not found' };
     if (typeof entry === 'string') return { ok: true, status: 200, url, text: async () => entry };
@@ -59,10 +62,10 @@ const PRODUCTS = [
   { id: 6, handle: 'long', title: 'Long copy', images: [{ src: 'https://cdn/l.jpg' }], variants: [{ price: 'abc' }, { price: '12' }], body_html: 'word '.repeat(80) }
 ];
 
-describe('fetchShopifyCatalog', () => {
+describe('fetchStorefrontCatalog', () => {
   it('normalises products.json and drops what cannot be sold', async () => {
     const { calls, fetchImpl } = storefront({ 'graza.co': { products: PRODUCTS } });
-    const catalog = await fetchShopifyCatalog('https://www.Graza.co/pages/x', { fetchImpl });
+    const catalog = await fetchStorefrontCatalog('https://www.Graza.co/pages/x', { fetchImpl });
 
     expect(calls).toEqual([`https://www.graza.co/products.json?limit=${CATALOG_LIMIT}`, `https://graza.co/products.json?limit=${CATALOG_LIMIT}`]);
     expect(catalog.status).toBe('shopify');
@@ -85,19 +88,19 @@ describe('fetchShopifyCatalog', () => {
   });
 
   it('is none when no host has a catalog and error when none could be reached', async () => {
-    const none = await fetchShopifyCatalog('nothing.test', { fetchImpl: storefront({}).fetchImpl });
+    const none = await fetchStorefrontCatalog('nothing.test', { fetchImpl: storefront({}).fetchImpl });
     expect(none).toEqual({ status: 'none', domain: 'nothing.test', storeUrl: null, count: 0, products: [] });
 
-    const notJson = await fetchShopifyCatalog('html.test', { fetchImpl: storefront({ 'html.test': '<html>', 'www.html.test': '<html>' }).fetchImpl });
+    const notJson = await fetchStorefrontCatalog('html.test', { fetchImpl: storefront({ 'html.test': '<html>', 'www.html.test': '<html>' }).fetchImpl });
     expect(notJson.status).toBe('none');
 
-    const error = await fetchShopifyCatalog('down.test', { fetchImpl: storefront({ 'down.test': 'throw', 'www.down.test': 'throw' }).fetchImpl });
+    const error = await fetchStorefrontCatalog('down.test', { fetchImpl: storefront({ 'down.test': 'throw', 'www.down.test': 'throw' }).fetchImpl });
     expect(error.status).toBe('error');
   });
 
   it('keeps trying hosts past a failure and takes the origin the store answered from', async () => {
     const { fetchImpl } = storefront({ 'us.brand.com': 'throw', 'brand.com': { products: PRODUCTS.slice(0, 1) } });
-    const catalog = await fetchShopifyCatalog('us.brand.com', { fetchImpl });
+    const catalog = await fetchStorefrontCatalog('us.brand.com', { fetchImpl });
     expect(catalog.status).toBe('shopify');
     expect(catalog.domain).toBe('brand.com');
     expect(catalog.products[0].url).toBe('https://brand.com/products/sizzle');
@@ -105,7 +108,83 @@ describe('fetchShopifyCatalog', () => {
 
   it('is none for an empty input', async () => {
     const fetchImpl = vi.fn();
-    expect(await fetchShopifyCatalog('', { fetchImpl })).toEqual({ status: 'none', domain: '', storeUrl: null, count: 0, products: [] });
+    expect(await fetchStorefrontCatalog('', { fetchImpl })).toEqual({ status: 'none', domain: '', storeUrl: null, count: 0, products: [] });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+// Store API products as Havanna's store serves them: prices in cents, names HTML-escaped.
+function wooProduct(id, overrides = {}) {
+  return {
+    id, name: `Product ${id}`, slug: `product-${id}`, type: 'simple',
+    permalink: `https://havannausa.com/product/product-${id}/`,
+    short_description: '<p>Short</p>',
+    description: '<p><strong>Description:</strong></p>\n<p>Two types of dulce de leche.</p>',
+    on_sale: false,
+    prices: { price: '1499', regular_price: '1499', sale_price: '1499', price_range: null, currency_code: 'USD', currency_minor_unit: 2 },
+    images: [{ id: 1, src: `https://havannausa.com/wp-content/uploads/${id}.png` }],
+    categories: [{ id: 143, name: 'Mini Line' }],
+    tags: [], brands: [], variations: [],
+    is_purchasable: true, is_in_stock: true,
+    ...overrides
+  };
+}
+
+describe('fetchStorefrontCatalog on WooCommerce', () => {
+  it('reads the Store API when no host has products.json, and normalises it', async () => {
+    const { calls, fetchImpl } = storefront({ 'havannausa.com': '<html>' }, {
+      'havannausa.com': [[
+        wooProduct(7297, { name: 'Alfajor Mar del Plata &#8211; Box x 4 Alfajores', tags: [{ name: 'Gift &amp; Share' }], brands: [{ name: 'Havanna' }] }),
+        wooProduct(2, { on_sale: true, prices: { price: '1000', regular_price: '1250', currency_minor_unit: 2 }, is_in_stock: false }),
+        wooProduct(3, { type: 'variable', variations: [{ id: 31 }, { id: 32 }], prices: { price: '900', regular_price: '900', price_range: { min_amount: '900', max_amount: '1500' }, currency_minor_unit: 2 } }),
+        wooProduct(4, { images: [] }),
+        wooProduct(5, { prices: { price: '0', currency_minor_unit: 2 } }),
+        wooProduct(6, { type: 'external', is_purchasable: false })
+      ]]
+    });
+    const catalog = await fetchStorefrontCatalog('havannausa.com', { fetchImpl });
+
+    expect(calls).toEqual([
+      `https://havannausa.com/products.json?limit=${CATALOG_LIMIT}`,
+      `https://www.havannausa.com/products.json?limit=${CATALOG_LIMIT}`,
+      'https://havannausa.com/wp-json/wc/store/v1/products?per_page=100&page=1'
+    ]);
+    expect(catalog).toMatchObject({ status: 'woocommerce', domain: 'havannausa.com', storeUrl: 'https://havannausa.com', count: 3 });
+    expect(isStorefrontCatalog(catalog)).toBe(true);
+
+    const [alfajor, onSale, variable] = catalog.products;
+    expect(alfajor).toEqual({
+      id: 7297, handle: 'product-7297', title: 'Alfajor Mar del Plata \u2013 Box x 4 Alfajores',
+      url: 'https://havannausa.com/product/product-7297/', image: 'https://havannausa.com/wp-content/uploads/7297.png',
+      price: 14.99, compareAtPrice: null, available: true, vendor: 'Havanna', productType: 'Mini Line',
+      description: 'Description: Two types of dulce de leche.', tags: ['Gift & Share'], variantCount: 1
+    });
+    expect(onSale).toMatchObject({ price: 10, compareAtPrice: 12.5, available: false });
+    expect(variable).toMatchObject({ price: 9, variantCount: 2 });
+  });
+
+  it('pages through the Store API up to the limit and keeps what came before a failed page', async () => {
+    const page = (start, n) => Array.from({ length: n }, (_, i) => wooProduct(start + i));
+    const full = storefront({}, { 'shop.test': [page(1, 100), page(101, 100), page(201, 100)] });
+    const capped = await fetchStorefrontCatalog('shop.test', { fetchImpl: full.fetchImpl });
+    expect(capped.count).toBe(CATALOG_LIMIT);
+    expect(full.calls.filter(u => u.includes('/wp-json/'))).toHaveLength(3);
+
+    const broken = storefront({}, { 'shop.test': [page(1, 100)] });
+    const partial = await fetchStorefrontCatalog('shop.test', { fetchImpl: broken.fetchImpl });
+    expect(partial.status).toBe('woocommerce');
+    expect(partial.count).toBe(100);
+  });
+
+  it('prefers products.json, skips hosts that never answered, and ignores a WordPress site without Woo', async () => {
+    const both = storefront({ 'www.both.test': { products: PRODUCTS.slice(0, 1) } }, { 'both.test': [[wooProduct(1)]] });
+    expect((await fetchStorefrontCatalog('both.test', { fetchImpl: both.fetchImpl })).status).toBe('shopify');
+
+    const down = storefront({ 'down.test': 'throw', 'www.down.test': 'throw' }, { 'down.test': [[wooProduct(1)]] });
+    expect((await fetchStorefrontCatalog('down.test', { fetchImpl: down.fetchImpl })).status).toBe('error');
+    expect(down.calls.some(u => u.includes('/wp-json/'))).toBe(false);
+
+    const blog = storefront({}, { 'blog.test': [{ code: 'rest_no_route' }], 'www.blog.test': [[{ id: 1, title: { rendered: 'Post' } }]] });
+    expect((await fetchStorefrontCatalog('blog.test', { fetchImpl: blog.fetchImpl })).status).toBe('none');
   });
 });
