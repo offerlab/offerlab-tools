@@ -5907,6 +5907,11 @@ button.social-link:disabled {
   position: relative;
 }
 
+/* No filter row (fewer than two products): the head alone, so the rows start 36px higher */
+.picker-column.is-unfiltered {
+  --picker-column-top: 96px;
+}
+
 .picker-column-top {
   position: absolute;
   top: 0;
@@ -7037,14 +7042,6 @@ button.social-link:disabled {
    Stand-in products: the searched brand's column when it has no public catalog. The grid opens
    with a tile that adds one, each stand-in carries an Edit pill, and the dialog makes or edits one.
    -------------------------------------------------------------------------- */
-.picker-product--new {
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: left;
-}
-
 .picker-product-new-art {
   display: flex;
   align-items: center;
@@ -7167,6 +7164,8 @@ button.social-link:disabled {
 }
 
 .picker-product-picture {
+  display: block;
+  width: 100%; /* Safari sizes a <button> grid item to its content */
   aspect-ratio: 1;
   padding: 0;
   border: none;

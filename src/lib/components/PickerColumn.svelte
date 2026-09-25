@@ -24,12 +24,15 @@
   const loadingMore = $derived(isStorefrontCatalog(catalog) && (catalog.truncated || catalog.products.length < catalog.count));
   const removable = $derived(!isSeller && picker.brands.length > 2);
   const standIns = $derived(catalog.status === 'standin');
+  // Nothing to narrow down with fewer than two products; a filter already typed stays until cleared.
+  const filterable = $derived(catalog.products.length > 1 || Boolean(filter));
   const countLabel = $derived(standIns
-    ? (catalog.loading ? 'No public catalog · suggesting stand-ins' : `No public catalog · ${catalog.count} stand-in${catalog.count === 1 ? '' : 's'}`)
+    ? (catalog.loading ? 'No public catalog · suggesting stand-ins'
+      : catalog.count ? `No public catalog · ${catalog.count} stand-in${catalog.count === 1 ? '' : 's'}` : 'No public catalog · add its products')
     : `${catalog.count} products${loadingMore ? ' · loading the rest' : ''}`);
 </script>
 
-<div class="picker-column" data-domain={domain}>
+<div class="picker-column" class:is-unfiltered={!filterable} data-domain={domain}>
   <div class="picker-column-top scrim">
   <div class="picker-column-head">
     <img class="picker-column-favicon" src={getFaviconUrl(domain)} alt="">
@@ -43,19 +46,22 @@
     </button>
     {#if removable}<button type="button" class="picker-column-action" data-action="remove-brand" data-domain={domain} aria-label="Remove {brand.name}"><Icon name="cross-large" size={16} /></button>{/if}
   </div>
+  {#if filterable}
   <div class="picker-column-filter">
     <input type="search" class="picker-filter" data-domain={domain} placeholder="Filter products" bind:value={picker.filters[domain]} aria-label="Filter {brand.name} products">
   </div>
+  {/if}
   </div>
   <div class="picker-grid">
     {#if standIns}
-      <button type="button" class="picker-product picker-product--new" data-action="new-product" data-domain={domain}>
-        <span class="picker-product-art picker-product-new-art"><Icon name="plus-large" size={20} /></span>
-        <span class="picker-product-caption">
-          <span class="picker-product-title">Add a product</span>
-          <span class="picker-product-price">By hand or from a link</span>
-        </span>
-      </button>
+      <!-- A div like the tiles beside it: Safari sizes a <button> grid item to its content. -->
+      <div class="picker-product picker-product--new" role="button" tabindex="0" data-action="new-product" data-domain={domain}>
+        <div class="picker-product-art picker-product-new-art"><Icon name="plus-large" size={20} /></div>
+        <div class="picker-product-caption">
+          <p class="picker-product-title">Add a product</p>
+          <p class="picker-product-price">By hand or from a link</p>
+        </div>
+      </div>
     {/if}
     {#each products as p}
       {@const key = productKey(domain, p.id)}
