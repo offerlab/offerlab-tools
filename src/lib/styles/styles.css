@@ -2625,56 +2625,92 @@ position: relative;
   color: var(--content-sentiment-negative);
 }
 
-/* The end card reads as a card without being one: no cursor, its actions its only targets */
-.more-card {
-  cursor: default;
-  justify-content: space-between;
-  min-height: 220px;
-  background: var(--content-background-base);
-}
-
-.more-card-group:hover {
-  transform: none;
-}
-
-.more-card-body {
+/* The ask for more: the orb over the two controls, centered on the body under the last card */
+.results-more {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 0 8px;
+}
+
+.results-more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 4px 0;
 }
 
-.more-card-icon {
-  display: inline-flex;
-  color: var(--moola-vivid);
+.results-more-actions .btn {
+  height: 40px;
+  padding: 0 20px;
+  font-size: var(--font-size-base);
 }
 
-.more-card-title {
-  font-size: 20px;
-  line-height: 24px;
-  letter-spacing: -0.5px;
-  font-weight: 600;
-  color: var(--content-primary);
-}
-
-.more-card-text {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-  color: var(--content-secondary);
-}
-
-.more-card-actions .btn[disabled] {
+.results-more-actions .btn[disabled]:not([aria-busy]) {
   opacity: 0.6;
 }
 
-.more-card-actions .btn[aria-busy] {
-  opacity: 1;
+.results-more-actions .ol-loader {
+  width: 20px;
 }
 
-.more-card-actions .ol-loader {
-  width: 20px;
+/* The shimmer on a moola button: paper-toned, peaking at white. */
+.results-more-actions .btn--ai .text-shimmer-ink {
+  --shimmer-peak: #fff;
+  --shimmer-edge: rgba(255, 255, 255, 0);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* The orb: the AI input's conic palette wrapped around a sphere, its colors turning slowly and
+   the whole thing breathing; while a round runs it turns faster and glows wider. */
+.ai-orb {
+  --orb-size: 64px;
+  position: relative;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 42%),
+    var(--ai-input-conic);
+  box-shadow:
+    inset -6px -8px 16px rgba(120, 80, 200, 0.28),
+    inset 4px 6px 12px rgba(255, 255, 255, 0.6),
+    0 10px 30px rgba(160, 130, 255, 0.35);
+  animation: aiInputSpin 12s linear infinite, orbBreathe 5s ease-in-out infinite;
+}
+
+.ai-orb::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: var(--ai-input-conic);
+  filter: blur(18px);
+  opacity: 0.45;
+  z-index: -1;
+  animation: aiInputSpin 12s linear infinite reverse;
+}
+
+.results-more.is-busy .ai-orb {
+  animation-duration: 3s, 1.6s;
+}
+
+.results-more.is-busy .ai-orb::after {
+  opacity: 0.7;
+  animation-duration: 3s;
+}
+
+@keyframes orbBreathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb,
+  .ai-orb::after {
+    animation: none;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -7233,17 +7269,15 @@ button.social-link:disabled {
   width: 24px;
 }
 
-/* The shimmer on a moola button: paper-toned, peaking at white. */
-.picker-tray-busy .text-shimmer-ink,
-.more-card-actions .btn--ai .text-shimmer-ink {
+/* The shimmer on the moola button: paper-toned, peaking at white. */
+.picker-tray-busy .text-shimmer-ink {
   --shimmer-peak: #fff;
   --shimmer-edge: rgba(255, 255, 255, 0);
   color: rgba(255, 255, 255, 0.5);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker-tray-busy .text-shimmer-ink,
-  .more-card-actions .btn--ai .text-shimmer-ink {
+  .picker-tray-busy .text-shimmer-ink {
     color: #fff;
   }
 }

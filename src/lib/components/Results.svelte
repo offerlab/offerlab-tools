@@ -81,10 +81,10 @@
           <BrandCard {brand} {index} />
         {/each}
       {/each}
-      {#if results}
-        <MoreCard />
-      {/if}
     </div>
+    {#if results}
+      <MoreCard />
+    {/if}
   </div>
 
   <!-- Feedback Section -->
