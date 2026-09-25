@@ -27,7 +27,10 @@
   // The two lines above the list: the model's for this brand, else the finder's own. They stream
   // in word by word on one clock each time a search lands.
   const heading = $derived(results?.searchedBrand?.listHeading || { title: 'Recommended brands', subtitle: "Here's some great options that would make killer collabs." });
-  const cadence = $derived.by(() => { void app.searchId; return createCadence(0, HEADING_CADENCE); });
+  // Keyed on the lines themselves as well as the search: streaming replaces the text nodes with word
+  // spans, so a heading that lands after the mount has to mount again to be seen.
+  const headingKey = $derived(`${app.searchId}:${heading.title}:${heading.subtitle}`);
+  const cadence = $derived.by(() => { void headingKey; return createCadence(0, HEADING_CADENCE); });
 
   onMount(() => {
     // On touch, a card's action buttons act on the tap itself.
@@ -61,7 +64,7 @@
 
   <!-- Brands Section -->
   <div class="results-group">
-    {#key app.searchId}
+    {#key headingKey}
       <div class="flex flex-col gap-2">
         <h2 class="results-group-title" use:streamText={cadence}>{heading.title}</h2>
         <h2 class="results-group-title text-content-tertiary" use:streamText={cadence}>{heading.subtitle}</h2>

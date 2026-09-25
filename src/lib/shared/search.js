@@ -205,6 +205,7 @@ export async function discoverComplementaryBrands(url, {
     // The two lines above the list, written for this brand; the results view has a default.
     listHeading: listHeading(augmentedResults.heading)
   };
+  console.log(`[Discovery] Heading: ${JSON.stringify(augmentedResults.heading ?? null)} -> ${JSON.stringify(searchedBrandData.listHeading)}`);
 
   console.log(`[Discovery] Brands ready: ${brands.length} brands found`);
   if (typeof onBrandsReady === 'function') onBrandsReady({ searchedBrand: searchedBrandData, brands });
@@ -759,8 +760,8 @@ CRITICAL INSTRUCTIONS:
   return results;
 }
 
-const HEADING_TITLE_WORDS = 3;
-const HEADING_SUBTITLE_WORDS = 12;
+const HEADING_TITLE_WORDS = 4;
+const HEADING_SUBTITLE_WORDS = 14;
 
 /** The model's two lines above the list, or null when they are missing or run long. */
 export function listHeading(heading) {

@@ -626,7 +626,7 @@ describe('listHeading', () => {
   });
 
   it('is null when a line is missing or runs long', () => {
-    expect(listHeading({ title: 'Four words is too many', subtitle: 'Fine.' })).toBeNull();
+    expect(listHeading({ title: 'Five words is too many now', subtitle: 'Fine.' })).toBeNull();
     expect(listHeading({ title: 'Fine', subtitle: '' })).toBeNull();
     expect(listHeading(undefined)).toBeNull();
   });
