@@ -4,7 +4,7 @@
 import * as offerlab from './offerlab.js';
 import { picker, entryFor, sellerEntry, setDraft } from './picker-state.svelte.js';
 
-// The brands in the order they were first picked, which is what the draft is named after.
+// The brands in the order they were first picked: what a draft is called until OfferLab names it.
 function draftName() {
   const seen = [];
   [...picker.selection.values()]
@@ -49,15 +49,17 @@ export async function createDraft(name) {
 
   setDraft('working', 'Connecting to OfferLab');
   try {
+    // A concept's name is the bundle's. Without one, OfferLab names the bundle from its products
+    // (Stacks::GenerateNameJob), which a "Brand × Brand" name from here would have kept it from doing.
     const draft = await offerlab.createDraftBundle({
-      name: name || draftName(),
+      name: name || undefined,
       picks,
       // The bundle presents as whichever brand leads it, and it is being pitched to the one that
       // was searched for, so that is the brand whose products go first.
       presentingDomain: sellerEntry()?.domain
     });
     offerlab.rememberDraft(sellerEntry()?.domain, draft);
-    setDraft('done', draft.name, draft.url);
+    setDraft('done', draft.name || draftName(), draft.url);
     // A draft nobody looks at is not a handoff. Opened here, off the click that started it.
     window.open(draft.url, '_blank', 'noopener');
   } catch (err) {

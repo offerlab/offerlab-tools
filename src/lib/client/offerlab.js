@@ -546,8 +546,8 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
     throw new OfferLabError('This OfferLab cannot build from products without a storefront yet');
   }
   const started = await callTool(BUILD_TOOL, specs
-    ? { products: ordered.map(specFor), name }
-    : { product_urls: ordered.map(pick => pick.product.url), name });
+    ? { products: ordered.map(specFor), ...(name ? { name } : {}) }
+    : { product_urls: ordered.map(pick => pick.product.url), ...(name ? { name } : {}) });
   if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
 
   const result = await awaitBuild(started.action_id, onProgress);
