@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded,
-  extendRecommendations, threadOf, gateGraded, turnLabel, EXTEND_COUNT, UNEXPECTED_COUNT
+  extendRecommendations, threadOf, gateGraded, turnLabel, listHeading, EXTEND_COUNT, UNEXPECTED_COUNT
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -616,5 +616,18 @@ describe('turnLabel', () => {
     expect(turnLabel('', 'more like Liquid Death, less pantry please')).toBe('more like Liquid Death, less');
     expect(turnLabel('one two three four five six seven', 'the ask')).toBe('the ask');
     expect(turnLabel('', '')).toBeNull();
+  });
+});
+
+describe('listHeading', () => {
+  it('keeps a short title and a one-line subtitle, without quotation marks', () => {
+    expect(listHeading({ title: '"Cozy home allies"', subtitle: 'Brands that make a Parachute bedroom feel finished.' }))
+      .toEqual({ title: 'Cozy home allies', subtitle: 'Brands that make a Parachute bedroom feel finished.' });
+  });
+
+  it('is null when a line is missing or runs long', () => {
+    expect(listHeading({ title: 'Four words is too many', subtitle: 'Fine.' })).toBeNull();
+    expect(listHeading({ title: 'Fine', subtitle: '' })).toBeNull();
+    expect(listHeading(undefined)).toBeNull();
   });
 });

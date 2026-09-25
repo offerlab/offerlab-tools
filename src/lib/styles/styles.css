@@ -193,7 +193,7 @@
   --pill-btn: 30px;
   --pill-max: 360px;
   /* Small in the nav row: the pill is a control here, not the landing page's field. */
-  --pill-font: 13px;
+  --pill-font: var(--font-size-sm);
   --pill-tracking: -0.0125em;
   --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2912,6 +2912,58 @@ position: relative;
   animation: cardFadeIn 0.4s ease forwards;
   opacity: 0;
   transition: transform var(--transition-base);
+}
+
+/* A recommendation is revealed top to bottom as it fades in, the way the app unveils a generated
+   card: a soft edge sweeps down the card. The mask lives only in the keyframes and the animation
+   does not fill, so a settled card has no mask to clip its popover or tooltip. */
+@property --card-reveal {
+  syntax: "<percentage>";
+  initial-value: 0%;
+  inherits: false;
+}
+
+.result-card-group {
+  animation: cardFadeIn 0.4s ease forwards, cardRevealDown 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cardRevealDown {
+  from {
+    --card-reveal: 0%;
+    -webkit-mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
+    mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
+  }
+  to {
+    --card-reveal: 130%;
+    -webkit-mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
+    mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
+  }
+}
+
+/* Streamed text (client/actions/stream_text.js): every word is in place from the first frame and
+   arrives on its own delay, rising a hair as its ink fades in. Mirrors the app's agent turns. */
+.stream-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.14em);
+  animation: streamWordIn 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--stream-delay, 0ms);
+}
+
+@keyframes streamWordIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card-group {
+    animation: cardFadeIn 0.4s ease forwards;
+  }
+
+  .stream-word {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .searched-brand-card-group:hover,

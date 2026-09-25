@@ -13,6 +13,7 @@
   import { app, getResults } from '$lib/client/state.svelte.js';
   import { extractDomain } from '$lib/client/util.js';
   import { threadOf } from '$lib/shared/search.js';
+  import { streamText, createCadence, HEADING_CADENCE } from '$lib/client/actions/stream_text.js';
   import { hideSocialPopover } from '$lib/client/popover.svelte.js';
   import { bindTouchTap } from '$lib/client/actions/touch_tap.js';
 
@@ -23,6 +24,10 @@
   const thread = $derived(threadOf(brands));
   const brandsOf = (id) => thread.turns.find(entry => entry.turn.id === id)?.brands || [];
   const cardKey = (brand, index) => `${app.searchId}:${extractDomain(brand.url || '')}:${index}`;
+  // The two lines above the list: the model's for this brand, else the finder's own. They stream
+  // in word by word on one clock each time a search lands.
+  const heading = $derived(results?.searchedBrand?.listHeading || { title: 'Recommended brands', subtitle: "Here's some great options that would make killer collabs." });
+  const cadence = $derived.by(() => { void app.searchId; return createCadence(0, HEADING_CADENCE); });
 
   onMount(() => {
     // On touch, a card's action buttons act on the tap itself.
@@ -56,14 +61,12 @@
 
   <!-- Brands Section -->
   <div class="results-group">
-    <div class="flex flex-col gap-2">
-      <h2 class="results-group-title">
-        Recommended brands
-      </h2>
-      <h2 class="results-group-title text-content-tertiary">
-        Here's some great options that would make killer collabs.
-      </h2>
-    </div>
+    {#key app.searchId}
+      <div class="flex flex-col gap-2">
+        <h2 class="results-group-title" use:streamText={cadence}>{heading.title}</h2>
+        <h2 class="results-group-title text-content-tertiary" use:streamText={cadence}>{heading.subtitle}</h2>
+      </div>
+    {/key}
     <div class="results-grid" id="brandsGrid">
       {#each thread.base as brand, index (cardKey(brand, index))}
         <BrandCard {brand} {index} />
