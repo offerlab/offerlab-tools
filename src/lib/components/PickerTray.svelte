@@ -63,8 +63,8 @@
           <button type="button" class="btn btn--md btn--overlay" data-action="clear" aria-label="Clear selection"><Icon name="arrow-rotate-right-left" size={16} /><span class="picker-tray-action-label">Clear</span></button>
         {/if}
         {#if primary === 'working'}
-          <!-- Still the primary button to look at, with nothing to press: the app's three dots looping beside a shimmering label until the draft is ready. -->
-          <button type="button" class="btn btn--md btn--primary picker-tray-busy" aria-busy="true"><span class="ol-loader" aria-hidden="true"></span><span class="text-shimmer-ink">Bundling</span></button>
+          <!-- Still the button to look at, with nothing to press: the app's three dots looping beside a shimmering label until the draft is ready. -->
+          <button type="button" class="btn btn--md btn--ai picker-tray-busy" aria-busy="true"><span class="ol-loader" aria-hidden="true"></span><span class="text-shimmer-ink">Bundling</span></button>
         {:else if primary === 'done'}
           <button type="button" class="btn btn--md btn--primary" data-action="open-draft">Let’s go <Icon name="arrow-up-right" size={16} /></button>
         {:else if primary === 'connect'}
@@ -72,7 +72,7 @@
         {:else if primary === 'retry'}
           <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Try again</button>
         {:else if primary === 'create'}
-          <button type="button" class="btn btn--md btn--primary" data-action="create-bundle">Bundle</button>
+          <button type="button" class="btn btn--md btn--ai" data-action="create-bundle">Bundle</button>
         {/if}
       </div>
     </div>

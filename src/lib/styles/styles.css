@@ -7052,7 +7052,7 @@ button.social-link:disabled {
   width: 24px;
 }
 
-/* The shimmer on the dark primary button: paper-toned, peaking at white. */
+/* The shimmer on the moola button: paper-toned, peaking at white. */
 .picker-tray-busy .text-shimmer-ink {
   --shimmer-peak: #fff;
   --shimmer-edge: rgba(255, 255, 255, 0);
