@@ -19,7 +19,7 @@
       {#if own}
         <span class="thread-turn-who">You</span>
       {:else}
-        <Icon name="ai-sparkles-two-filled" size={14} />
+        <Icon name="ai-sparkles-two-filled" size={16} />
       {/if}
       <span class="thread-turn-text">{turn.text}</span>
     </span>

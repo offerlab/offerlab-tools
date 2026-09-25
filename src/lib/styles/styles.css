@@ -2552,49 +2552,40 @@ position: relative;
   opacity: 0;
 }
 
-/* The note sits on a hairline that runs the grid's width, the way a day divider does in a thread */
+/* The note sits between two squiggles that run the grid's width, the way a chat marks the time */
 .thread-turn-line {
-  position: relative;
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 16px;
 }
 
-.thread-turn-line::before {
+.thread-turn-line::before,
+.thread-turn-line::after {
   content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  border-top: 1px solid var(--content-border-neutral);
+  flex: 1;
+  height: 8px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'%3E%3Cpath d='M0 4c3-3 6-3 9 0s6 3 9 0 4.5-1.5 6 0' fill='none' stroke='%23342e26' stroke-opacity='0.25' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x center;
 }
 
 .thread-turn-note {
-  position: relative;
   display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   max-width: min(100%, 720px);
-  padding: 10px 18px;
-  border-radius: 24px;
-  background: var(--content-background-elevated);
-  border: 0.5px solid var(--content-border-neutral);
-  box-shadow: var(--shadow-sm);
-  font-size: var(--font-size-base);
-  line-height: 1.35;
-  color: var(--content-primary);
-  text-align: left;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  text-align: center;
 }
 
 .thread-turn-note--ask {
-  align-items: center;
-  color: var(--moola-vivid);
   font-weight: 500;
 }
 
 .thread-turn-who {
   flex: none;
-  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--content-tertiary);
 }
