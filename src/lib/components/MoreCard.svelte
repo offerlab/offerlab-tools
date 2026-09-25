@@ -23,9 +23,10 @@
 
 <div class="results-more" class:is-busy={busy}>
   <AgentOrb class="results-more-orb" state={busy ? 'working' : 'idle'} />
-  <div class="results-more-copy">
-    <p class="results-more-title">This collab looks sweet!</p>
-    <p class="results-more-subtitle">{app.feedback ? 'Thanks for the feedback!' : 'How can I help?'}</p>
+  <!-- The same two lines as the group header above the grid, centered. -->
+  <div class="flex flex-col gap-2 results-more-copy">
+    <h2 class="results-group-title">This collab looks sweet!</h2>
+    <h2 class="results-group-title text-content-tertiary">{app.feedback ? 'Thanks for the feedback!' : 'How can I help?'}</h2>
   </div>
   <div class="results-more-actions">
     {#if busy}

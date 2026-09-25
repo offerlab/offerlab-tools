@@ -2635,23 +2635,9 @@ position: relative;
   text-align: center;
 }
 
-.results-more-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.results-more-title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 500;
-  color: var(--content-primary);
-}
-
-.results-more-subtitle {
-  margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--content-secondary);
+.results-more-copy .results-group-title {
+  justify-content: center;
+  text-align: center;
 }
 
 .results-more-rating {
