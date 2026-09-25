@@ -537,12 +537,13 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
   onProgress('Starting the build');
   // Every pick goes as a description with its storefront URL where it has one: the build takes
   // the storefront's product when the storefront lists it and creates it from the description
-  // when it does not (unlisted since the crawl, or found through Google Shopping). An OfferLab
-  // that takes only URLs gets only those, and cannot be given a Google Shopping pick at all.
+  // when it does not (unlisted since the crawl, found through Google Shopping, or a stand-in for
+  // a brand with no catalog). An OfferLab that takes only URLs gets only those, and cannot be
+  // given any of the others at all.
   const specs = state.buildTakesSpecs;
   const fromStorefront = pick => pick.storefront !== false;
   if (!specs && ordered.some(pick => !fromStorefront(pick))) {
-    throw new OfferLabError('This OfferLab cannot build from Google Shopping products yet');
+    throw new OfferLabError('This OfferLab cannot build from products without a storefront yet');
   }
   const started = await callTool(BUILD_TOOL, specs
     ? { products: ordered.map(specFor), name }

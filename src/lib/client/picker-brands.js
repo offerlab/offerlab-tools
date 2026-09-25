@@ -22,8 +22,8 @@ export function canBuildWith(brand) {
   return ['woocommerce', 'serp'].includes(brand.catalog.status) && offerlab.buildTakesSpecs() !== false;
 }
 
-// Every brand on the rail but the searched one, which the search itself names; when a partner
-// leads instead, it is in here too, so the rail comes back the same from the URL.
+// Every brand on the rail but the searched one, which the search itself names and which always
+// leads when the rail comes back from the URL.
 export function pushPickUrl() {
   const searched = extractDomain(getResults()?.searchedBrand?.url || '');
   pushUrl(url => url.searchParams.set(PICK_PARAM, picker.brands.filter(e => e.domain !== searched).map(e => e.domain).join(',')));
