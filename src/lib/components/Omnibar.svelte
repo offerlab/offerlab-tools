@@ -32,10 +32,8 @@
   // One or two words that are surely a brand: the dropdown asks which was meant.
   let ask = $state(null);
 
-  // The header composer shows the searched brand as favicon + domain, centered, whenever it is
-  // not being edited. Focus reveals the plain input so typing reads left-aligned.
-  const showingDisplay = $derived(results && value.trim() !== '' && !focused);
-  let displayFailed = $state(false);
+  // The results composer rests empty with its invitation; the searched brand is on its card.
+  const showingDisplay = false;
 
   // The suggestions (resolve.js) open and close the same dropdown imperatively, so the classes
   // are set directly as well: a directive only acts when its own value changes.
@@ -71,9 +69,6 @@
     focused = true;
     showHistory();
     suggest?.sync();
-    // The results bar holds the searched domain; a tap into it is to type something else, so the
-    // domain is selected and the first keystroke replaces it. After the browser's own caret placement.
-    if (results) setTimeout(() => { if (document.activeElement === input) input.select(); }, 0);
   }
 
   function onBlur() {
@@ -103,10 +98,6 @@
   $effect(() => {
     // Re-rendered whenever history changes (unless suggestions hold the list).
     renderHistoryRows(list, app.history);
-  });
-
-  $effect(() => {
-    if (value.trim() !== '') displayFailed = false;
   });
 
   onMount(() => {
@@ -143,26 +134,17 @@
 <form class="search-form" id={ids.form} class:dropdown-open={dropdownOpen} bind:this={form} onsubmit={onSubmit}>
   <div class="search-input-wrapper" class:showing-display={showingDisplay}>
     <span class="typing-placeholder" class:typing-placeholder-results={results} class:hidden={results} id={ids.placeholder} bind:this={placeholderEl} aria-hidden="true"></span>
-    {#if results}
-      <span class="search-display" class:hidden={!showingDisplay} id="resultsSearchDisplay" aria-hidden="true">
-        {#if showingDisplay}
-          <span class="search-display-avatar">
-            <img alt="" src={displayFailed ? CONFIG.FAVICON_FALLBACK(value.trim()) : getFaviconUrl(value.trim())} onerror={() => { displayFailed = true; }}>
-          </span>{value.trim()}
-        {/if}
-      </span>
-    {/if}
     <input
       type="text"
       class="search-input"
       class:focused
       id={ids.input}
-      placeholder={results ? 'Brand, website, or a note for more' : 'Brand name or website'}
+      placeholder={results ? 'Want different picks? Just ask' : 'Brand name or website'}
       autocomplete="off"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
-      data-placeholder-focus={results ? 'Brand, website, or a note for more' : 'Brand name or website'}
+      data-placeholder-focus={results ? 'Ask for changes, or search another brand' : 'Brand name or website'}
       bind:this={input}
       bind:value
       onfocus={onFocus}

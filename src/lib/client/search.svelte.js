@@ -54,9 +54,11 @@ export function registerOmnibar(variant, api) {
 export function hideAllSearchHistoryDropdowns() {
   Object.values(omnibars).forEach(bar => bar.hideHistory());
 }
+// The results bar rests empty, its placeholder inviting the next ask; the searched brand's card
+// says what was searched. The domain lives in app.searchDomain for whoever needs it.
 function showSearchedDomain(domain) {
   app.searchDomain = domain;
-  omnibars.results?.setValue(domain);
+  omnibars.results?.setValue('');
   omnibars.results?.hidePlaceholder();
 }
 
@@ -109,9 +111,9 @@ export function cancelExtend() {
   app.extendingText = '';
 }
 
-/** The Retry control: the domain in either omnibar, else back to the start. */
+/** The Retry control: the searched domain, or what is in either omnibar, else back to the start. */
 export function retrySearch() {
-  const url = omnibars.landing?.getValue() || omnibars.results?.getValue();
+  const url = app.searchDomain || omnibars.landing?.getValue() || omnibars.results?.getValue();
   if (url) performSearch(url);
   else goToLanding();
 }
@@ -391,7 +393,7 @@ export function retryTurn(id) {
   extendResults({ kind: turn.kind, text: turn.text });
 }
 
-/** A note from the bar: the field goes back to showing the searched brand, and the round starts. */
+/** A note from the bar: the field empties back to its invitation, and the round starts. */
 export function sendNote(text) {
   hideAllSearchHistoryDropdowns();
   showSearchedDomain(app.searchDomain);
