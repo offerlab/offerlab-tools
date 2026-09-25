@@ -3,6 +3,7 @@
    * Under the last card, centered on the body: the orb, and one tap for more of the same or for a
    * swing. Busy while any follow-up runs, whichever control started it.
    */
+  import AgentOrb from './AgentOrb.svelte';
   import { app } from '$lib/client/state.svelte.js';
   import { extendResults } from '$lib/client/search.svelte.js';
 
@@ -12,7 +13,7 @@
 </script>
 
 <div class="results-more" class:is-busy={busy}>
-  <span class="ai-orb" aria-hidden="true"></span>
+  <AgentOrb class="results-more-orb" state={busy ? 'working' : 'idle'} />
   <div class="results-more-actions">
     {#if busy}
       <button type="button" class="btn btn--md btn--ai" disabled aria-busy="true"><span class="ol-loader" aria-hidden="true"></span><span class="text-shimmer-ink">Finding more</span></button>
