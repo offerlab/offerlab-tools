@@ -2625,13 +2625,43 @@ position: relative;
   color: var(--content-sentiment-negative);
 }
 
-/* The ask for more: the orb over the two controls, centered on the body under the last card */
+/* The results footer: the orb, a word, and one row of controls, centered under the last card */
 .results-more {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 24px 0 8px;
+  padding: 40px 16px 48px;
+  text-align: center;
+}
+
+.results-more-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.results-more-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--content-primary);
+}
+
+.results-more-subtitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--content-secondary);
+}
+
+.results-more-rating {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.results-more-actions .btn--icon {
+  width: 40px;
+  padding: 0;
 }
 
 .results-more-actions {
@@ -2653,13 +2683,6 @@ position: relative;
 
 .results-more-actions .ol-loader {
   width: 20px;
-}
-
-/* The shimmer on a moola button: paper-toned, peaking at white. */
-.results-more-actions .btn--ai .text-shimmer-ink {
-  --shimmer-peak: #fff;
-  --shimmer-edge: rgba(255, 255, 255, 0);
-  color: rgba(255, 255, 255, 0.5);
 }
 
 /* The agent orb (AgentOrb.svelte): a round slot the shader fills. The canvas is clipped to the
@@ -2687,7 +2710,7 @@ position: relative;
 }
 
 .results-more-orb {
-  --orb-size: 72px;
+  --orb-size: 32px;
 }
 
 /* --------------------------------------------------------------------------
@@ -3569,44 +3592,10 @@ button.social-link:disabled {
 /* --------------------------------------------------------------------------
    Feedback Section
    -------------------------------------------------------------------------- */
-.feedback-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
-  text-align: center;
-}
-
-.feedback-question {
-  font-size: var(--font-size-lg);
-  font-weight: 500;
-  color: var(--content-primary);
-  margin-bottom: var(--spacing-lg);
-}
-
-.feedback-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-lg);
-}
 
 .feedback-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
-  background: transparent;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
   color: var(--content-primary);
-}
-
-.feedback-btn:hover {
-  transform: scale(1.05);
-  background: var(--content-background-base);
 }
 
 .feedback-positive:hover {
@@ -3621,43 +3610,22 @@ button.social-link:disabled {
   transform: scale(0.95);
 }
 
-.feedback-btn.selected {
-  box-shadow: var(--shadow-md);
-}
-
 .feedback-positive.selected {
   background: var(--green-100);
+  border-color: var(--green-100);
   color: var(--green-600);
 }
 
 .feedback-negative.selected {
   background: var(--red-100);
+  border-color: var(--red-100);
   color: var(--red-600);
 }
 
 .feedback-icon {
-  width: 20px;
-  --icon-rendered: 20;
-  height: 20px;
-}
-
-.feedback-thanks {
-  margin-top: var(--spacing-lg);
-  font-size: var(--font-size-base);
-  color: var(--content-sentiment-positive);
-  font-weight: 500;
-  animation: thanksFadeIn 0.4s ease;
-}
-
-@keyframes thanksFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  width: 18px;
+  --icon-rendered: 18;
+  height: 18px;
 }
 
 /* --------------------------------------------------------------------------
@@ -5339,8 +5307,6 @@ button.social-link:disabled {
     height: calc(100dvh - var(--header-h, 0px) - var(--view-header-h));
   }
 }
-
-
 
 
 /* Concepts: the onboarding commissions insight card (atelier/onboarding.css) — the agent's
