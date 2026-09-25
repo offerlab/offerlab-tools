@@ -200,6 +200,8 @@
   /* Below 768px the pill is fixed to the bottom of the viewport: the resting pill on this gutter. */
   --search-footer-gutter: 16px;
   --search-footer-h: calc(var(--pill-row) + 2 * var(--pill-pad) + var(--search-footer-gutter));
+  /* The context bar (back control and pill) at rest: its 44px control and 16px above and below. */
+  --view-header-h: calc(44px + 2 * 16px);
   --background-light: #FBFAF7FF;
   --brand-primary-shine: #FFED84FF;
   --brand-primary-crisp: #F3F0E8FF;
@@ -4928,6 +4930,25 @@ button.social-link:disabled {
    row can still be scrolled clear of it. */
 .picker-section.has-tray .picker-grid {
   padding-bottom: 104px;
+}
+
+/* On a desktop the sheet scrolls rather than the section fitting the viewport: the concepts
+   banner scrolls away, and the rail pins under the context bar with every pixel down to the
+   bottom of the viewport, so the catalogs are as tall as the screen allows on any screen. */
+@media (min-width: 901px) {
+  .sheet-scroll > .picker-section {
+    flex: none;
+  }
+
+  /* Read from the bar itself (ViewHeader.svelte publishes --view-header-h); the token's own
+     value is the bar at rest. */
+  .picker-section > .picker-rail {
+    position: sticky;
+    top: var(--view-header-h);
+    flex: none;
+    height: calc(100vh - var(--header-h, 0px) - var(--view-header-h));
+    height: calc(100dvh - var(--header-h, 0px) - var(--view-header-h));
+  }
 }
 
 

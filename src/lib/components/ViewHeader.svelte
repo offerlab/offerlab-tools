@@ -38,7 +38,12 @@
     const sync = () => { phone = media.matches; placeOmnibar(); };
     sync();
     media.addEventListener('change', sync);
-    return () => media.removeEventListener('change', sync);
+    // The bar's height, for what pins under it (the picker's rail), the way the header publishes its own.
+    const publish = () => { if (viewHeader.offsetHeight) document.documentElement.style.setProperty('--view-header-h', `${viewHeader.offsetHeight}px`); };
+    publish();
+    const observer = window.ResizeObserver ? new ResizeObserver(publish) : null;
+    observer?.observe(viewHeader);
+    return () => { media.removeEventListener('change', sync); observer?.disconnect(); };
   });
 </script>
 
