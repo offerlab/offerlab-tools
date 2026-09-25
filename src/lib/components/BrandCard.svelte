@@ -56,7 +56,7 @@
   }
 </script>
 
-<div class="result-card-group" style="animation-delay: {index * 0.05}s" data-catalog-domain={domain}>
+<div class="result-card-group" style="--card-index: {index}" data-catalog-domain={domain}>
   <!-- The whole card is a target, as it always was; its buttons carry the keyboard path. -->
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div class="result-card" class:popover-open={popoverOpen} data-url={fullUrl} data-domain={domain} data-buildable={buildable ? 'true' : undefined} data-set-up={notSetUp[domain] ? 'false' : undefined} onclick={onCardClick}>

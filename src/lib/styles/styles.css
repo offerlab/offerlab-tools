@@ -2914,30 +2914,32 @@ position: relative;
   transition: transform var(--transition-base);
 }
 
-/* A recommendation is revealed top to bottom as it fades in, the way the app unveils a generated
-   card: a soft edge sweeps down the card. The mask lives only in the keyframes and the animation
-   does not fill, so a settled card has no mask to clip its popover or tooltip. */
-@property --card-reveal {
-  syntax: "<percentage>";
-  initial-value: 0%;
-  inherits: false;
+/* The list arrives the way the app's recommendation cards do (atelier/onboarding.css): the block
+   fades and rises as one, the cards inside cascade in by position, and they wait for the heading
+   that introduces them to finish writing. Paused at t=0 a card sits on its opacity 0, and the
+   release runs the stagger from its first frame. */
+.results-block-enter {
+  animation:
+    resultsBlockFadeIn 0.32s ease backwards,
+    resultsBlockRiseIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.results-grid.is-holding-cards .result-card-group {
+  animation-play-state: paused;
 }
 
 .result-card-group {
-  animation: cardFadeIn 0.4s ease forwards, cardRevealDown 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  animation-delay: calc(var(--card-index, 0) * 40ms);
 }
 
-@keyframes cardRevealDown {
-  from {
-    --card-reveal: 0%;
-    -webkit-mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
-    mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
-  }
-  to {
-    --card-reveal: 130%;
-    -webkit-mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
-    mask-image: linear-gradient(to bottom, #000 var(--card-reveal), transparent calc(var(--card-reveal) + 30%));
-  }
+@keyframes resultsBlockFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes resultsBlockRiseIn {
+  from { transform: translateY(12px); }
+  to { transform: translateY(0); }
 }
 
 /* Streamed text (client/actions/stream_text.js): every word is in place from the first frame and
@@ -2955,8 +2957,8 @@ position: relative;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .result-card-group {
-    animation: cardFadeIn 0.4s ease forwards;
+  .results-block-enter {
+    animation: resultsBlockFadeIn 0.2s ease backwards;
   }
 
   .is-streaming .stream-word {

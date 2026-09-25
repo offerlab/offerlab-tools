@@ -79,11 +79,20 @@ export function streamIn(block, cadence = createCadence()) {
 }
 
 /**
- * Svelte action: streams the element's text in when it mounts. Pass the cadence the element
- * shares with its neighbours. Reduced motion leaves the text as it is.
+ * Svelte action: streams the element's text in when it mounts, on the cadence it shares with its
+ * neighbours; `onStreamed(ms)` hears when this element's last word will have landed. Reduced
+ * motion leaves the text as it is and reports 0.
  */
-export function streamText(node, cadence) {
-  if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  streamIn(node, cadence || createCadence(0, HEADING_CADENCE));
-  if (cadence?.pause) cadence.pause();
+export function streamText(node, { cadence, onStreamed } = {}) {
+  if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    onStreamed?.(0);
+    return;
+  }
+  const clock = cadence || createCadence(0, HEADING_CADENCE);
+  streamIn(node, clock);
+  onStreamed?.(clock.elapsed + WORD_FADE_MS);
+  clock.pause();
 }
+
+// How long a word takes to arrive once its delay is up (.is-streaming .stream-word in styles.css).
+const WORD_FADE_MS = 480;

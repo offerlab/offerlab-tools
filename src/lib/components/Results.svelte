@@ -32,6 +32,16 @@
   const headingKey = $derived(`${app.searchId}:${heading.title}:${heading.subtitle}`);
   const cadence = $derived.by(() => { void headingKey; return createCadence(0, HEADING_CADENCE); });
 
+  // The cards wait for the sentence that introduces them: held at their first frame until the
+  // heading's last word has landed, the way the app holds its recommendation cards.
+  let holdingCards = $state(false);
+  let release = null;
+  function holdCardsFor(ms) {
+    clearTimeout(release);
+    holdingCards = ms > 0;
+    if (ms > 0) release = setTimeout(() => { holdingCards = false; }, ms);
+  }
+
   onMount(() => {
     // On touch, a card's action buttons act on the tap itself.
     const untap = bindTouchTap(document, '.build-bundle-btn, .generate-pitch-btn, .visit-btn, .card-menu-btn');
@@ -66,11 +76,13 @@
   <div class="results-group">
     {#key headingKey}
       <div class="flex flex-col gap-2">
-        <h2 class="results-group-title" use:streamText={cadence}>{heading.title}</h2>
-        <h2 class="results-group-title text-content-tertiary" use:streamText={cadence}>{heading.subtitle}</h2>
+        <!-- The h2 is a flex row; the words stream inside one inline child so they keep their own spacing. -->
+        <h2 class="results-group-title"><span use:streamText={{ cadence }}>{heading.title}</span></h2>
+        <h2 class="results-group-title text-content-tertiary"><span use:streamText={{ cadence, onStreamed: holdCardsFor }}>{heading.subtitle}</span></h2>
       </div>
     {/key}
-    <div class="results-grid" id="brandsGrid">
+    {#key app.searchId}
+    <div class="results-grid results-block-enter" class:is-holding-cards={holdingCards} id="brandsGrid">
       {#each thread.base as brand, index (cardKey(brand, index))}
         <BrandCard {brand} {index} />
       {/each}
@@ -81,6 +93,7 @@
         {/each}
       {/each}
     </div>
+    {/key}
     {#if results}
       <MoreCard />
     {/if}
