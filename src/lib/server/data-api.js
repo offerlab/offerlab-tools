@@ -66,7 +66,7 @@ async function route({ method, segments, query, body, db }) {
     }
 
     case 'frequent': {
-      if (method === 'GET' && !first) return { status: 200, body: await store.listFrequentBrands(db, { limit: intParam(query.limit, store.DEFAULT_FREQUENT_LIMIT, { max: 100 }) }) };
+      if (method === 'GET' && !first) return { status: 200, body: await store.listFrequentBrands(db, { limit: intParam(query.limit, store.DEFAULT_FREQUENT_LIMIT, { max: store.FREQUENT_KEPT }) }) };
       break;
     }
 

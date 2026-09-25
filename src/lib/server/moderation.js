@@ -44,10 +44,12 @@ export async function removeRecommendation(db, searchDomain, domain, now = Date.
   return { searchDomain: search, domain: key };
 }
 
+// A products row's search_domain is always '', and saying so lets both lookups below take the
+// primary key all the way to the domain instead of reading every products row.
 export async function isProductsHidden(db, domain) {
   const key = canonical(domain);
   if (!key) return false;
-  const row = await readModeration(() => db.prepare(`SELECT 1 AS hidden FROM moderation WHERE kind = 'products' AND domain = ?`).bind(key).first(), null);
+  const row = await readModeration(() => db.prepare(`SELECT 1 AS hidden FROM moderation WHERE kind = 'products' AND search_domain = '' AND domain = ?`).bind(key).first(), null);
   return Boolean(row);
 }
 
@@ -71,7 +73,7 @@ export async function moderationFor(db, searchDomain, domains) {
   const marks = keys.map(() => '?').join(', ');
   const { results } = await readModeration(() => db.prepare(
     `SELECT kind, domain FROM moderation
-      WHERE (kind = 'recommendation' AND search_domain = ?)${keys.length ? ` OR (kind = 'products' AND domain IN (${marks}))` : ''}`
+      WHERE (kind = 'recommendation' AND search_domain = ?)${keys.length ? ` OR (kind = 'products' AND search_domain = '' AND domain IN (${marks}))` : ''}`
   ).bind(search, ...keys).all(), { results: [] });
   for (const row of results) (row.kind === 'products' ? hidden : removed).add(row.domain);
   return { hidden, removed };

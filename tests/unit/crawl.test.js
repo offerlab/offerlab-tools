@@ -101,6 +101,17 @@ describe('claimNext', () => {
     expect(claimed).toMatchObject({ domain: 'stuck.test', status: 'searching', attempts: 2, started_at: now, searched_at: now });
     expect(await claimNext(db, settings, now)).toBeNull();
   });
+
+  it('weighs a stalled step against the queued ones in the same order', async () => {
+    const quiet = now - settings.staleAfterMs - 1;
+    await seed('queued-low.test', { status: 'queued', priority: 1 });
+    await seed('stuck-high.test', { status: 'searching', priority: 9, attempts: 1, startedAt: quiet });
+    await seed('queued-mid.test', { status: 'queued', priority: 5 });
+    await seed('stuck-low.test', { status: 'searching', priority: 0, attempts: 1, startedAt: quiet });
+    const order = [];
+    for (let i = 0; i < 4; i++) order.push((await claimNext(db, settings, now)).domain);
+    expect(order).toEqual(['stuck-high.test', 'queued-mid.test', 'queued-low.test', 'stuck-low.test']);
+  });
 });
 
 // A Gemini reply as /api/gemini relays it.

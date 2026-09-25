@@ -60,22 +60,36 @@ export async function enqueueSeeds(db, domains, { refresh = false } = {}, now = 
  */
 export async function claimNext(db, settings, now = Date.now()) {
   const stale = now - settings.staleAfterMs;
-  const expansion = await claim(db, `status = 'expand' OR (status = 'expanding' AND started_at < ?)`, [stale], 'expanding', now);
+  const expansion = await claim(db, 'expand', 'expanding', stale, now);
   if (expansion) return expansion;
 
+  // The daily count reads a row per search in the last day, so it waits until there is a search
+  // to claim: an idle queue costs the cron's tick one row.
+  if (!(await db.prepare(NEXT('queued', 'searching')).bind(stale).first())) return null;
   const searched = await db.prepare('SELECT COUNT(*) AS n FROM crawl_queue WHERE searched_at > ?').bind(now - DAY_MS).first();
   if ((searched?.n || 0) >= settings.dailyLimit) return { capped: true };
-  return claim(db, `status = 'queued' OR (status = 'searching' AND started_at < ?)`, [stale], 'searching', now);
+  return claim(db, 'queued', 'searching', stale, now);
 }
 
-async function claim(db, where, params, status, now) {
-  const searchedAt = status === 'searching' ? now : null;
+// The next row that is `ready`, or whose `stalled` step went quiet before the bound time. Each
+// side is its own crawl_queue_next lookup already in claim order, so the pick reads a row or two;
+// one WHERE with an OR read every row in either status and sorted them.
+const NEXT = (ready, stalled) => `
+  SELECT domain, depth, priority, created_at FROM (
+    SELECT * FROM (SELECT domain, depth, priority, created_at FROM crawl_queue WHERE status = '${ready}' ORDER BY depth, priority DESC, created_at LIMIT 1)
+    UNION ALL
+    SELECT * FROM (SELECT domain, depth, priority, created_at FROM crawl_queue WHERE status = '${stalled}' AND started_at < ? ORDER BY depth, priority DESC, created_at LIMIT 1)
+  ) ORDER BY depth, priority DESC, created_at LIMIT 1`;
+
+// Claiming moves the row into the `stalled` status: a search or an expansion under way.
+async function claim(db, ready, stalled, stale, now) {
+  const searchedAt = stalled === 'searching' ? now : null;
   return db.prepare(
     `UPDATE crawl_queue SET status = ?, attempts = attempts + 1, started_at = ?, updated_at = ?,
        searched_at = COALESCE(?, searched_at)
-     WHERE domain = (SELECT domain FROM crawl_queue WHERE ${where} ORDER BY depth, priority DESC, created_at LIMIT 1)
+     WHERE domain = (SELECT domain FROM (${NEXT(ready, stalled)}))
      RETURNING *`
-  ).bind(status, now, now, searchedAt, ...params).first();
+  ).bind(stalled, now, now, searchedAt, stale).first();
 }
 
 async function finish(db, domain, status, outcome, now = Date.now()) {
