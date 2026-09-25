@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsStandIns, gatherStandIns, productFromLink, nameFromAddress, standIn } from '$lib/shared/standins.js';
+import { needsStandIns, gatherStandIns, productFromLink, nameFromAddress, standIn, heroProducts } from '$lib/shared/standins.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
 const gemini = body => json({ candidates: [{ content: { parts: [{ text: JSON.stringify(body) }] } }] });
@@ -72,6 +72,12 @@ describe('gatherStandIns', () => {
     expect(result.products).toEqual([standIn({ id: 'suggested-1', name: 'Vermont White Spruce', price: 1099, image: 'https://www.balsamhill.com/vws.jpg' })]);
   });
 
+  it('falls back to the analysis\'s hero products when Gemini is down and no picture is named', async () => {
+    const analysed = { ...brand, productAnalysis: { heroProducts: ['Vermont White Spruce', 'Flip Tree'], priceRange: { typicalPrice: '$300-$1,200' } } };
+    const result = await gatherStandIns(fakeApi(), analysed);
+    expect(result.products.map(p => [p.title, p.price, p.image])).toEqual([['Vermont White Spruce', 750, null], ['Flip Tree', 750, null]]);
+  });
+
   it('is null when nothing could be found or suggested', async () => {
     expect(await gatherStandIns(fakeApi(), brand)).toBe(null);
   });
@@ -100,5 +106,13 @@ describe('nameFromAddress', () => {
   it('is empty when the path names nothing', () => {
     expect(nameFromAddress('https://brand.com/')).toBe('');
     expect(nameFromAddress('https://brand.com/p/12345')).toBe('');
+  });
+});
+
+describe('heroProducts', () => {
+  it('prices every hero product at the middle of the typical range, and gives none without a price', () => {
+    expect(heroProducts({ productAnalysis: { heroProducts: ['Tree', ' '], priceRange: { typicalPrice: '$40' } } })).toEqual([{ name: 'Tree', price: 40, image: null }]);
+    expect(heroProducts({ productAnalysis: { heroProducts: ['Tree'], priceRange: { typicalPrice: 'premium' } } })).toEqual([]);
+    expect(heroProducts({})).toEqual([]);
   });
 });

@@ -10,7 +10,7 @@ import { generateConcepts, cancelConcepts } from './picker-concepts.js';
 import { addBrand, replaceBrand, removeBrand } from './picker-brands.js';
 import { showAddPopover, hideAddPopover, showUrlDialog } from './picker-add.js';
 import { createDraft } from './picker-draft.js';
-import { openProductDialog } from './picker-standins.js';
+import { openProductDialog, retryStandIns } from './picker-standins.js';
 
 export function handleAction(e) {
   const target = e.target.closest('[data-action]');
@@ -60,5 +60,6 @@ export function handleAction(e) {
     case 'remove-brand': removeBrand(target.dataset.domain); break;
     case 'new-product': openProductDialog(target.dataset.domain); break;
     case 'edit-product': openProductDialog(target.dataset.domain, target.dataset.id); break;
+    case 'suggest-products': retryStandIns(target.dataset.domain); break;
   }
 }

@@ -28,10 +28,15 @@
   ],
   // Branch previews (Workers Builds runs `wrangler preview` for non-production branches). They
   // share the production database, as the Pages previews did, and send their keyed API calls
-  // through the live site, so a preview needs no secrets and runs no cron.
+  // through the live site, so a preview needs no secrets and runs no cron. They reach it through
+  // the UPSTREAM service binding: fetching collabfinder.offerlab.com from a version of this same
+  // Worker skips the Worker and gets a 522 (src/lib/server/api.js, forwardUpstream).
   "previews": {
     "d1_databases": [
       { "binding": "DB", "database_id": "10833831-1ee4-48b2-8a1b-36a207cd2579" }
+    ],
+    "services": [
+      { "binding": "UPSTREAM", "service": "collab-finder" }
     ],
     "vars": {
       "UPSTREAM_API_ORIGIN": "https://collabfinder.offerlab.com",

@@ -38,10 +38,12 @@ export async function gatherStandIns(api, brand, { shopping = true } = {}) {
   } catch (err) {
     console.warn(`[Stand-ins] ${brand.name}: ${err.message}`);
   }
-  // Without Gemini, the pictures that came with a name and a price are products already.
+  // Without Gemini, the pictures that came with a name and a price are products already, and
+  // failing those, the brand analysis named its hero products and what they typically cost.
   if (!suggested.length) {
     suggested = pictures.filter(p => p.name && p.price).map(p => ({ name: p.name, price: p.price, image: p.src }));
   }
+  if (!suggested.length) suggested = heroProducts(brand);
 
   const products = suggested.slice(0, STAND_IN_COUNT).map((p, i) => standIn({ ...p, id: `suggested-${i + 1}` }));
   const images = pictures.map(p => ({ src: p.src, alt: p.name || p.alt || '' }));
@@ -103,6 +105,18 @@ function safeDecode(text) {
   } catch {
     return text;
   }
+}
+
+/** The analysis's hero products at its typical price: "$150-$800" reads as the middle, $475. */
+export function heroProducts(brand) {
+  const analysis = brand?.productAnalysis || {};
+  const names = (Array.isArray(analysis.heroProducts) ? analysis.heroProducts : [])
+    .filter(name => typeof name === 'string' && name.trim());
+  const bounds = String(analysis.priceRange?.typicalPrice || '').replace(/,(?=\d{3}\b)/g, '').match(/\d+(?:\.\d+)?/g) || [];
+  const numbers = bounds.map(Number).filter(n => n > 0);
+  const price = numbers.length ? Math.round(numbers.reduce((sum, n) => sum + n, 0) / numbers.length) : null;
+  if (!price) return [];
+  return names.map(name => ({ name: name.trim(), price, image: null }));
 }
 
 async function readPage(api, url) {

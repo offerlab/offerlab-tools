@@ -34,21 +34,37 @@ export function standInEntry(brand) {
   };
 }
 
-/** Finds stand-ins for a lead that came without them. Asked once a session per brand. */
+/**
+ * Finds stand-ins for a lead that came without them. What is found is kept for the session, so
+ * the picker asks once per brand; finding nothing is not kept, and the column offers to try again.
+ */
 export async function ensureStandIns(domain) {
   const entry = entryFor(domain);
   if (!isStandIns(entry?.brand.catalog) || !entry.brand.catalog.loading) return;
 
-  const gathered = await gatherStandIns(searchApi, entry.brand).catch(() => null) || { images: [], products: [] };
+  const gathered = await gatherStandIns(searchApi, entry.brand).catch(() => null);
   const seller = getResults()?.searchedBrand;
-  if (seller && extractDomain(seller.url || '') === domain) seller.standIns = gathered;
+  if (gathered && seller && extractDomain(seller.url || '') === domain) seller.standIns = gathered;
 
   const current = entryFor(domain);
   if (!isStandIns(current?.brand.catalog) || !current.brand.catalog.loading) return;
+  if (!gathered) {
+    current.brand.catalog = { ...current.brand.catalog, loading: false, failed: true };
+    return;
+  }
   current.brand.standIns = gathered;
   // Anything added by hand while these were found stays, ahead of them.
   const products = [...current.brand.catalog.products, ...gathered.products.map(p => ({ ...p }))];
   current.brand.catalog = { ...current.brand.catalog, products, count: products.length, loading: false };
+}
+
+/** The column's Suggest products, after a search for stand-ins found nothing. */
+export function retryStandIns(domain) {
+  const catalog = entryFor(domain)?.brand.catalog;
+  if (!isStandIns(catalog) || catalog.loading) return;
+  catalog.loading = true;
+  catalog.failed = false;
+  return ensureStandIns(domain);
 }
 
 function remember(domain) {

@@ -46,7 +46,8 @@ export function defer(platform) {
 
 /**
  * Local development without keys: with UPSTREAM_API_ORIGIN set (in .dev.vars) and the proxy's own
- * key missing, the request is forwarded as-is to that origin's /api route, so a real search runs
+ * key missing, the request is forwarded as-is to that origin's /api route (through the UPSTREAM
+ * service binding where there is one), so a real search runs
  * against production's Gemini, SerpAPI and OpenGraph proxies. Never on in production, where the
  * keys are set. Returns null when the route should handle the request itself.
  */
@@ -56,7 +57,10 @@ export async function forwardUpstream(event, keyName) {
   const upstream = new URL(event.url.pathname + event.url.search, vars.UPSTREAM_API_ORIGIN);
   const init = { method: event.request.method, headers: { 'Content-Type': event.request.headers.get('content-type') || 'application/json' } };
   if (event.request.method !== 'GET' && event.request.method !== 'HEAD') init.body = await event.request.text();
-  const response = await fetch(upstream, init);
+  // A branch preview is a version of this same Worker, and a Worker's fetch of its own route skips
+  // the Worker for the origin behind it, which answers 522. Previews bind the live Worker as
+  // UPSTREAM (wrangler.jsonc) and call it directly; local dev has no binding and fetches.
+  const response = vars.UPSTREAM?.fetch ? await vars.UPSTREAM.fetch(upstream, init) : await fetch(upstream, init);
   return new Response(response.body, {
     status: response.status,
     headers: { ...CORS, 'Content-Type': response.headers.get('content-type') || 'application/json', 'X-Forwarded-Upstream': upstream.origin }

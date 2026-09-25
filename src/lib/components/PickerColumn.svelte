@@ -91,6 +91,11 @@
         <p class="picker-grid-empty">No products match.</p>
       {:else if catalog.loading}
         <p class="picker-grid-empty"><Icon name="spinner" class="icon-spin" size={14} /> Finding pictures and suggesting products</p>
+      {:else if catalog.failed}
+        <div class="picker-grid-empty picker-standins-retry">
+          <p>Couldn't suggest products for {brand.name} just now.</p>
+          <button type="button" class="btn btn--md btn--secondary" data-action="suggest-products" data-domain={domain}><Icon name="ai-sparkles-two-filled" size={14} /> Suggest products</button>
+        </div>
       {:else if filter}
         <p class="picker-grid-empty">No products match.</p>
       {/if}
