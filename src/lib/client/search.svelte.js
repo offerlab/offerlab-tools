@@ -6,8 +6,9 @@
  */
 import { tick } from 'svelte';
 import * as search from '$lib/shared/search.js';
-import { catalogForStore, httpApi } from '$lib/shared/search.js';
-import { app, showSection } from './state.svelte.js';
+import { catalogForStore, httpApi, threadOf, TURN_LABELS } from '$lib/shared/search.js';
+import { composerIntent, confidentBrand } from './composer.js';
+import { app, showSection, getResults } from './state.svelte.js';
 import * as store from './store.js';
 import * as offerlab from './offerlab.js';
 import { CONFIG, searchApi, extractDomain, generateId, isValidUrl } from './util.js';
@@ -26,6 +27,13 @@ export const LOADING_MESSAGES = [
   'Fetching product images...',
   'Finalizing results...'
 ];
+
+// What a follow-up's divider says while the agent works, by step.
+export const EXTEND_MESSAGES = {
+  note: ['Reading your note...', 'Finding more brands...', 'Fetching product images...'],
+  more: ['Reading the list so far...', 'Finding more brands...', 'Fetching product images...'],
+  surprise: ['Looking for the pairing nobody saw coming...', 'Checking it is a real bundle...', 'Fetching product images...']
+};
 
 const EMPTY_SEARCH_EXPIRATION_MS = 72 * 60 * 60 * 1000;
 
@@ -55,7 +63,15 @@ function showSearchedDomain(domain) {
 let searchAbortController = null;
 let isSearchCancelled = false;
 
+// Resolves when the search in flight has settled either way, so a note typed while the catalogs
+// are still landing waits for the list it extends.
+let settled = Promise.resolve();
+let settleSearch = () => {};
+
+let extendAbort = null;
+
 export function goToLanding() {
+  cancelExtend();
   clearSearchFromUrl();
   showSection('landing');
   resetTiles();
@@ -75,6 +91,22 @@ export function cancelSearch() {
   isSearchCancelled = true;
   if (searchAbortController) searchAbortController.abort();
   goToLanding();
+}
+
+/** The bar's stop control: a follow-up in flight is what stops; else the search. */
+export function stopActivity() {
+  if (app.extending) cancelExtend();
+  else cancelSearch();
+}
+
+/** Drops the follow-up in flight and leaves the list as it was. */
+export function cancelExtend() {
+  if (!app.extending) return;
+  const id = app.extending;
+  extendAbort?.abort();
+  app.turns = app.turns.filter(turn => turn.id !== id);
+  app.extending = null;
+  app.extendingText = '';
 }
 
 /** The Retry control: the domain in either omnibar, else back to the start. */
@@ -155,8 +187,14 @@ function applyCatalog(brand) {
   }
 }
 
+// The list's follow-ups, read off its brands: what a stored search brings back.
+function syncTurns(brands) {
+  app.turns = threadOf(brands).turns.map(({ turn }) => ({ ...turn, status: 'done', error: '' }));
+}
+
 function presentResults(domain, results, { fromUrlRestore }) {
   app.feedback = null;
+  syncTurns(results?.brands);
   showSearchedDomain(domain);
   if (!fromUrlRestore) updateUrlForSearch(domain);
   showSection('results');
@@ -169,6 +207,7 @@ function presentResults(domain, results, { fromUrlRestore }) {
 export async function performSearch(url, { fromUrlRestore = false } = {}) {
   const domain = extractDomain(url);
   hideSocialPopover();
+  cancelExtend();
 
   const cached = await getCachedResults(domain);
   if (cached) {
@@ -197,6 +236,7 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
   app.loading = { text: LOADING_MESSAGES[0], domain };
   isSearchCancelled = false;
   searchAbortController = new AbortController();
+  settled = new Promise(resolve => { settleSearch = resolve; });
 
   // Only when there are tiles on screen to clear. A URL restore starts on the results view, and
   // playing the exit there held them over it for the length of the animation.
@@ -279,7 +319,117 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
     showSection('error');
   } finally {
     if (slowNotice) clearTimeout(slowNotice);
+    settleSearch();
   }
+}
+
+/**
+ * One more round on the list on screen: a note, "more like these" or "surprise me". The turn
+ * shows on its divider at once and the brands it adds land under it, stamped with it so the
+ * stored search carries the thread. A round that finds nothing or fails says so on the divider.
+ */
+export async function extendResults({ kind = 'note', text = '' } = {}) {
+  await settled;
+  const results = app.results;
+  if (!results?.brands?.length || app.extending) return;
+  const domain = app.searchDomain;
+  const turn = { id: generateId(), kind, text: kind === 'note' ? text.trim() : TURN_LABELS[kind], status: 'pending', error: '' };
+  app.turns.push(turn);
+  app.extending = turn.id;
+  app.extendingText = EXTEND_MESSAGES[kind]?.[0] || '';
+  extendAbort = new AbortController();
+  const { signal } = extendAbort;
+  hideSocialPopover();
+  tick().then(() => document.getElementById(`turn-${turn.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+
+  try {
+    const frequentBrands = await store.loadFrequentBrands();
+    const added = await search.extendRecommendations(httpApi('', undefined, { signal }), {
+      brandProfile: results.searchedBrand,
+      brands: results.brands,
+      kind,
+      brief: text,
+      frequentBrands,
+      onProgress: (step) => { if (!signal.aborted) app.extendingText = EXTEND_MESSAGES[kind]?.[step] || ''; },
+      config: { catalogConcurrency: CONFIG.CATALOG_CONCURRENCY, serpFallbackBrands: CONFIG.SERP_FALLBACK_BRANDS }
+    });
+    if (signal.aborted) return;
+    if (!added.length) { turn.status = 'empty'; return; }
+    const stamped = added.map(brand => ({ ...brand, turn: { id: turn.id, kind, text: turn.text } }));
+    results.brands.push(...stamped);
+    turn.status = 'done';
+    markBrandsNotSetUp(stamped);
+    store.saveSearch(domain, {
+      type: 'results',
+      brands: results.brands.map(catalogForStore),
+      searchedBrand: catalogForStore(results.searchedBrand),
+      searchId: app.searchId
+    });
+  } catch (error) {
+    if (signal.aborted || error?.name === 'AbortError') return;
+    console.error('Follow-up failed:', error);
+    turn.status = 'failed';
+    turn.error = error.message || 'Please try again in a moment.';
+  } finally {
+    if (app.extending === turn.id) {
+      app.extending = null;
+      app.extendingText = '';
+    }
+  }
+}
+
+/** Try again on a failed or empty divider: the same ask, the divider replaced. */
+export function retryTurn(id) {
+  const turn = app.turns.find(t => t.id === id);
+  if (!turn || app.extending) return;
+  app.turns = app.turns.filter(t => t.id !== id);
+  extendResults({ kind: turn.kind, text: turn.text });
+}
+
+/** A note from the bar: the field goes back to showing the searched brand, and the round starts. */
+export function sendNote(text) {
+  hideAllSearchHistoryDropdowns();
+  showSearchedDomain(app.searchDomain);
+  omnibars.results?.blur();
+  extendResults({ kind: 'note', text });
+}
+
+/** Whether the bar has a list to extend: results on screen, which is the results view. */
+function canTakeNote() {
+  return app.view === 'results' && (getResults()?.brands?.length || 0) > 0;
+}
+
+/**
+ * The results bar's submit: a web address (or a suggestion picked from the dropdown) searches;
+ * a sentence is a note; one or two words are looked up and, when they are surely a brand, the
+ * person is asked which they meant through `ask({ domain, text })`.
+ */
+export async function submitComposer(input, suggest, { ask }) {
+  const typed = input.value.trim();
+  if (!typed) return;
+  if (!canTakeNote()) return submitSearch(input, suggest);
+  const picked = suggest?.picked?.();
+  const intent = picked ? 'search' : composerIntent(typed);
+  if (intent === 'search') {
+    hideAllSearchHistoryDropdowns();
+    performSearch(picked || typed);
+    return;
+  }
+  if (intent === 'lookup') {
+    const wrapper = input.closest('.search-input-wrapper');
+    if (wrapper?.classList.contains('is-resolving')) return;
+    wrapper?.classList.add('is-resolving');
+    let domain = null;
+    try {
+      domain = await confidentBrand(typed, { history: () => app.history.map(item => item.domain) });
+    } finally {
+      wrapper?.classList.remove('is-resolving');
+    }
+    // Typed on while it looked: that Enter no longer applies.
+    if (input.value.trim() !== typed) return;
+    if (domain) { ask({ domain, text: typed }); return; }
+  }
+  sendNote(typed);
 }
 
 /**

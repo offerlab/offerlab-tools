@@ -13,7 +13,7 @@
   import { createTypingAnimation } from '$lib/client/actions/typing.js';
   import { historyList, renderHistoryRows } from '$lib/client/actions/history_list.js';
   import { refreshSearchHistory, removeFromSearchHistory } from '$lib/client/history.svelte.js';
-  import { performSearch, submitSearch, cancelSearch, registerOmnibar } from '$lib/client/search.svelte.js';
+  import { performSearch, submitSearch, submitComposer, stopActivity, sendNote, registerOmnibar } from '$lib/client/search.svelte.js';
 
   let { variant = 'landing' } = $props();
   // The variant is fixed for the life of the bar; the ids below are set once from it.
@@ -29,6 +29,8 @@
   let focused = $state(false);
   let value = $state('');
   let dropdownOpen = $state(false);
+  // One or two words that are surely a brand: the dropdown asks which was meant.
+  let ask = $state(null);
 
   // The header composer shows the searched brand as favicon + domain, centered, whenever it is
   // not being edited. Focus reveals the plain input so typing reads left-aligned.
@@ -47,8 +49,22 @@
 
   function hideHistory() {
     dropdownOpen = false;
+    ask = null;
     dropdown?.classList.remove('visible');
     form?.classList.remove('dropdown-open');
+  }
+
+  function showAsk(next) {
+    ask = next;
+    dropdownOpen = true;
+    dropdown.classList.add('visible');
+    form.classList.add('dropdown-open');
+  }
+
+  function sendAskAsNote() {
+    const text = ask.text;
+    hideHistory();
+    sendNote(text);
   }
 
   function onFocus() {
@@ -66,7 +82,13 @@
 
   function onSubmit(e) {
     e.preventDefault();
-    submitSearch(input, suggest);
+    if (results) submitComposer(input, suggest, { ask: showAsk });
+    else submitSearch(input, suggest);
+  }
+
+  // Typing on after the question dismisses it; the answer is whatever is submitted next.
+  function onInput() {
+    if (ask) { ask = null; hideHistory(); }
   }
 
   function choose(domain) {
@@ -103,6 +125,7 @@
       setValue(next) { value = next; },
       getValue() { return input.value; },
       focus() { input.focus(); },
+      blur() { input.blur(); },
       hideHistory,
       hidePlaceholder() { typing?.hide(); }
     });
@@ -131,16 +154,17 @@
       class="search-input"
       class:focused
       id={ids.input}
-      placeholder="Brand name or website"
+      placeholder={results ? 'Brand, website, or a note for more' : 'Brand name or website'}
       autocomplete="off"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
-      data-placeholder-focus="Brand name or website"
+      data-placeholder-focus={results ? 'Brand, website, or a note for more' : 'Brand name or website'}
       bind:this={input}
       bind:value
       onfocus={onFocus}
       onblur={onBlur}
+      oninput={onInput}
     >
     <div class="submit-button-wrapper">
       <input type="file" class="photo-input" id="photoInput-{variant}" accept="image/*" hidden>
@@ -153,7 +177,7 @@
       </button>
       {#if results}
         <!-- Stop button (visible during loading) -->
-        <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search" onclick={cancelSearch}>
+        <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop" onclick={stopActivity}>
           <Icon name="spinner" class="spinner-ring" />
           <Icon name="stop-filled" class="stop-icon" />
         </button>
@@ -163,7 +187,16 @@
   <!-- A tap inside the dropdown must not blur the input: on a phone the blur dismisses the
        keyboard, the viewport reflows under the finger, and the tap's click lands on whatever
        moved there. Refusing the mousedown keeps the focus where it was. -->
-  <div class="search-history-dropdown" class:visible={dropdownOpen} id={ids.dropdown} bind:this={dropdown} onmousedown={(e) => e.preventDefault()}>
+  <div class="search-history-dropdown" class:visible={dropdownOpen} class:is-asking={!!ask} id={ids.dropdown} bind:this={dropdown} onmousedown={(e) => e.preventDefault()}>
+    {#if ask}
+      <div class="composer-ask" role="group" aria-label="Search or send as a note">
+        <span class="composer-ask-text">Search {ask.domain}, or send this as a note?</span>
+        <div class="composer-ask-chips">
+          <button type="button" class="btn btn--md btn--secondary composer-ask-chip" onclick={() => choose(ask.domain)}>Search {ask.domain}</button>
+          <button type="button" class="btn btn--md btn--ai composer-ask-chip" onclick={sendAskAsNote}>Send as a note</button>
+        </div>
+      </div>
+    {/if}
     <div class="history-header">
       <span>Search history</span>
     </div>
