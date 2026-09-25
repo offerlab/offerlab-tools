@@ -55,6 +55,21 @@ describe('gatherStandIns', () => {
     ]);
   });
 
+  it('leaves picture-less suggestions out once three have pictures, and keeps them while pictures are scarce', async () => {
+    const pictured = [1, 2, 3].map(n => ({ title: `Tree ${n}`, thumbnail: `https://g.test/${n}.jpg`, product_link: 'https://google.com/x', source: 'Balsam Hill', extracted_price: 100 * n }));
+    const suggestions = { products: [
+      { name: 'Wreath, no picture', price: 129, picture: null },
+      { name: 'Tree 1', price: 100, picture: 1 },
+      { name: 'Tree 2', price: 200, picture: 2 },
+      { name: 'Tree 3', price: 300, picture: 3 }
+    ] };
+    const three = await gatherStandIns(fakeApi({ shopping: pictured, suggestions }), brand);
+    expect(three.products.map(p => p.title)).toEqual(['Tree 1', 'Tree 2', 'Tree 3']);
+
+    const two = await gatherStandIns(fakeApi({ shopping: pictured.slice(0, 2), suggestions }), brand);
+    expect(two.products.map(p => p.title)).toEqual(['Tree 1', 'Tree 2', 'Wreath, no picture', 'Tree 3']);
+  });
+
   it('puts the site\'s own named products first, and keeps them as they are when Gemini is down', async () => {
     const api = fakeApi({
       page: {

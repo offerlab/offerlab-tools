@@ -13,6 +13,9 @@ import { geminiJson, parseJsonResponse, fetchBrandTopProducts } from './search.j
 
 export const STAND_IN_MODEL = 'gemini-2.5-flash';
 export const STAND_IN_COUNT = 6;
+// With this many pictured suggestions, the ones without a picture are left out: a tile with no
+// picture is a poor stand-in, and only worth showing when pictures are scarce.
+export const STAND_IN_PICTURED_MIN = 3;
 const PICTURE_LIMIT = 16;
 
 /** A brand the picker cannot build from as it is, and that staff have not hidden, gets stand-ins. */
@@ -45,7 +48,9 @@ export async function gatherStandIns(api, brand, { shopping = true } = {}) {
   }
   if (!suggested.length) suggested = heroProducts(brand);
 
-  const products = suggested.slice(0, STAND_IN_COUNT).map((p, i) => standIn({ ...p, id: `suggested-${i + 1}` }));
+  const pictured = suggested.filter(p => p.image);
+  const shown = pictured.length >= STAND_IN_PICTURED_MIN ? pictured : [...pictured, ...suggested.filter(p => !p.image)];
+  const products = shown.slice(0, STAND_IN_COUNT).map((p, i) => standIn({ ...p, id: `suggested-${i + 1}` }));
   const images = pictures.map(p => ({ src: p.src, alt: p.name || p.alt || '' }));
   if (!products.length && !images.length) return null;
   console.log(`[Stand-ins] ${brand.name}: ${images.length} pictures (site ${page?.status || 'unread'}), ${products.length} products`);

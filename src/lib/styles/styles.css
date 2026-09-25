@@ -7440,6 +7440,13 @@ button.social-link:disabled {
   object-fit: contain;
 }
 
+.picker-product-noart--plain {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--content-tertiary);
+}
+
 .picker-product-edit {
   position: absolute;
   z-index: 2;

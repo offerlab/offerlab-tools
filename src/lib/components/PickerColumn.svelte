@@ -73,6 +73,9 @@
         <div class="picker-product-art media-tile media-hairline">
           {#if p.image}
             <img class="media-zoom" src={catalogThumbUrl(p.image, 320)} alt="" loading="lazy">
+          {:else if p.standIn}
+            <!-- A stand-in with no picture is not the brand, so it does not wear the brand's mark. -->
+            <span class="picker-product-noart picker-product-noart--plain" aria-hidden="true">{String(p.title || '').trim().charAt(0).toUpperCase()}</span>
           {:else}
             <span class="picker-product-noart"><img src={getFaviconUrl(domain)} alt=""></span>
           {/if}
