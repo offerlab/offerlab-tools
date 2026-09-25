@@ -13,7 +13,7 @@
   import { createTypingAnimation } from '$lib/client/actions/typing.js';
   import { historyList, renderHistoryRows } from '$lib/client/actions/history_list.js';
   import { refreshSearchHistory, removeFromSearchHistory } from '$lib/client/history.svelte.js';
-  import { performSearch, submitSearch, cancelSearch, registerOmnibar } from '$lib/client/search.svelte.js';
+  import { performSearch, submitSearch, submitComposer, stopActivity, sendNote, registerOmnibar } from '$lib/client/search.svelte.js';
 
   let { variant = 'landing' } = $props();
   // The variant is fixed for the life of the bar; the ids below are set once from it.
@@ -29,11 +29,11 @@
   let focused = $state(false);
   let value = $state('');
   let dropdownOpen = $state(false);
+  // One or two words that are surely a brand: the dropdown asks which was meant.
+  let ask = $state(null);
 
-  // The header composer shows the searched brand as favicon + domain, centered, whenever it is
-  // not being edited. Focus reveals the plain input so typing reads left-aligned.
-  const showingDisplay = $derived(results && value.trim() !== '' && !focused);
-  let displayFailed = $state(false);
+  // The results composer rests empty with its invitation; the searched brand is on its card.
+  const showingDisplay = false;
 
   // The suggestions (resolve.js) open and close the same dropdown imperatively, so the classes
   // are set directly as well: a directive only acts when its own value changes.
@@ -47,8 +47,22 @@
 
   function hideHistory() {
     dropdownOpen = false;
+    ask = null;
     dropdown?.classList.remove('visible');
     form?.classList.remove('dropdown-open');
+  }
+
+  function showAsk(next) {
+    ask = next;
+    dropdownOpen = true;
+    dropdown.classList.add('visible');
+    form.classList.add('dropdown-open');
+  }
+
+  function sendAskAsNote() {
+    const text = ask.text;
+    hideHistory();
+    sendNote(text);
   }
 
   function onFocus() {
@@ -66,7 +80,13 @@
 
   function onSubmit(e) {
     e.preventDefault();
-    submitSearch(input, suggest);
+    if (results) submitComposer(input, suggest, { ask: showAsk });
+    else submitSearch(input, suggest);
+  }
+
+  // Typing on after the question dismisses it; the answer is whatever is submitted next.
+  function onInput() {
+    if (ask) { ask = null; hideHistory(); }
   }
 
   function choose(domain) {
@@ -78,10 +98,6 @@
   $effect(() => {
     // Re-rendered whenever history changes (unless suggestions hold the list).
     renderHistoryRows(list, app.history);
-  });
-
-  $effect(() => {
-    if (value.trim() !== '') displayFailed = false;
   });
 
   onMount(() => {
@@ -103,6 +119,7 @@
       setValue(next) { value = next; },
       getValue() { return input.value; },
       focus() { input.focus(); },
+      blur() { input.blur(); },
       hideHistory,
       hidePlaceholder() { typing?.hide(); }
     });
@@ -117,30 +134,22 @@
 <form class="search-form" id={ids.form} class:dropdown-open={dropdownOpen} bind:this={form} onsubmit={onSubmit}>
   <div class="search-input-wrapper" class:showing-display={showingDisplay}>
     <span class="typing-placeholder" class:typing-placeholder-results={results} class:hidden={results} id={ids.placeholder} bind:this={placeholderEl} aria-hidden="true"></span>
-    {#if results}
-      <span class="search-display" class:hidden={!showingDisplay} id="resultsSearchDisplay" aria-hidden="true">
-        {#if showingDisplay}
-          <span class="search-display-avatar">
-            <img alt="" src={displayFailed ? CONFIG.FAVICON_FALLBACK(value.trim()) : getFaviconUrl(value.trim())} onerror={() => { displayFailed = true; }}>
-          </span>{value.trim()}
-        {/if}
-      </span>
-    {/if}
     <input
       type="text"
       class="search-input"
       class:focused
       id={ids.input}
-      placeholder="Brand name or website"
+      placeholder={results ? 'Want different picks? Just ask' : 'Brand name or website'}
       autocomplete="off"
       autocapitalize="off"
       autocorrect="off"
       spellcheck="false"
-      data-placeholder-focus="Brand name or website"
+      data-placeholder-focus={results ? 'Ask for changes, or search another brand' : 'Brand name or website'}
       bind:this={input}
       bind:value
       onfocus={onFocus}
       onblur={onBlur}
+      oninput={onInput}
     >
     <div class="submit-button-wrapper">
       <input type="file" class="photo-input" id="photoInput-{variant}" accept="image/*" hidden>
@@ -153,7 +162,7 @@
       </button>
       {#if results}
         <!-- Stop button (visible during loading) -->
-        <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop search" onclick={cancelSearch}>
+        <button type="button" class="stop-button search-button--stop" id="stopSearchButton" aria-label="Stop" onclick={stopActivity}>
           <Icon name="spinner" class="spinner-ring" />
           <Icon name="stop-filled" class="stop-icon" />
         </button>
@@ -163,7 +172,16 @@
   <!-- A tap inside the dropdown must not blur the input: on a phone the blur dismisses the
        keyboard, the viewport reflows under the finger, and the tap's click lands on whatever
        moved there. Refusing the mousedown keeps the focus where it was. -->
-  <div class="search-history-dropdown" class:visible={dropdownOpen} id={ids.dropdown} bind:this={dropdown} onmousedown={(e) => e.preventDefault()}>
+  <div class="search-history-dropdown" class:visible={dropdownOpen} class:is-asking={!!ask} id={ids.dropdown} bind:this={dropdown} onmousedown={(e) => e.preventDefault()}>
+    {#if ask}
+      <div class="composer-ask" role="group" aria-label="Search or send as a note">
+        <span class="composer-ask-text">Search {ask.domain}, or send this as a note?</span>
+        <div class="composer-ask-chips">
+          <button type="button" class="btn btn--md btn--secondary composer-ask-chip" onclick={() => choose(ask.domain)}>Search {ask.domain}</button>
+          <button type="button" class="btn btn--md btn--ai composer-ask-chip" onclick={sendAskAsNote}>Send as a note</button>
+        </div>
+      </div>
+    {/if}
     <div class="history-header">
       <span>Search history</span>
     </div>

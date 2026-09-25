@@ -17,6 +17,8 @@
 
   const visible = $derived(['loading', 'results', 'picker', 'empty', 'error'].includes(app.view));
   const loading = $derived(app.view === 'loading');
+  // A follow-up in flight: the submit disc is the stop control, and nothing else changes.
+  const extending = $derived(!!app.extending);
 
   let viewHeader, omniFooter, back, search;
   let phone = $state(false);
@@ -47,7 +49,7 @@
   });
 </script>
 
-<div class="view-header" class:hidden={!visible} class:view-header--loading={loading} id="viewHeader" bind:this={viewHeader}>
+<div class="view-header" class:hidden={!visible} class:view-header--loading={loading} class:view-header--extending={extending} id="viewHeader" bind:this={viewHeader}>
   <div class="flex justify-start header-nav-back-wrapper" bind:this={back}>
     <button type="button" class="icon-button icon-button--medium" id="headerBackBtn" aria-label="Back to search" onclick={onBack}>
       <Icon name="arrow-left" />
@@ -63,4 +65,4 @@
 </div>
 
 <!-- The footer shows and loads with the bar; the bar's state is its only source of truth. -->
-<div class="view-header omni-footer" class:hidden={!phone || !visible} class:view-header--loading={loading} id="omniFooter" bind:this={omniFooter}></div>
+<div class="view-header omni-footer" class:hidden={!phone || !visible} class:view-header--loading={loading} class:view-header--extending={extending} id="omniFooter" bind:this={omniFooter}></div>

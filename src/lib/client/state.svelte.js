@@ -25,7 +25,13 @@ export const app = $state({
   // An OfferLab developer, signed in: the finder's staff, who may correct its results.
   staff: false,
   // The rating given on the results on screen: null | 'positive' | 'negative'.
-  feedback: null
+  feedback: null,
+  // The follow-ups on the list on screen, in order: [{ id, kind, text, status, error }]. A turn's
+  // brands are the results' brands whose `turn` names it; status is pending, done, empty or failed.
+  turns: [],
+  // The turn the agent is working on, and what it is doing.
+  extending: null,
+  extendingText: ''
 });
 
 export function getResults() {

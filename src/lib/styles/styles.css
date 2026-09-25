@@ -1891,6 +1891,15 @@ body.showing-results .main-content {
   pointer-events: none;
 }
 
+/* A follow-up in flight: the disc is the stop control; the field stays open for the next note */
+.view-header--extending .search-button:not(.search-button--stop) {
+  display: none;
+}
+
+.view-header--extending .search-button--stop {
+  display: flex;
+}
+
 @media (min-width: 768px) {
   .md\:max-w-\[600px\] {
       max-width: 600px;
@@ -2233,6 +2242,39 @@ position: relative;
   line-height: var(--line-height-sm);
 }
 
+/* The composer's question: one or two words that are surely a brand. The history and the
+   suggestions give the dropdown up to it. */
+.search-history-dropdown.is-asking .history-header,
+.search-history-dropdown.is-asking .history-list {
+  display: none;
+}
+
+.composer-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px 8px;
+}
+
+.composer-ask-text {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  padding-left: 4px;
+}
+
+.composer-ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.composer-ask-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Brand suggestions share the history rows. The arrow keys walk them; the name leads and the
    domain follows in the quieter ink. */
 .history-item.is-active {
@@ -2494,6 +2536,158 @@ position: relative;
 
 .result-card {
   max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   The thread: a follow-up's divider across the grid, and the end card
+   -------------------------------------------------------------------------- */
+.thread-turn {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0 8px;
+  animation: cardFadeIn 0.4s ease forwards;
+  opacity: 0;
+}
+
+/* The note sits on a hairline that runs the grid's width, the way a day divider does in a thread */
+.thread-turn-line {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.thread-turn-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--content-border-neutral);
+}
+
+.thread-turn-note {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: min(100%, 720px);
+  padding: 10px 18px;
+  border-radius: 24px;
+  background: var(--content-background-elevated);
+  border: 0.5px solid var(--content-border-neutral);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-size-base);
+  line-height: 1.35;
+  color: var(--content-primary);
+  text-align: left;
+}
+
+.thread-turn-note--ask {
+  align-items: center;
+  color: var(--moola-vivid);
+  font-weight: 500;
+}
+
+.thread-turn-who {
+  flex: none;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--content-tertiary);
+}
+
+.thread-turn-text {
+  overflow-wrap: anywhere;
+}
+
+.thread-turn-status {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  text-align: center;
+}
+
+.thread-turn-status .ol-loader {
+  width: 20px;
+  color: var(--agent-ink);
+}
+
+.thread-turn-status--failed {
+  color: var(--content-sentiment-negative);
+}
+
+/* The ask for more: the orb over the two controls, centered on the body under the last card */
+.results-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 0 8px;
+}
+
+.results-more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.results-more-actions .btn {
+  height: 40px;
+  padding: 0 20px;
+  font-size: var(--font-size-base);
+}
+
+.results-more-actions .btn[disabled]:not([aria-busy]) {
+  opacity: 0.6;
+}
+
+.results-more-actions .ol-loader {
+  width: 20px;
+}
+
+/* The shimmer on a moola button: paper-toned, peaking at white. */
+.results-more-actions .btn--ai .text-shimmer-ink {
+  --shimmer-peak: #fff;
+  --shimmer-edge: rgba(255, 255, 255, 0);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* The agent orb (AgentOrb.svelte): a round slot the shader fills. The canvas is clipped to the
+   disc: the artwork draws its glow past r = 1, and on a square canvas that only ever showed in the
+   corners. Without WebGL the slot is a plain moola disc. */
+.agent-orb {
+  position: relative;
+  display: inline-block;
+  width: var(--orb-size, 36px);
+  height: var(--orb-size, 36px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffed84, #397a29 70%);
+  overflow: hidden;
+  flex: none;
+}
+
+.agent-orb-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.results-more-orb {
+  --orb-size: 72px;
 }
 
 /* --------------------------------------------------------------------------
