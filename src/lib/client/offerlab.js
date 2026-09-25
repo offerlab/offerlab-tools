@@ -22,8 +22,9 @@ const MASTER_TEAM_NAME = 'OfferLab Demo';
 const MASTER_TEAM_DOMAIN = 'demo.offerlab.com';
 const TEAM_PAGE_SIZE = 100;
 // A build that has to stand a walk-up brand up. Only the bundle's own products are imported, so
-// this is the brand's team, its logo and a handful of products, not a whole storefront.
-const BUILD_TIMEOUT_MS = 300000;
+// this is the brand's team, its logo and a handful of products, not a whole storefront. The wait
+// also covers the queue: a build sat five minutes behind a bulk brand seeding on 2026-09-25.
+const BUILD_TIMEOUT_MS = 900000;
 const BUILD_POLL_MS = 2000;
 
 const BUILD_TOOL = 'build_bundle_from_storefronts';
@@ -513,9 +514,24 @@ async function awaitBuild(actionId, onProgress) {
 
     if (status?.state === 'completed') return status.result || {};
     if (status?.state === 'failed') throw new OfferLabError(buildFailure(status, status?.result));
-    onProgress(stepMessage(status?.result));
+    onProgress(status?.state === 'pending' ? 'Waiting for OfferLab' : stepMessage(status?.result));
   }
-  throw new OfferLabError('That bundle is taking longer than expected \u2014 check OfferLab in a moment');
+  throw new OfferLabError('OfferLab is still building that bundle. Try again in a moment to pick it up');
+}
+
+// The build the tray last started, so Try again after a long wait picks that one up rather than
+// building the same bundle twice.
+let lastBuild = null;
+
+function buildKey(name, ordered) {
+  return JSON.stringify([name, ordered.map(pick => pick.product.url)]);
+}
+
+/** The last build's action id when it is the same bundle and OfferLab has not failed it. */
+async function resumableBuild(key) {
+  if (lastBuild?.key !== key) return null;
+  const status = await callTool('get_action_status', { action_type: 'build_bundle', action_id: lastBuild.actionId }).catch(() => null);
+  return status && status.state !== 'failed' ? lastBuild.actionId : null;
 }
 
 /**
@@ -544,12 +560,19 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
   if (!specs && ordered.some(pick => !fromStorefront(pick))) {
     throw new OfferLabError('This OfferLab cannot build from Google Shopping products yet');
   }
-  const started = await callTool(BUILD_TOOL, specs
-    ? { products: ordered.map(specFor), name }
-    : { product_urls: ordered.map(pick => pick.product.url), name });
-  if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
+  const key = buildKey(name, ordered);
+  let actionId = await resumableBuild(key);
+  if (!actionId) {
+    const started = await callTool(BUILD_TOOL, specs
+      ? { products: ordered.map(specFor), name }
+      : { product_urls: ordered.map(pick => pick.product.url), name });
+    if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
+    actionId = started.action_id;
+    lastBuild = { key, actionId };
+  }
 
-  const result = await awaitBuild(started.action_id, onProgress);
+  const result = await awaitBuild(actionId, onProgress);
+  lastBuild = null;
   if (!result.builder_url) throw new OfferLabError('The bundle was built but OfferLab did not return a link to it');
 
   const domains = [...new Set(ordered.map(pick => pick.domain))];
