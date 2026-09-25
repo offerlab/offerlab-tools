@@ -1,8 +1,8 @@
 /**
  * The finder's data store, on D1. Every /api/data/* route lands here; data-api.js says which is
- * which. Same-origin only, unlike the read proxies: these routes write a store the whole team
- * reads, so no allow-origin header goes out and another site's browser cannot send them anything
- * but a preflight-free request, which the handler refuses.
+ * which. Same-origin only, like every route: these routes write a store the whole team reads, so
+ * no allow-origin header goes out and another site's browser cannot send them anything but a
+ * preflight-free request, which the handler refuses.
  */
 import { handleDataRequest } from '$lib/server/data-api.js';
 import { readJson, db } from '$lib/server/api.js';

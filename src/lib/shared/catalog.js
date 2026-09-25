@@ -13,13 +13,18 @@ export function isStorefrontCatalog(catalog) {
   return catalog?.status === 'shopify' || catalog?.status === 'woocommerce';
 }
 
-/** "https://www.Graza.co/pages/x" -> "www.graza.co" */
+// A hostname as a store key: letters, digits, dots, hyphens (and the odd underscore). The URL
+// parser lets through characters no real domain has, a double quote among them, and a stored
+// domain is written into the page.
+const HOSTNAME = /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/;
+
+/** "https://www.Graza.co/pages/x" -> "www.graza.co"; "" when it is not a domain. */
 export function normalizeDomain(input) {
   const raw = String(input || '').trim().toLowerCase();
   if (!raw) return '';
   try {
     const url = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
-    return url.hostname;
+    return HOSTNAME.test(url.hostname) ? url.hostname : '';
   } catch {
     return '';
   }

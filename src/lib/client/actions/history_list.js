@@ -8,7 +8,7 @@
  * the keyboard's reflow, so waiting for it took two taps.
  */
 import { icon } from '../icons.js';
-import { getFaviconUrl, FAVICON_PLACEHOLDER } from '../util.js';
+import { getFaviconUrl, escapeHtml, FAVICON_PLACEHOLDER } from '../util.js';
 
 const TAP_SLOP = 8;
 
@@ -18,15 +18,20 @@ export function renderHistoryRows(list, history) {
     list.innerHTML = '<li class="history-empty">No recent searches</li>';
     return;
   }
-  list.innerHTML = history.map(item => `
-    <li class="history-item" data-url="${item.domain}">
-      <img src="${getFaviconUrl(item.domain)}" alt="" class="history-item-favicon" onerror="this.src='${FAVICON_PLACEHOLDER}'">
-      <span class="history-item-url">${item.domain}</span>
-      <button type="button" class="history-item-remove-btn" data-url="${item.domain}" aria-label="Remove ${item.domain} from history">
+  // The history is the whole team's, and a row is whatever reached the store: escaped, so a
+  // stored domain can never close an attribute and add one of its own.
+  list.innerHTML = history.map(item => {
+    const domain = escapeHtml(item.domain);
+    return `
+    <li class="history-item" data-url="${domain}">
+      <img src="${escapeHtml(getFaviconUrl(item.domain))}" alt="" class="history-item-favicon" onerror="this.src='${FAVICON_PLACEHOLDER}'">
+      <span class="history-item-url">${domain}</span>
+      <button type="button" class="history-item-remove-btn" data-url="${domain}" aria-label="Remove ${domain} from history">
         ${icon('cross-large', { class: 'history-item-remove-icon' })}
       </button>
     </li>
-  `).join('');
+  `;
+  }).join('');
 }
 
 /** `use:historyList={{ onChoose(domain), onRemove(domain) }}` on the <ul>. */

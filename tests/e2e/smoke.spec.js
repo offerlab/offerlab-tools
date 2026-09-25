@@ -37,6 +37,8 @@ test('the showcase renders its tiles', async ({ page }) => {
 
 test('a stored search renders results and opens the picker', async ({ page, request }, testInfo) => {
   const domain = domainFor(testInfo.project.name);
+  // The page hands out the session the API's gate asks for, when a signing key is set.
+  await request.get('/');
   const stored = await request.put(`/api/data/searches/${encodeURIComponent(domain)}`, {
     headers: { 'Content-Type': 'application/json' },
     data: storedSearch(domain)

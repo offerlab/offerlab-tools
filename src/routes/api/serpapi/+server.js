@@ -1,11 +1,9 @@
 /** SerpAPI proxy: the key stays on the server. */
-import { json, preflight, env, forwardUpstream } from '$lib/server/api.js';
+import { json, env, forwardUpstream } from '$lib/server/api.js';
 
 const SERPAPI_TIMEOUT_MS = 15000;
-
-export function OPTIONS() {
-  return preflight();
-}
+// The engines the search uses: the web for a brand's site, Shopping for a brand without a catalog.
+const ENGINES = ['google', 'google_shopping'];
 
 export async function GET(event) {
   const query = event.url.searchParams.get('q');
@@ -13,6 +11,7 @@ export async function GET(event) {
   if (!query || typeof query !== 'string' || !query.trim()) {
     return json({ error: 'Missing or invalid q parameter' }, { status: 400 });
   }
+  if (!ENGINES.includes(engine)) return json({ error: `Unsupported engine: ${engine}` }, { status: 400 });
 
   const forwarded = await forwardUpstream(event, 'SERP_API_KEY');
   if (forwarded) return forwarded;

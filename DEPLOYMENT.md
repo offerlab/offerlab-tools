@@ -36,8 +36,9 @@ proxy, persisted under `.wrangler/state`, the same database `wrangler dev` and t
 
 Without API keys, set `UPSTREAM_API_ORIGIN=https://collabfinder.offerlab.com` in `.dev.vars`: the
 Gemini, SerpAPI and OpenGraph proxies forward to that deployment's `/api/*` whenever their own key
-is missing, so a real search runs locally against production's keys. Catalogs, socials, the store
-and the crawl stay local. Never set it in production.
+is missing, so a real search runs locally against production's keys. Production's API gate lets
+the forwarded call in only with `UPSTREAM_API_TOKEN` (production's `CRAWL_SECRET`) set beside it.
+Catalogs, socials, the store and the crawl stay local. Never set either in production.
 
 To run the built Worker as production will: `npm run preview` (`vite build` then `wrangler dev`).
 `wrangler dev --test-scheduled` adds `GET /cdn-cgi/local/scheduled` to fire the cron by hand.
@@ -48,6 +49,14 @@ Secrets, set once with `wrangler secret put <NAME>`: `GEMINI_API_KEY`, `SERP_API
 `OPENGRAPH_API_KEY`, `TYPESAFE_API_KEY`, `CRAWL_SECRET`, and `OFFERLAB_HOST` if it is not the
 default (`src/lib/shared/offerlab.js`). Optional vars: `CRAWL_MAX_DEPTH`, `CRAWL_EXPAND_PER_SEARCH`,
 `CRAWL_DAILY_LIMIT`.
+
+The API gate (`src/lib/server/gate.js`, run from `src/hooks.server.js`): every `/api/*` request
+needs the session cookie the page sets when it loads (HttpOnly, signed with `SESSION_SECRET`, or
+`CRAWL_SECRET` when that is not set), or `Authorization: Bearer $CRAWL_SECRET`. No route sends an
+allow-origin header. Browser calls are then counted per address by the `ratelimits` bindings in
+`wrangler.jsonc` and answered 429 past the limit. A deployment holding a paid key but no signing key
+closes the API (503). Rate limits are per Cloudflare location, so the Google, SerpAPI, OpenGraph and
+TypeSafe accounts' own spending caps are the backstop.
 
 Deploy: automatic. The `collab-finder` Worker is connected to this repo through Cloudflare Workers
 Builds: every push to `brand-collab-finder` runs `npm run build` and `npx wrangler deploy`, and

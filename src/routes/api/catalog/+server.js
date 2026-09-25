@@ -5,11 +5,7 @@
  */
 import { fetchStorefrontCatalog } from '$lib/shared/catalog.js';
 import { readThrough, getCatalog, putCatalog, keepStoredSerp, CATALOG_TTL_MS } from '$lib/server/db.js';
-import { json, preflight, db, defer } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json, db, defer } from '$lib/server/api.js';
 
 export async function GET({ url, platform }) {
   const domain = url.searchParams.get('domain');

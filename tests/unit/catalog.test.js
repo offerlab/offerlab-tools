@@ -13,6 +13,14 @@ describe('normalizeDomain', () => {
     expect(normalizeDomain(null)).toBe('');
     expect(normalizeDomain('not a url')).toBe('');
   });
+
+  it('is empty for a host no real domain has, which the URL parser would let through', () => {
+    expect(normalizeDomain('x"onload="alert(1)')).toBe('');
+    expect(normalizeDomain("https://a'b.com")).toBe('');
+    expect(normalizeDomain('[::1]')).toBe('');
+    expect(normalizeDomain('xn--caf-dma.com')).toBe('xn--caf-dma.com');
+    expect(normalizeDomain('café.com')).toBe('xn--caf-dma.com');
+  });
 });
 
 describe('hostCandidates', () => {

@@ -3,7 +3,8 @@
 // cron), the static assets next to it, and the D1 store.
 //
 // Secrets are set with `wrangler secret put <NAME>`, never here: GEMINI_API_KEY, SERP_API_KEY,
-// OPENGRAPH_API_KEY, TYPESAFE_API_KEY, CRAWL_SECRET, and OFFERLAB_HOST if not the default.
+// OPENGRAPH_API_KEY, TYPESAFE_API_KEY, CRAWL_SECRET, OFFERLAB_HOST if not the default, and
+// SESSION_SECRET if the API's session cookies should not be signed with CRAWL_SECRET.
 // Locally they go in .dev.vars (git-ignored); see .dev.vars.example.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
@@ -26,11 +27,23 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Per-address request limits on /api/* (src/lib/server/gate.js): Gemini, the other paid
+  // proxies (SerpAPI, OpenGraph, Jev), and everything else. A search spends a handful of Gemini
+  // calls and a few dozen of each of the others.
+  // Counted per Cloudflare location, so they stop a runaway script, not a determined crowd; the
+  // providers' own spending caps are the backstop.
+  "ratelimits": [
+    { "name": "GEMINI_LIMITER", "namespace_id": "72001", "simple": { "limit": 20, "period": 60 } },
+    { "name": "PAID_API_LIMITER", "namespace_id": "72002", "simple": { "limit": 200, "period": 60 } },
+    { "name": "API_LIMITER", "namespace_id": "72003", "simple": { "limit": 600, "period": 60 } }
+  ],
   // Branch previews (Workers Builds runs `wrangler preview` for non-production branches). They
   // share the production database, as the Pages previews did, and send their keyed API calls
-  // through the live site, so a preview needs no secrets and runs no cron. They reach it through
-  // the UPSTREAM service binding: fetching collabfinder.offerlab.com from a version of this same
-  // Worker skips the Worker and gets a 522 (src/lib/server/api.js, forwardUpstream).
+  // through the live site, so a preview needs no secrets of its own and runs no cron. They reach it
+  // through the UPSTREAM service binding: fetching collabfinder.offerlab.com from a version of this
+  // same Worker skips the Worker and gets a 522 (src/lib/server/api.js, forwardUpstream). The live
+  // site's gate lets those calls in on UPSTREAM_API_TOKEN (production's CRAWL_SECRET), set as a
+  // preview secret; without it a preview's search is refused.
   "previews": {
     "d1_databases": [
       { "binding": "DB", "database_id": "10833831-1ee4-48b2-8a1b-36a207cd2579" }

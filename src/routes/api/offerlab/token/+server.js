@@ -1,10 +1,6 @@
 /** OAuth code exchange and refresh. The grant comes from the caller; nothing about the token is kept here. */
 import { DEFAULT_OFFERLAB_HOST, exchangeToken } from '$lib/shared/offerlab.js';
-import { json, preflight, readJson, env } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json, readJson, env } from '$lib/server/api.js';
 
 export async function POST({ request, platform }) {
   const body = await readJson(request);

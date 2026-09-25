@@ -4,11 +4,7 @@
  */
 import { fetchSocials } from '$lib/shared/socials.js';
 import { readThrough, getSocials, putSocials, SOCIALS_TTL_MS } from '$lib/server/db.js';
-import { json, preflight, db, defer } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json, db, defer } from '$lib/server/api.js';
 
 export async function GET({ url, platform }) {
   const domain = url.searchParams.get('domain');

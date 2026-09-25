@@ -1,10 +1,6 @@
 /** Dynamic client registration against OfferLab, proxied so every OfferLab call shares one host. */
 import { DEFAULT_OFFERLAB_HOST, registerClient } from '$lib/shared/offerlab.js';
-import { json, preflight, readJson, env } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json, readJson, env } from '$lib/server/api.js';
 
 export async function POST({ request, platform }) {
   const body = await readJson(request);
