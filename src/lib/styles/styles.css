@@ -192,8 +192,8 @@
   --pill-pad: 5px;
   --pill-btn: 30px;
   --pill-max: 360px;
-  /* body-lg */
-  --pill-font: var(--font-size-base);
+  /* Small in the nav row: the pill is a control here, not the landing page's field. */
+  --pill-font: 13px;
   --pill-tracking: -0.0125em;
   --pill-avatar: 22px;
   --pill-ease: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1126,7 +1126,7 @@ svg.icon.icon-size-24 { width: 24px; height: 24px; --icon-rendered: 24; }
   --pill-pad: 8px;
   --pill-btn: 40px;
   --pill-max: 600px;
-  --pill-font: var(--font-size-lg);
+  --pill-font: var(--font-size-sm);
   /* 0 rather than normal: a keyword has nothing to interpolate towards. */
   --pill-tracking: 0em;
   --pill-avatar: 28px;
@@ -1784,6 +1784,12 @@ body.showing-results .main-content {
 
 .search-input-wrapper:focus-within .search-input::placeholder {
   color: var(--content-text-placeholder);
+}
+
+/* The results bar's invitation, at rest and in focus */
+.view-header .search-input::placeholder,
+.view-header .search-input-wrapper:focus-within .search-input::placeholder {
+  color: var(--content-tertiary);
 }
 
 .search-button {
@@ -2552,51 +2558,37 @@ position: relative;
   opacity: 0;
 }
 
-/* The note sits on a hairline that runs the grid's width, the way a day divider does in a thread */
+/* The note sits between two squiggles that run the grid's width, the way a chat marks the time */
 .thread-turn-line {
-  position: relative;
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 20px;
 }
 
-.thread-turn-line::before {
+.thread-turn-line::before,
+.thread-turn-line::after {
   content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  border-top: 1px solid var(--content-border-neutral);
+  flex: 1;
+  height: 8px;
+  /* One sine period per 32px tile, so the repeat is seamless: a gentle 3px swell, a 1px line. The
+     wave is a mask over the border token, since a data URI cannot read the token itself. */
+  --wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='8' viewBox='0 0 32 8'%3E%3Cpath d='M0 4C4 1.6 12 1.6 16 4S28 6.4 32 4' fill='none' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+  background: var(--content-border-neutral);
+  -webkit-mask: var(--wave) repeat-x center;
+  mask: var(--wave) repeat-x center;
 }
 
 .thread-turn-note {
-  position: relative;
   display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  max-width: min(100%, 720px);
-  padding: 10px 18px;
-  border-radius: 24px;
-  background: var(--content-background-elevated);
-  border: 0.5px solid var(--content-border-neutral);
-  box-shadow: var(--shadow-sm);
-  font-size: var(--font-size-base);
-  line-height: 1.35;
-  color: var(--content-primary);
-  text-align: left;
-}
-
-.thread-turn-note--ask {
   align-items: center;
-  color: var(--moola-vivid);
-  font-weight: 500;
-}
-
-.thread-turn-who {
-  flex: none;
+  gap: 6px;
+  max-width: min(100%, 720px);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--content-tertiary);
+  line-height: var(--line-height-sm);
+  color: var(--content-secondary);
+  text-align: center;
 }
 
 .thread-turn-text {
@@ -2625,13 +2617,27 @@ position: relative;
   color: var(--content-sentiment-negative);
 }
 
-/* The ask for more: the orb over the two controls, centered on the body under the last card */
+/* The results footer: the orb, a word, and one row of controls, centered under the last card.
+   Gone while a follow-up runs (its divider carries the progress) and fades back in with the cards. */
 .results-more {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 24px 0 8px;
+  padding: 40px 16px 48px;
+  text-align: center;
+  animation: cardFadeIn 0.4s ease both;
+}
+
+.results-more-copy .results-group-title {
+  justify-content: center;
+  text-align: center;
+}
+
+.results-more-rating {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
 }
 
 .results-more-actions {
@@ -2653,13 +2659,6 @@ position: relative;
 
 .results-more-actions .ol-loader {
   width: 20px;
-}
-
-/* The shimmer on a moola button: paper-toned, peaking at white. */
-.results-more-actions .btn--ai .text-shimmer-ink {
-  --shimmer-peak: #fff;
-  --shimmer-edge: rgba(255, 255, 255, 0);
-  color: rgba(255, 255, 255, 0.5);
 }
 
 /* The agent orb (AgentOrb.svelte): a round slot the shader fills. The canvas is clipped to the
@@ -2687,7 +2686,7 @@ position: relative;
 }
 
 .results-more-orb {
-  --orb-size: 72px;
+  --orb-size: 32px;
 }
 
 /* --------------------------------------------------------------------------
@@ -3569,32 +3568,11 @@ button.social-link:disabled {
 /* --------------------------------------------------------------------------
    Feedback Section
    -------------------------------------------------------------------------- */
-.feedback-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
-  text-align: center;
-}
-
-.feedback-question {
-  font-size: var(--font-size-lg);
-  font-weight: 500;
-  color: var(--content-primary);
-  margin-bottom: var(--spacing-lg);
-}
-
-.feedback-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-lg);
-}
 
 .feedback-btn {
   width: 44px;
   height: 44px;
+  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -3602,6 +3580,7 @@ button.social-link:disabled {
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
   background: transparent;
   color: var(--content-primary);
+  cursor: pointer;
 }
 
 .feedback-btn:hover {
@@ -3639,25 +3618,6 @@ button.social-link:disabled {
   width: 20px;
   --icon-rendered: 20;
   height: 20px;
-}
-
-.feedback-thanks {
-  margin-top: var(--spacing-lg);
-  font-size: var(--font-size-base);
-  color: var(--content-sentiment-positive);
-  font-weight: 500;
-  animation: thanksFadeIn 0.4s ease;
-}
-
-@keyframes thanksFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* --------------------------------------------------------------------------
@@ -5339,8 +5299,6 @@ button.social-link:disabled {
     height: calc(100dvh - var(--header-h, 0px) - var(--view-header-h));
   }
 }
-
-
 
 
 /* Concepts: the onboarding commissions insight card (atelier/onboarding.css) — the agent's

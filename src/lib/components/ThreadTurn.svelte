@@ -1,7 +1,7 @@
 <script>
   /**
-   * A follow-up's divider in the results grid: the note (or the "more"/"surprise" label) as the
-   * person's line in the thread, and under it what the agent is doing, or what came of it.
+   * A follow-up's divider in the results grid: a short label for the round (the agent's, for a
+   * note; the control's name otherwise), and under it what the agent is doing, or what came of it.
    */
   import Icon from './Icon.svelte';
   import { app } from '$lib/client/state.svelte.js';
@@ -10,17 +10,13 @@
   let { turn } = $props();
 
   const pending = $derived(turn.status === 'pending');
-  const own = $derived(turn.kind === 'note');
 </script>
 
-<div class="thread-turn" id="turn-{turn.id}" class:is-pending={pending} role="separator" aria-label={turn.text}>
+<!-- A note's line is the note while the round runs, then the agent's label for what it added. -->
+<div class="thread-turn" id="turn-{turn.id}" class:is-pending={pending} role="separator" aria-label={turn.text} title={turn.note && turn.note !== turn.text ? turn.note : undefined}>
   <div class="thread-turn-line">
-    <span class="thread-turn-note" class:thread-turn-note--ask={!own}>
-      {#if own}
-        <span class="thread-turn-who">You</span>
-      {:else}
-        <Icon name="ai-sparkles-two-filled" size={14} />
-      {/if}
+    <span class="thread-turn-note">
+      {#if turn.kind !== 'note'}<Icon name="ai-sparkles-two-filled" size={16} />{/if}
       <span class="thread-turn-text">{turn.text}</span>
     </span>
   </div>

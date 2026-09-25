@@ -6,7 +6,7 @@
  */
 import { tick } from 'svelte';
 import * as search from '$lib/shared/search.js';
-import { catalogForStore, httpApi, threadOf, TURN_LABELS } from '$lib/shared/search.js';
+import { catalogForStore, httpApi, threadOf, turnLabel, TURN_LABELS } from '$lib/shared/search.js';
 import { composerIntent, confidentBrand } from './composer.js';
 import { app, showSection, getResults } from './state.svelte.js';
 import * as store from './store.js';
@@ -331,15 +331,16 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
 
 /**
  * One more round on the list on screen: a note, "more like these" or "surprise me". The turn
- * shows on its divider at once and the brands it adds land under it, stamped with it so the
- * stored search carries the thread. A round that finds nothing or fails says so on the divider.
+ * shows on its divider at once (a note as typed) and the brands it adds land under it, stamped
+ * with it so the stored search carries the thread; a note's divider then carries the agent's
+ * label for what it added. A round that finds nothing or fails says so on the divider.
  */
 export async function extendResults({ kind = 'note', text = '' } = {}) {
   await settled;
   const results = app.results;
   if (!results?.brands?.length || app.extending) return;
   const domain = app.searchDomain;
-  app.turns.push({ id: generateId(), kind, text: kind === 'note' ? text.trim() : TURN_LABELS[kind], status: 'pending', error: '' });
+  app.turns.push({ id: generateId(), kind, text: kind === 'note' ? text.trim() : TURN_LABELS[kind], note: text.trim(), status: 'pending', error: '' });
   // The reactive copy: what the divider renders, and what the status below is written to.
   const turn = app.turns[app.turns.length - 1];
   app.extending = turn.id;
@@ -351,7 +352,7 @@ export async function extendResults({ kind = 'note', text = '' } = {}) {
 
   try {
     const frequentBrands = await store.loadFrequentBrands();
-    const added = await search.extendRecommendations(httpApi('', undefined, { signal }), {
+    const { brands: added, label } = await search.extendRecommendations(httpApi('', undefined, { signal }), {
       brandProfile: results.searchedBrand,
       brands: results.brands,
       kind,
@@ -362,7 +363,8 @@ export async function extendResults({ kind = 'note', text = '' } = {}) {
     });
     if (signal.aborted) return;
     if (!added.length) { turn.status = 'empty'; return; }
-    const stamped = added.map(brand => ({ ...brand, turn: { id: turn.id, kind, text: turn.text } }));
+    if (kind === 'note') turn.text = turnLabel(label, turn.note) || turn.text;
+    const stamped = added.map(brand => ({ ...brand, turn: { id: turn.id, kind, text: turn.text, note: turn.note } }));
     results.brands.push(...stamped);
     turn.status = 'done';
     markBrandsNotSetUp(stamped);
@@ -390,7 +392,7 @@ export function retryTurn(id) {
   const turn = app.turns.find(t => t.id === id);
   if (!turn || app.extending) return;
   app.turns = app.turns.filter(t => t.id !== id);
-  extendResults({ kind: turn.kind, text: turn.text });
+  extendResults({ kind: turn.kind, text: turn.note || turn.text });
 }
 
 /** A note from the bar: the field empties back to its invitation, and the round starts. */
