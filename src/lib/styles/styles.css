@@ -1786,6 +1786,12 @@ body.showing-results .main-content {
   color: var(--content-text-placeholder);
 }
 
+/* The results bar's invitation, at rest and in focus */
+.view-header .search-input::placeholder,
+.view-header .search-input-wrapper:focus-within .search-input::placeholder {
+  color: var(--content-tertiary);
+}
+
 .search-button {
   display: flex;
   align-items: center;
