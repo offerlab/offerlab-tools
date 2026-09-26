@@ -4,11 +4,7 @@
  * `{ status: 'blocked' }` with a 200: that is an answer the caller works around, not a failure.
  */
 import { fetchPage, pageUrl } from '$lib/shared/page.js';
-import { json, preflight } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json } from '$lib/server/api.js';
 
 export async function GET({ url }) {
   const target = pageUrl(url.searchParams.get('url'));

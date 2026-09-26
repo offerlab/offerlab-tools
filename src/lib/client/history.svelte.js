@@ -28,11 +28,6 @@ export function addToSearchHistory(url) {
   store.addHistory(domain).then(() => refreshSearchHistory());
 }
 
-export function clearSearchHistory() {
-  app.history = [];
-  store.clearHistory().then(() => refreshSearchHistory());
-}
-
 export function removeFromSearchHistory(domain) {
   app.history = app.history.filter(item => item.domain !== domain);
   store.removeHistory(domain).then(() => refreshSearchHistory());

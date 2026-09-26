@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleDataRequest } from '$lib/server/data-api.js';
 import { createTestDb, resetDb, searchFixture } from './helpers/d1.js';
 
@@ -8,8 +8,15 @@ afterAll(() => ctx.dispose());
 beforeEach(() => resetDb(db));
 
 const JSON_TYPE = 'application/json; charset=utf-8';
-const call = (method, path, { body = null, query = {}, contentType = body ? JSON_TYPE : '', database = db } = {}) =>
-  handleDataRequest({ method, segments: path.split('/').filter(Boolean), query, body, contentType, db: database });
+// OfferLab's tools/list for a token: a developer's tools, or a member's.
+function offerlab(tools) {
+  return vi.fn(async () => new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: tools.map(name => ({ name })) } })));
+}
+const DEVELOPER = offerlab(['list_products', 'run_qa_seed', 'build_bundle_from_storefronts']);
+const STAFF = { authorization: 'Bearer tok_dev', fetchImpl: DEVELOPER };
+
+const call = (method, path, { body = null, query = {}, contentType = body ? JSON_TYPE : '', database = db, authorization = null, vars = {}, fetchImpl } = {}) =>
+  handleDataRequest({ method, segments: path.split('/').filter(Boolean), query, body, contentType, db: database, authorization, vars, host: 'https://ol.test', fetchImpl });
 
 describe('guards', () => {
   it('is 503 without a database', async () => {
@@ -20,7 +27,7 @@ describe('guards', () => {
     expect(await call('PUT', 'searches/a.test', { body: { type: 'empty' }, contentType: 'text/plain' })).toEqual({ status: 415, body: { error: 'Writes take application/json' } });
     expect((await call('POST', 'history', { body: { domain: 'a.test' }, contentType: '' })).status).toBe(415);
     expect((await call('PATCH', 'drafts/a.test/1', { body: {}, contentType: 'application/x-www-form-urlencoded' })).status).toBe(415);
-    expect((await call('DELETE', 'history')).status).toBe(204);
+    expect((await call('DELETE', 'history', STAFF)).status).toBe(204);
   });
 
   it('is 404 for unknown routes and 400 for a bad domain or body', async () => {
@@ -77,7 +84,17 @@ describe('history', () => {
 
     expect(await call('DELETE', 'history/a.test')).toEqual({ status: 204 });
     expect((await call('GET', 'history')).body.map(h => h.domain)).toEqual(['b.test']);
-    expect(await call('DELETE', 'history')).toEqual({ status: 204 });
+    expect(await call('DELETE', 'history', STAFF)).toEqual({ status: 204 });
+    expect((await call('GET', 'history')).body).toEqual([]);
+  });
+
+  it('is emptied only by staff: an OfferLab developer or the crawl bearer', async () => {
+    await call('POST', 'history', { body: { domain: 'a.test' } });
+    const member = offerlab(['list_products', 'create_product']);
+    expect(await call('DELETE', 'history')).toEqual({ status: 401, body: { error: 'Sign in to OfferLab to do this' } });
+    expect((await call('DELETE', 'history', { authorization: 'Bearer tok_member', fetchImpl: member })).status).toBe(403);
+    expect((await call('GET', 'history')).body).toHaveLength(1);
+    expect((await call('DELETE', 'history', { authorization: 'Bearer s3cret', vars: { CRAWL_SECRET: 's3cret' } })).status).toBe(204);
     expect((await call('GET', 'history')).body).toEqual([]);
   });
 });
@@ -103,9 +120,12 @@ describe('drafts', () => {
     expect((await call('GET', 'drafts/a.test')).body[0].publishedUrl).toBe('https://ol/box');
     expect((await call('GET', 'drafts/a.test/st_1')).status).toBe(404);
 
-    expect(await call('DELETE', 'drafts/a.test')).toEqual({ status: 204 });
+    expect((await call('DELETE', 'drafts/a.test')).status).toBe(401);
+    expect((await call('GET', 'drafts/a.test')).body).toHaveLength(1);
+    expect(await call('DELETE', 'drafts/a.test', STAFF)).toEqual({ status: 204 });
     expect((await call('GET', 'drafts/a.test')).body).toEqual([]);
     expect((await call('DELETE', 'drafts/a.test/st_1')).status).toBe(404);
-    expect(await call('DELETE', 'drafts')).toEqual({ status: 204 });
+    expect((await call('DELETE', 'drafts')).status).toBe(401);
+    expect(await call('DELETE', 'drafts', STAFF)).toEqual({ status: 204 });
   });
 });
