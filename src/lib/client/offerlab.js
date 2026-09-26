@@ -9,6 +9,7 @@
 
 import { isDeveloper, canBuildBundles } from '$lib/shared/offerlab.js';
 import * as store from './store.js';
+import * as catalyst from './catalyst.js';
 
 const KEY = {
   client: 'offerlab.client',       // the registered public client, stable for this origin
@@ -546,7 +547,7 @@ export async function createDraftBundle({ name, picks, presentingDomain, onProgr
     throw new OfferLabError('This OfferLab cannot build from products without a storefront yet');
   }
   const started = await callTool(BUILD_TOOL, specs
-    ? { products: ordered.map(specFor), ...(name ? { name } : {}) }
+    ? { products: await withCapturedPages(ordered.map(specFor), onProgress), ...(name ? { name } : {}) }
     : { product_urls: ordered.map(pick => pick.product.url), ...(name ? { name } : {}) });
   if (!started?.action_id) throw new OfferLabError('OfferLab did not start that build');
 
@@ -590,6 +591,32 @@ function specFor(pick) {
 }
 
 const NOT_A_PRODUCT_PAGE = /(^|\.)(google|gstatic|googleusercontent)\.com$/i;
+
+/**
+ * Where the Catalyst extension is installed, every spec with a page to read gets that page's
+ * context captured in this browser, on this person's IP, before the build starts; the build then
+ * reads the product off it without fetching. A capture that fails leaves the spec to the build's
+ * own fetch.
+ */
+async function withCapturedPages(specs, onProgress) {
+  if (!catalyst.available()) return specs;
+  const out = [];
+  for (const spec of specs) {
+    if (!spec.page_url) { out.push(spec); continue; }
+    onProgress(`Reading ${hostOf(spec.page_url)} in your browser`);
+    try {
+      out.push({ ...spec, page_context: await catalyst.capturePage(spec.page_url) });
+    } catch (err) {
+      console.warn(`[Catalyst] ${spec.page_url}: ${err.message}`);
+      out.push(spec);
+    }
+  }
+  return out;
+}
+
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+}
 
 function isProductPage(url) {
   try {
