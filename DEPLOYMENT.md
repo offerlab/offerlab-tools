@@ -50,11 +50,16 @@ default (`src/lib/shared/offerlab.js`). Optional vars: `CRAWL_MAX_DEPTH`, `CRAWL
 `CRAWL_DAILY_LIMIT`.
 
 Deploy: automatic. The `collab-finder` Worker is connected to this repo through Cloudflare Workers
-Builds: every push to `brand-collab-finder` runs `npm run build` and `npx wrangler deploy`, and
-other branches build as previews. By hand, `npm run deploy` does the same. Migrations are not
-part of the build: apply them before merging the PR that needs them, with `npm run db:migrate`
-(`wrangler d1 migrations apply offerlab-tools --remote`), and keep them additive so the running
-version never breaks.
+Builds: every push to `brand-collab-finder` runs `npm run build` and then the deploy command
+`npm run deploy:ci`, and other branches build as previews. `deploy:ci` applies pending migrations
+(`wrangler d1 migrations apply offerlab-tools --remote`) and only then runs `wrangler deploy`, so
+the new code never goes live ahead of the columns it reads. A migration that fails fails the build
+and nothing deploys; the running version keeps serving. By hand, `npm run deploy` does the same.
+
+Previews share the production database, so a preview can see a column before its PR merges: keep
+migrations additive, so the running version never breaks while one is pending. The deploy command is
+set in the dashboard (Workers & Pages → collab-finder → Settings → Builds → Deploy command) and must
+read `npm run deploy:ci`; the non-production branch command stays the preview upload.
 
 `collabfinder.offerlab.com` reaches the Worker through a route (`collabfinder.offerlab.com/*` →
 `collab-finder`) on the proxied DNS record the Pages project used. The old `offerlab-tools` Pages
