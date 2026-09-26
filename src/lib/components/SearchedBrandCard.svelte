@@ -2,7 +2,8 @@
   /**
    * The searched brand's card at the top of the results: cover, favicon, name, description and
    * its catalog strip. The whole card is the link, so the visit control is a span. A site with no
-   * og:image gets its first product as the cover once the catalog is in.
+   * og:image gets its first product as the cover once the catalog is in, and a site with no
+   * catalog gets its best stand-in picture.
    */
   import Icon from './Icon.svelte';
   import CatalogThumbs from './CatalogThumbs.svelte';
@@ -15,11 +16,15 @@
   const domain = $derived(extractDomain(brand?.url || ''));
   const fullUrl = $derived(fullUrlOf(brand?.url || ''));
   const catalogCover = $derived(brand.catalog?.products?.find(p => p.image)?.image || null);
+  // With no catalog, the pictures the stand-ins were made from: a suggested product's first, then
+  // any picture read off the site or Google Shopping.
+  const standInCover = $derived(brand.standIns?.products?.find(p => p.image)?.image || brand.standIns?.images?.[0]?.src || null);
   // A stored cover can rot: Shopify serves og:image from a theme asset path that changes when the
   // theme is republished. A cover that fails to load gives way to the first catalog product, now
   // if the catalog is here, or when it arrives.
   let coverFailed = $state(false);
-  const cover = $derived((!coverFailed && brand.imageUrl) || (catalogCover ? catalogThumbUrl(catalogCover, 900) : ''));
+  const fallbackCover = $derived(catalogCover || standInCover);
+  const cover = $derived((!coverFailed && brand.imageUrl) || (fallbackCover ? catalogThumbUrl(fallbackCover, 900) : ''));
   // No cover yet: the column waits, hidden, for the catalog's first product image.
   const imgSrc = $derived(cover || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E");
   const hasProducts = $derived((brand.catalog?.products?.length || 0) > 0);
