@@ -569,16 +569,33 @@ function labelFor(picks, domain) {
   return picks.find(pick => pick.domain === domain)?.brandName || domain;
 }
 
-/** A pick as the build's spec: the brand's site, the product, and its storefront URL if it has one. */
+/**
+ * A pick as the build's spec: the brand's site, the product, and its storefront URL if it has
+ * one. A stand-in that came from a product page carries that page as `page_url`, which the build
+ * reads the real product off (OL-4067); a Google Shopping link is no page to read.
+ */
 function specFor(pick) {
   const { product } = pick;
   const price = Number(product.price);
+  const standIn = pick.storefront === false;
   return {
     website: `https://${pick.domain}`,
     name: product.title,
-    url: pick.storefront === false ? undefined : product.url,
+    url: standIn ? undefined : product.url,
+    page_url: standIn && isProductPage(product.url) ? product.url : undefined,
     price: Number.isFinite(price) && price > 0 ? price : undefined,
     image_url: product.image || undefined,
     description: product.description || undefined
   };
+}
+
+const NOT_A_PRODUCT_PAGE = /(^|\.)(google|gstatic|googleusercontent)\.com$/i;
+
+function isProductPage(url) {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return /^https?:$/.test(protocol) && !NOT_A_PRODUCT_PAGE.test(hostname);
+  } catch {
+    return false;
+  }
 }
