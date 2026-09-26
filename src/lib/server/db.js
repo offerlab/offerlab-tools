@@ -154,6 +154,8 @@ export async function getSearch(db, domain, { products = DEFAULT_PRODUCTS_PER_BR
     brands: brandRows.filter(row => !moderation.removed.has(row.domain))
       .map(row => ({ ...parse(row.brand, {}), catalog: catalogFor(row.domain) })),
     serpApiOutOfCredits: Boolean(search.serp_out_of_credits),
+    // What it took and cost, once migration 0007 is in and the search was metered.
+    metrics: parse(search.metrics) || undefined,
     timestamp: search.updated_at
   };
 }
@@ -161,7 +163,8 @@ export async function getSearch(db, domain, { products = DEFAULT_PRODUCTS_PER_BR
 /**
  * Stores a finished search. Brands are kept without their catalogs; a catalog that arrives with
  * products (the Google Shopping fallback, which is only ever assembled in the browser) is
- * written to the catalogs table, where /api/catalog already put the Shopify ones.
+ * written to the catalogs table, where /api/catalog already put the Shopify ones. `metrics`, the
+ * search's reading, goes to its own columns.
  */
 export async function putSearch(db, domain, record, now = Date.now()) {
   const key = canonicalDomain(domain);
@@ -172,6 +175,7 @@ export async function putSearch(db, domain, record, now = Date.now()) {
   const { removed } = await moderationFor(db, key, []);
   const brands = offered.filter(brand => !removed.has(canonicalDomain(brand?.url || '')));
 
+  const previousId = await db.prepare('SELECT search_id FROM searches WHERE domain = ?').bind(key).first('search_id');
   const statements = [
     db.prepare(
       `INSERT INTO searches (domain, search_id, status, error_message, searched_brand, serp_out_of_credits, created_at, updated_at)
@@ -196,12 +200,49 @@ export async function putSearch(db, domain, record, now = Date.now()) {
   });
 
   await db.batch(statements);
+  // A follow-up stores the same search again without a reading and keeps the one it has; a new
+  // search without one (a tab still on an older version) leaves none rather than the last's.
+  if (record?.metrics || previousId !== searchId) await putSearchMetrics(db, key, record?.metrics);
 
   const crawled = [record?.searchedBrand, ...brands].filter(brand => brand?.catalog?.products?.length);
   for (const brand of crawled) {
     await putCatalog(db, brand.url || brand.catalog.domain, brand.catalog, now);
   }
   return { domain: key, searchId, timestamp: now };
+}
+
+const METRICS_COLUMNS = {
+  duration_ms: m => m.durationMs,
+  brands_ready_ms: m => m.brandsReadyMs,
+  gemini_calls: m => m.gemini?.calls,
+  grounded_prompts: m => m.gemini?.groundedPrompts,
+  grounded_queries: m => m.gemini?.groundedQueries,
+  gemini_input_tokens: m => m.gemini?.inputTokens,
+  gemini_output_tokens: m => m.gemini?.outputTokens,
+  serp_calls: m => m.calls?.serp,
+  jev_calls: m => m.calls?.jev,
+  cost_usd: m => m.cost?.totalUsd
+};
+// A reading is a few kilobytes; one past this is not a reading.
+const METRICS_MAX_CHARS = 32_000;
+
+/**
+ * What a search took and cost (src/lib/shared/metrics.js), beside the search it belongs to;
+ * null clears it. Its own statement, after the search is stored: a database without migration
+ * 0007 still stores the search and only loses the reading.
+ */
+async function putSearchMetrics(db, key, metrics) {
+  const reading = metrics && typeof metrics === 'object' && !Array.isArray(metrics) ? metrics : null;
+  const text = reading ? JSON.stringify(reading) : null;
+  const kept = text && text.length <= METRICS_MAX_CHARS ? reading : null;
+  const number = value => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null);
+  const columns = Object.keys(METRICS_COLUMNS);
+  try {
+    await db.prepare(`UPDATE searches SET ${columns.map(c => `${c} = ?`).join(', ')}, metrics = ? WHERE domain = ?`)
+      .bind(...columns.map(c => (kept ? number(METRICS_COLUMNS[c](kept)) : null)), kept ? text : null, key).run();
+  } catch (err) {
+    console.warn(`[Store] Search metrics not stored for ${key}: ${err.message}`);
+  }
 }
 
 /**

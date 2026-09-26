@@ -161,6 +161,11 @@ async function markBrandsNotSetUp(brands) {
   }
 }
 
+// What the search took and cost (shared/metrics.js), marked as one a browser ran.
+function browserMetrics(metrics) {
+  return metrics ? { ...metrics, source: 'browser' } : undefined;
+}
+
 // `signal` cancels every request the search makes, so leaving the search stops it.
 function discoverComplementaryBrands(url, { onProgress, onBrandsReady, onCatalog, signal }) {
   return Promise.all([getFeedbackHistory(), store.loadKnownPartners(extractDomain(url)), store.loadFrequentBrands()]).then(([feedback, knownPartners, frequentBrands]) =>
@@ -287,7 +292,7 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
     if (isSearchCancelled) return;
 
     if (!results.brands || results.brands.length === 0) {
-      store.saveSearch(domain, { type: 'empty', searchId });
+      store.saveSearch(domain, { type: 'empty', searchId, metrics: browserMetrics(results.metrics) });
       if (!fromUrlRestore) updateUrlForSearch(domain);
       showSection('empty');
       return;
@@ -313,13 +318,14 @@ export async function performSearch(url, { fromUrlRestore = false } = {}) {
       brands: brands.map(catalogForStore),
       searchedBrand: catalogForStore(results.searchedBrand),
       serpApiOutOfCredits: results.serpApiOutOfCredits || false,
-      searchId
+      searchId,
+      metrics: browserMetrics(results.metrics)
     });
   } catch (error) {
     if (isSearchCancelled || error?.name === 'AbortError') return;
     console.error('Search failed:', error);
     const errorMessage = error.message || 'Please try again in a moment.';
-    store.saveSearch(domain, { type: 'error', errorMessage, searchId });
+    store.saveSearch(domain, { type: 'error', errorMessage, searchId, metrics: browserMetrics(error?.metrics) });
     app.errorMessage = errorMessage;
     if (!fromUrlRestore) updateUrlForSearch(domain);
     showSection('error');

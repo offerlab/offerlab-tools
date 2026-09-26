@@ -16,6 +16,47 @@ describe('canonicalDomain', () => {
 });
 
 describe('searches', () => {
+  it('keeps what a search took and cost beside it, through a follow-up, until the next search', async () => {
+    const metrics = {
+      durationMs: 64_000, brandsReadyMs: 41_000, source: 'browser',
+      steps: { analysis: { at: 900, ms: 5200 } },
+      gemini: { calls: 4, groundedPrompts: 3, groundedQueries: 70, inputTokens: 12_000, outputTokens: 9_000, log: [] },
+      calls: { serp: 4, jev: 27 },
+      cost: { totalUsd: 0.19 }
+    };
+    const columns = 'duration_ms, brands_ready_ms, gemini_calls, grounded_prompts, grounded_queries, gemini_input_tokens, gemini_output_tokens, serp_calls, jev_calls, cost_usd';
+    const row = () => db.prepare(`SELECT ${columns} FROM searches WHERE domain = 'graza.co'`).first();
+
+    await store.putSearch(db, 'graza.co', { ...searchFixture('graza.co', 2), metrics }, 1);
+    expect(await row()).toEqual({ duration_ms: 64000, brands_ready_ms: 41000, gemini_calls: 4, grounded_prompts: 3, grounded_queries: 70, gemini_input_tokens: 12000, gemini_output_tokens: 9000, serp_calls: 4, jev_calls: 27, cost_usd: 0.19 });
+    expect((await store.getSearch(db, 'graza.co')).metrics).toEqual(metrics);
+
+    // A follow-up stores the same search again, without a reading.
+    await store.putSearch(db, 'graza.co', searchFixture('graza.co', 3), 2);
+    expect((await row()).duration_ms).toBe(64000);
+
+    // A new search without one leaves none.
+    await store.putSearch(db, 'graza.co', { ...searchFixture('graza.co', 1), searchId: 'another' }, 3);
+    expect((await row()).duration_ms).toBeNull();
+    expect((await store.getSearch(db, 'graza.co')).metrics).toBeUndefined();
+  });
+
+  it('stores the search even when its reading cannot be', async () => {
+    const bare = { prepare: (sql) => (/UPDATE searches SET duration_ms/.test(sql) ? { bind: () => ({ run: async () => { throw new Error('no such column: duration_ms'); } }) } : db.prepare(sql)), batch: (s) => db.batch(s) };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await store.putSearch(bare, 'graza.co', { ...searchFixture('graza.co', 2), metrics: { durationMs: 5 } }, 1);
+    expect((await store.getSearch(db, 'graza.co')).brands).toHaveLength(2);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('no such column'));
+    warn.mockRestore();
+  });
+
+  it('keeps only numbers in the columns and nothing oversized', async () => {
+    await store.putSearch(db, 'graza.co', { ...searchFixture('graza.co', 1), metrics: { durationMs: 'soon', cost: { totalUsd: -1 }, calls: { serp: 2 } } }, 1);
+    expect(await db.prepare("SELECT duration_ms, cost_usd, serp_calls FROM searches WHERE domain = 'graza.co'").first()).toEqual({ duration_ms: null, cost_usd: null, serp_calls: 2 });
+    await store.putSearch(db, 'odd.test', { type: 'empty', searchId: 'x', metrics: { durationMs: 1, junk: 'x'.repeat(40_000) } }, 1);
+    expect(await db.prepare("SELECT duration_ms, metrics FROM searches WHERE domain = 'odd.test'").first()).toEqual({ duration_ms: null, metrics: null });
+  });
+
   it('stores a search and hands it back with trimmed catalogs', async () => {
     const record = searchFixture('graza.co', 2, { products: 30 });
     record.brands.push({ name: 'Bare', url: 'https://bare.test', reasons: [] });

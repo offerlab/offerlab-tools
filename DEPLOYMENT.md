@@ -99,6 +99,24 @@ the graph.
 - **Seeding:** `CRAWL_SECRET=... npm run crawl -- domains.txt` queues a list against production
   (`CRAWL_ORIGIN` for another deployment); `--status` shows the queue.
 
+## Search timing and cost
+
+Every search runs under a meter (`src/lib/shared/metrics.js`) and is stored with its reading:
+`duration_ms` (start to stored), `brands_ready_ms` (start to the list on screen), Gemini calls,
+grounded prompts and the web searches they ran, Gemini input and output tokens (tool-use prompt
+tokens in, thinking out), SerpAPI and Jev calls, and `cost_usd`, an estimate at the list prices in
+`PRICES`. `metrics` holds the whole reading as JSON: each step's start and length and every Gemini
+call. `migrations/0007_search_metrics.sql` adds the columns; until it is applied, searches are
+stored as before without them. A follow-up on a list keeps the reading of the search it extends.
+
+```
+wrangler d1 execute offerlab-tools --remote --command "SELECT domain, duration_ms, brands_ready_ms, cost_usd, json_extract(metrics, '$.source') AS source FROM searches WHERE duration_ms IS NOT NULL ORDER BY updated_at DESC LIMIT 20"
+```
+
+`node scripts/time-search.mjs <domain>` runs one search against production's `/api/*` without
+storing it and prints every call's timing and each Gemini call's usage (`--base` for another
+deployment, `--json` to keep it). It is a real search and costs what one does.
+
 ## Showcase
 
 The Showcase reads `/api/library`. D1 holds every bundle (`library_bundles`,

@@ -8,7 +8,7 @@
  * Gemini failure arrives as a 200 whose body carries { error, status }.
  */
 import { json, preflight, readJson, env, forwardUpstream, CORS } from '$lib/server/api.js';
-import { foldStream } from '$lib/server/gemini-stream.js';
+import { askGemini } from '$lib/server/gemini-stream.js';
 
 // How long one Gemini call may take before the proxy answers 504 instead. The browser gives up
 // on an attempt sooner (GEMINI_ATTEMPT_TIMEOUT_MS in src/lib/shared/search.js) and retries; this
@@ -17,27 +17,12 @@ const UPSTREAM_TIMEOUT_MS = 180_000;
 const KEEPALIVE_EVERY_MS = 10_000;
 // A grounded call that has not started answering by now is, about one time in three, one that
 // never will for another minute or two; a fresh attempt usually answers in under a minute. The
-// first attempt on the kept-alive path gets this long to start, then is asked again with the
-// full budget. Gemini's answers are not billed until they are produced.
+// first attempt on the kept-alive path gets this long to start answering, then is asked again
+// with the full budget. Only to start: an answer already streaming is left to finish. Cutting
+// those at 60 seconds too restarted calls that were nearly done (one search on 2026-09-26 spent
+// 101 and 74 seconds on two calls that each answered in under 45). Gemini's answers are not
+// billed until they are produced.
 const FIRST_ANSWER_MS = 60_000;
-
-// The kept-alive path streams from Google too, or the Worker's own fetch is the silent leg.
-async function askGemini(endpoint, body, { stream = false, timeoutMs = UPSTREAM_TIMEOUT_MS } = {}) {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs)
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Gemini Proxy] API error:', response.status, errorText);
-    return { ok: false, status: response.status, body: { error: 'Gemini API request failed', details: errorText, status: response.status } };
-  }
-  const answer = stream ? await foldStream(response) : await response.json();
-  if (answer?.error) return { ok: false, status: answer.status || 502, body: { error: answer.error, status: answer.status || 502 } };
-  return { ok: true, status: 200, body: answer };
-}
 
 function failure(err) {
   if (err?.name === 'TimeoutError') {
@@ -55,10 +40,10 @@ function streamed(endpoint, body) {
   (async () => {
     const pulse = setInterval(() => writer.write(encoder.encode(' ')).catch(() => {}), KEEPALIVE_EVERY_MS);
     try {
-      const answer = await askGemini(endpoint, body, { stream: true, timeoutMs: FIRST_ANSWER_MS }).catch(err => {
-        if (err?.name !== 'TimeoutError') return failure(err);
+      const answer = await askGemini(endpoint, body, { stream: true, timeoutMs: UPSTREAM_TIMEOUT_MS, firstAnswerMs: FIRST_ANSWER_MS }).catch(err => {
+        if (!err?.firstAnswer) return failure(err);
         console.warn(`[Gemini Proxy] No answer within ${FIRST_ANSWER_MS / 1000}s, asking again`);
-        return askGemini(endpoint, body, { stream: true }).catch(failure);
+        return askGemini(endpoint, body, { stream: true, timeoutMs: UPSTREAM_TIMEOUT_MS }).catch(failure);
       });
       await writer.write(encoder.encode(JSON.stringify(answer.body)));
     } finally {
@@ -93,7 +78,7 @@ export async function POST(event) {
   const endpoint = `${base}:generateContent?key=${apiKey}`;
 
   try {
-    const answer = await askGemini(endpoint, body);
+    const answer = await askGemini(endpoint, body, { timeoutMs: UPSTREAM_TIMEOUT_MS });
     return json(answer.body, { status: answer.status });
   } catch (err) {
     const { status, body: payload } = failure(err);
