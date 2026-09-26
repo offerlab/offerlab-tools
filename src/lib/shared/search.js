@@ -12,9 +12,19 @@ import { GRADE_QUESTIONS, gradeState, readGrade } from './jev.js';
 import { jsonrepair } from './vendor/jsonrepair/regular/jsonrepair.js';
 import { isStorefrontCatalog } from './catalog.js';
 import { needsStandIns, gatherStandIns } from './standins.js';
+import { createMeter } from './metrics.js';
+
+/**
+ * How long the list waits for a call it can do without: the unexpected lane once the main
+ * recommendations are in (it answers 22-30 seconds from its start, against 27-100 for the main
+ * call), and the emerging top-up (3-9 seconds on a normal day; 50-74 on 2026-09-26 under load).
+ * One that has not answered by then is left out and the list goes on without it.
+ */
+export const SIDE_CALLS_GRACE_MS = 20_000;
 
 export const SEARCH_DEFAULTS = {
   catalogConcurrency: 6,
+  sideCallsGraceMs: SIDE_CALLS_GRACE_MS,
   serpFallbackBrands: 5
 };
 
@@ -159,72 +169,86 @@ export function buildFrequentContext(brands) {
  * as the recommendations are in, onCatalog(brand) as each brand's catalog resolves.
  */
 export async function discoverComplementaryBrands(url, {
-  api, feedback = [], knownPartners = [], frequentBrands = [],
+  api: rawApi, feedback = [], knownPartners = [], frequentBrands = [],
   onProgress, onBrandsReady, onCatalog, config = {}
 }) {
   const settings = { ...SEARCH_DEFAULTS, ...config };
   const domain = brandDomain(url);
   const brandName = extractBrandName(domain);
   const updateProgress = (step) => { if (typeof onProgress === 'function') onProgress(step); };
+  const meter = createMeter(rawApi);
+  const api = meter.api;
 
   console.log(`[Discovery] Starting for: ${domain} (brand: ${brandName})`);
 
-  updateProgress(0);
-  const brandProfile = await analyzeBrand(api, domain, await brandFacts(api, domain));
-  const resolvedBrandProfile = brandProfile.brandProfile || brandProfile;
-  updateProgress(1);
+  try {
+    updateProgress(0);
+    const facts = await meter.step('facts', brandFacts(api, domain));
+    const brandProfile = await meter.step('analysis', analyzeBrand(api, domain, facts));
+    const resolvedBrandProfile = brandProfile.brandProfile || brandProfile;
+    updateProgress(1);
 
-  updateProgress(2);
-  const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
-  // The unexpected lane is ideated beside the main call: it needs only the profile, and the
-  // stronger model takes its time.
-  const unexpectedPending = unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, frequentBrands });
-  const recommendations = await getRecommendations(api, resolvedBrandProfile, brandName, domain, context);
-  const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
-  const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
-  const merged = mergeUnexpected(capped, await unexpectedPending);
-  const composed = composeGraded(merged, await gradeCandidates(api, resolvedBrandProfile, merged), frequentBrands);
-  // The emerging count is read after grading, since Jev's stages are the ones that stand; what
-  // the top-up adds is graded the same way.
-  const toppedUp = await topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: composed, frequentBrands });
-  const brands = toppedUp === composed ? composed : composeGraded(toppedUp, await gradeCandidates(api, resolvedBrandProfile, toppedUp), frequentBrands);
+    updateProgress(2);
+    const context = buildFeedbackContext(feedback) + buildKnownPartnersContext(knownPartners) + buildFrequentContext(frequentBrands);
+    // The unexpected lane is ideated beside the main call: it needs only the profile, and the
+    // stronger model takes its time.
+    const unexpectedPending = meter.step('unexpected', unexpectedCollabs(api, { brandProfile: resolvedBrandProfile, brandName, domain, frequentBrands }));
+    const recommendations = await meter.step('recommendations', getRecommendations(api, resolvedBrandProfile, brandName, domain, context));
+    const augmentedResults = augmentWithGroundingMetadata(recommendations, null);
+    const capped = capWellTrodden(normalizeRecommendations(augmentedResults.brands || []).map(ensureHttps), frequentBrands);
+    // Once the main list is in, the unexpected lane gets sideCallsGraceMs more; stalled, it is
+    // left out (its lane keeps the main call's own picks) rather than holding the list.
+    const merged = mergeUnexpected(capped, await withDeadline(unexpectedPending, settings.sideCallsGraceMs, []));
+    const composed = composeGraded(merged, await meter.step('grading', gradeCandidates(api, resolvedBrandProfile, merged)), frequentBrands);
+    // The emerging count is read after grading, since Jev's stages are the ones that stand; what
+    // the top-up adds is graded the same way. It gets as long, and the list goes on without it.
+    const toppedUp = await meter.step('topUp', withDeadline(topUpEmerging(api, { brandProfile: resolvedBrandProfile, brandName, domain, brands: composed, frequentBrands }), settings.sideCallsGraceMs, composed));
+    const brands = toppedUp === composed ? composed : composeGraded(toppedUp, await gradeCandidates(api, resolvedBrandProfile, toppedUp), frequentBrands);
 
-  const searchedBrand = ensureHttps(resolvedBrandProfile);
-  if (!searchedBrand.imageUrl && searchedBrand.url) {
-    searchedBrand.imageUrl = await fetchOgImageUrl(api, searchedBrand.url);
+    const searchedBrand = ensureHttps(resolvedBrandProfile);
+    // The site's own picture was read with its facts; a profile that names another site asks again.
+    if (!searchedBrand.imageUrl && searchedBrand.url) {
+      searchedBrand.imageUrl = (brandDomain(searchedBrand.url) === domain && facts.imageUrl) || await fetchOgImageUrl(api, searchedBrand.url);
+    }
+    const searchedBrandData = {
+      name: searchedBrand.name,
+      url: searchedBrand.url,
+      imageUrl: searchedBrand.imageUrl,
+      description: searchedBrand.description,
+      brandDNA: searchedBrand.brandDNA,
+      targetCustomer: searchedBrand.targetCustomer,
+      // What it sells and at what price, which is what its stand-in products are made from.
+      productAnalysis: searchedBrand.productAnalysis,
+      // The two lines above the list, written for this brand; the results view has a default.
+      listHeading: listHeading(augmentedResults.heading)
+    };
+    console.log(`[Discovery] Heading: ${JSON.stringify(augmentedResults.heading ?? null)} -> ${JSON.stringify(searchedBrandData.listHeading)}`);
+
+    console.log(`[Discovery] Brands ready: ${brands.length} brands found`);
+    meter.mark('brandsReady');
+    if (typeof onBrandsReady === 'function') onBrandsReady({ searchedBrand: searchedBrandData, brands });
+
+    // Public catalogs for the searched brand and every recommendation
+    await meter.step('catalogs', attachCatalogs(api, [searchedBrandData, ...brands], { onCatalog, concurrency: settings.catalogConcurrency }));
+
+    // The searched brand with no catalog gets stand-in products instead, so the picker can still
+    // lead with it. Kept with the search, beside the catalog rather than as one.
+    const standInsPending = needsStandIns(searchedBrandData)
+      ? meter.step('standIns', gatherStandIns(api, searchedBrandData).catch(err => { console.warn(`[Stand-ins] ${err.message}`); return null; }))
+      : null;
+    const serpApiOutOfCredits = await meter.step('serpFallback', attachSerpFallback(api, brands, { limit: settings.serpFallbackBrands, onCatalog }));
+
+    const standIns = await standInsPending;
+    if (standIns) searchedBrandData.standIns = standIns;
+
+    const metrics = meter.reading();
+    console.log(`[Discovery] Complete. ${brands.length} brands, ${brands.filter(b => b.catalog?.products?.length).length} with products, ${(metrics.durationMs / 1000).toFixed(1)}s, ~$${metrics.cost.totalUsd}`);
+    return { searchedBrand: searchedBrandData, brands, serpApiOutOfCredits, metrics };
+  } catch (err) {
+    // A search that failed still took its time and spent its calls; the error record keeps them.
+    if (err && typeof err === 'object') err.metrics = meter.reading();
+    throw err;
   }
-  const searchedBrandData = {
-    name: searchedBrand.name,
-    url: searchedBrand.url,
-    imageUrl: searchedBrand.imageUrl,
-    description: searchedBrand.description,
-    brandDNA: searchedBrand.brandDNA,
-    targetCustomer: searchedBrand.targetCustomer,
-    // What it sells and at what price, which is what its stand-in products are made from.
-    productAnalysis: searchedBrand.productAnalysis,
-    // The two lines above the list, written for this brand; the results view has a default.
-    listHeading: listHeading(augmentedResults.heading)
-  };
-  console.log(`[Discovery] Heading: ${JSON.stringify(augmentedResults.heading ?? null)} -> ${JSON.stringify(searchedBrandData.listHeading)}`);
-
-  console.log(`[Discovery] Brands ready: ${brands.length} brands found`);
-  if (typeof onBrandsReady === 'function') onBrandsReady({ searchedBrand: searchedBrandData, brands });
-
-  // Public catalogs for the searched brand and every recommendation
-  await attachCatalogs(api, [searchedBrandData, ...brands], { onCatalog, concurrency: settings.catalogConcurrency });
-
-  // The searched brand with no catalog gets stand-in products instead, so the picker can still
-  // lead with it. Kept with the search, beside the catalog rather than as one.
-  const standInsPending = needsStandIns(searchedBrandData)
-    ? gatherStandIns(api, searchedBrandData).catch(err => { console.warn(`[Stand-ins] ${err.message}`); return null; })
-    : null;
-  const serpApiOutOfCredits = await attachSerpFallback(api, brands, { limit: settings.serpFallbackBrands, onCatalog });
-
-  const standIns = await standInsPending;
-  if (standIns) searchedBrandData.standIns = standIns;
-
-  console.log(`[Discovery] Complete. ${brands.length} brands, ${brands.filter(b => b.catalog?.products?.length).length} with products`);
-  return { searchedBrand: searchedBrandData, brands, serpApiOutOfCredits };
 }
 
 /**
@@ -465,15 +489,17 @@ export function threadOf(brands) {
   return { base, turns };
 }
 
-export function searchRecord(results, searchId, { keepCatalogs = false } = {}) {
-  if (!results.brands?.length) return { type: 'empty', searchId };
+export function searchRecord(results, searchId, { keepCatalogs = false, source = null } = {}) {
+  const metrics = results.metrics ? { ...results.metrics, ...(source ? { source } : {}) } : undefined;
+  if (!results.brands?.length) return { type: 'empty', searchId, metrics };
   const forStore = keepCatalogs ? (brand) => brand : catalogForStore;
   return {
     type: 'results',
     brands: results.brands.map(forStore),
     searchedBrand: forStore(results.searchedBrand),
     serpApiOutOfCredits: results.serpApiOutOfCredits || false,
-    searchId
+    searchId,
+    metrics
   };
 }
 
@@ -503,6 +529,8 @@ export async function brandFacts(api, domain) {
     title: site?.title || null,
     description: site?.description || null,
     siteName: site?.siteName || null,
+    // Not for the prompt: the searched brand's cover, so it is not read a second time.
+    imageUrl: site?.imageUrl || null,
     vendor: products.map(p => p.vendor).find(Boolean) || null,
     productTypes: [...new Set(products.map(p => p.productType).filter(Boolean))].slice(0, 6),
     products: products.map(p => p.title).filter(Boolean)
@@ -606,7 +634,7 @@ Be specific and insightful. This analysis will drive high-quality collaboration 
 export async function geminiJson(api, label, body, { attempts = 2, model = undefined, parse = null } = {}) {
   let failure = null;
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const response = await api.gemini(body, model, { keepalive: true });
+    const response = await api.gemini(body, model, { keepalive: true, label });
     const data = await response.json().catch(() => ({}));
     if (response.ok && !data.error) {
       if (!parse) return data;
@@ -872,6 +900,10 @@ const NOT_THE_BRAND = new Set(['amazon', 'instagram', 'facebook', 'tiktok', 'you
 const secondLevel = host => host.split('.').slice(-2, -1)[0] || host;
 const IDEAS = 12;
 const IDEATION_MODEL = 'gemini-2.5-pro';
+// Left to itself the model thought for 3,000-5,000 tokens and 37-51 seconds, the longest leg of
+// the search; held to 2,048 it answers in 22-28 with pairings Jev finds as surprising (1.97
+// against 1.95 over six runs each on three brands, 2026-09-26). At 1,024 the hooks went flat.
+const IDEATION_THINKING = 2048;
 
 /**
  * The brand's own homepage, from a web search for its name: the result whose domain carries the
@@ -889,6 +921,40 @@ export async function resolveHomepage(api, name) {
   } catch {
     return null;
   }
+}
+
+/**
+ * How long a homepage lookup is waited on. SerpAPI answers in about a second, and now and then
+ * not within the proxy's 15 seconds at all (two lookups in six, measured on 2026-09-26); a pick
+ * whose lookup has not answered by then gives way to the next one.
+ */
+export const HOMEPAGE_LOOKUP_MS = 5_000;
+
+/**
+ * The homepages of the first `count` names that have one, in order: `count` lookups at once, and
+ * one more for each that finds nothing or does not answer in time. Answers one url or null per
+ * name; the names never reached are null.
+ */
+export async function resolveHomepages(api, names, count, { timeoutMs = HOMEPAGE_LOOKUP_MS } = {}) {
+  const lookups = [];
+  const lookup = (i) => (lookups[i] ??= withDeadline(resolveHomepage(api, names[i]), timeoutMs, null));
+  const urls = names.map(() => null);
+  let found = 0;
+  let next = Math.min(count, names.length);
+  for (let i = 0; i < next; i++) lookup(i);
+  for (let i = 0; i < names.length && found < count; i++) {
+    urls[i] = await lookup(i);
+    if (urls[i]) found++;
+    else if (next < names.length) lookup(next++);
+  }
+  return urls;
+}
+
+/** The promise's value, or `fallback` once `ms` have passed; the work itself is left to finish. */
+function withDeadline(promise, ms, fallback) {
+  let timer;
+  const deadline = new Promise(resolve => { timer = setTimeout(() => resolve(fallback), ms); });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
 /**
@@ -948,7 +1014,7 @@ Return valid JSON only, ${IDEAS} ideas, strongest first:
     const data = await geminiJson(api, 'Unexpected collabs', {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: { parts: [{ text: 'You are a brand collaboration creative director. Think first, then return ONLY valid JSON.' }] },
-      generationConfig: { temperature: 1.2, topK: 64, topP: 0.98, maxOutputTokens: 8192 }
+      generationConfig: { temperature: 1.2, topK: 64, topP: 0.98, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: IDEATION_THINKING } }
     }, { model: IDEATION_MODEL });
     const seen = new Set([...trodden, ...onScreen].map(n => n.toLowerCase()));
     const ideas = (parseJsonResponse(extractText(data)).ideas || [])
@@ -972,13 +1038,11 @@ Return valid JSON only, ${IDEAS} ideas, strongest first:
       .sort((a, b) => (b.grade?.surprise ?? 0) - (a.grade?.surprise ?? 0))
       .slice(0, UNEXPECTED_COUNT + 2);
 
-    const picks = [];
-    for (const { idea, grade } of ranked) {
-      if (picks.length >= UNEXPECTED_COUNT) break;
-      const url = await resolveHomepage(api, idea.name);
-      if (!url) continue;
-      picks.push({ ...idea, url, brandStage: grade?.stage || idea.brandStage });
-    }
+    const urls = await resolveHomepages(api, ranked.map(({ idea }) => idea.name), UNEXPECTED_COUNT);
+    const picks = ranked
+      .map(({ idea, grade }, i) => (urls[i] ? { ...idea, url: urls[i], brandStage: grade?.stage || idea.brandStage } : null))
+      .filter(Boolean)
+      .slice(0, UNEXPECTED_COUNT);
     console.log(`[Discovery] Unexpected collabs: ${picks.map(b => `${b.name} (${b.hook || 'no hook'})`).join('; ') || 'none'} from ${ideas.length} ideas`);
     return picks;
   } catch (err) {
@@ -1146,31 +1210,20 @@ async function fetchProductsFromBrands(api, brands) {
   const brandsToSearch = brands.slice(0, 5);
   console.log(`[Products] Will search these brands:`, brandsToSearch.map(b => b.name));
   
-  for (const brand of brandsToSearch) {
-    if (outOfCredits) break;
-    
+  // All at once: one at a time, a SerpAPI search that hangs for the proxy's 15 seconds held
+  // every search behind it.
+  await Promise.all(brandsToSearch.map(async (brand) => {
     try {
       const brandProducts = await fetchBrandTopProducts(api, brand);
-      
-      if (brandProducts && brandProducts.outOfCredits) {
-        outOfCredits = true;
-        break;
-      }
-      
-      if (Array.isArray(brandProducts)) {
-        allProducts.push(...brandProducts);
-      }
+      if (Array.isArray(brandProducts)) allProducts.push(...brandProducts);
     } catch (err) {
       if (err.message === 'SERP_API_OUT_OF_CREDITS') {
         outOfCredits = true;
-        break;
+        return;
       }
       console.warn(`[Products] Failed to fetch products for ${brand.name}:`, err.message);
     }
-    
-    // Small delay between brand searches
-    await sleep(100);
-  }
+  }));
   
   if (outOfCredits) {
     return { outOfCredits: true, products: [] };

@@ -123,7 +123,7 @@ async function search(row, { db, api, settings }) {
   if (!reused) {
     const [feedback, knownPartners, frequentBrands] = await Promise.all([store.listFeedback(db), store.listKnownPartners(db, row.domain), store.listFrequentBrands(db)]);
     const results = await discoverComplementaryBrands(row.domain, { api, feedback, knownPartners, frequentBrands });
-    await store.putSearch(db, row.domain, searchRecord(results, `crawl-${Date.now()}`, { keepCatalogs: true }));
+    await store.putSearch(db, row.domain, searchRecord(results, `crawl-${Date.now()}`, { keepCatalogs: true, source: 'crawl' }));
     stored = await store.getSearch(db, row.domain, { products: 0 });
   }
 

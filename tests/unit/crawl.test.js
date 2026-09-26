@@ -171,6 +171,7 @@ describe('runStep: search', () => {
     expect(stored.brands.map(b => b.url)).toEqual(['https://brand0.test', 'https://brand1.test', 'https://brand2.test', 'https://brand3.test', 'https://brand4.test']);
     expect((await store.getCatalog(db, 'brand3.test')).count).toBe(1);
     expect(await store.getCatalog(db, 'seed.test')).not.toBeNull();
+    expect(stored.metrics).toMatchObject({ source: 'crawl', gemini: { calls: 3 }, calls: { serp: 0 } });
   });
 
   it('retries a failed step once, then fails it', async () => {

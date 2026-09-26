@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   parseJsonResponse, brandDomain, ensureHttps, searchRecord, hasCatalog, catalogForStore, httpApi, extractText, fetchWithRetry, brandFacts, factsBlock, buildFrequentContext, normalizeRecommendations, capWellTrodden, geminiJson, topUpEmerging, unexpectedCollabs, mergeUnexpected, gradeCandidates, composeGraded,
-  extendRecommendations, threadOf, gateGraded, turnLabel, listHeading, EXTEND_COUNT, UNEXPECTED_COUNT
+  extendRecommendations, threadOf, gateGraded, turnLabel, listHeading, EXTEND_COUNT, UNEXPECTED_COUNT,
+  resolveHomepages, discoverComplementaryBrands
 } from '$lib/shared/search.js';
 
 describe('parseJsonResponse', () => {
@@ -120,6 +121,12 @@ describe('searchRecord', () => {
     const record = searchRecord(results, 'id-2', { keepCatalogs: true });
     expect(record.brands[0].catalog.products).toEqual([{ id: 2 }]);
     expect(record.searchedBrand.catalog.products).toEqual([{ id: 1 }]);
+  });
+
+  it('carries the search\'s reading, marked with where it ran', () => {
+    const metrics = { durationMs: 1234, cost: { totalUsd: 0.1 } };
+    expect(searchRecord({ ...results, metrics }, 'id-3', { source: 'crawl' }).metrics).toEqual({ ...metrics, source: 'crawl' });
+    expect(searchRecord({ brands: [], metrics }, 'id-4').metrics).toEqual(metrics);
   });
 });
 
@@ -251,6 +258,7 @@ describe('brandFacts', () => {
       title: 'BUILT Protein Bars | The Best Tasting Protein Bar',
       description: 'Discover a protein bar that actually tastes good!',
       siteName: 'BUILT',
+      imageUrl: null,
       vendor: 'BUILT',
       productTypes: ['Protein Bar'],
       products: ['Strawberry Cheesecake Puff', 'Orange Cream Pop Puff']
@@ -629,5 +637,91 @@ describe('listHeading', () => {
     expect(listHeading({ title: 'Five words is too many now', subtitle: 'Fine.' })).toBeNull();
     expect(listHeading({ title: 'Fine', subtitle: '' })).toBeNull();
     expect(listHeading(undefined)).toBeNull();
+  });
+});
+
+describe('resolveHomepages', () => {
+  const organic = (...links) => new Response(JSON.stringify({ organic_results: links.map(link => ({ link })) }), { status: 200 });
+
+  it('looks up the first picks at once, and the next one for each that finds nothing or hangs', async () => {
+    const asked = [];
+    const api = {
+      serp: async (params) => {
+        const name = new URLSearchParams(params).get('q').replace(' official site', '');
+        asked.push(name);
+        if (name === 'Hangs') return new Promise(() => {});
+        if (name === 'Nowhere') return organic();
+        return organic(`https://www.${name.toLowerCase()}.com/`);
+      }
+    };
+    const started = Date.now();
+    const urls = await resolveHomepages(api, ['Alpha', 'Hangs', 'Nowhere', 'Delta', 'Echo', 'Foxtrot'], 3, { timeoutMs: 50 });
+    expect(urls).toEqual(['https://alpha.com', null, null, 'https://delta.com', 'https://echo.com', null]);
+    expect(asked.slice(0, 3).sort()).toEqual(['Alpha', 'Hangs', 'Nowhere']);
+    expect(asked).not.toContain('Foxtrot');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe('discoverComplementaryBrands', () => {
+  const reply = (payload, usage = {}) => new Response(`  ${JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }], usageMetadata: usage })}`, { status: 200 });
+  const json = (payload) => new Response(JSON.stringify(payload), { status: 200 });
+  const recommended = ['One', 'Two', 'Three', 'Four', 'Five'].map((name, i) => ({ name, url: `https://${name.toLowerCase()}.test`, lane: ['same-shelf', 'adjacent-function', 'lifestyle', 'parallel-premium', 'same-shelf'][i], category: 'same-moment', brandStage: i === 0 ? 'emerging' : 'established', reasons: ['fits'] }));
+
+  it('reports what the search took and cost, and reads the cover from the site\'s facts', async () => {
+    const api = {
+      gemini: async (body) => {
+        const prompt = body.contents[0].parts[0].text;
+        if (/comprehensive analysis/.test(prompt)) return reply({ brandProfile: { name: 'Seed', url: 'https://seed.test', description: 'Seeds' } }, { promptTokenCount: 800, candidatesTokenCount: 600 });
+        if (/creative director/.test(body.systemInstruction.parts[0].text)) return reply({ ideas: [] });
+        if (/EMERGING brands/.test(prompt)) return reply({ brands: [{ name: 'Sprout', url: 'https://sprout.test', lane: 'lifestyle', category: 'lifestyle-stack' }] });
+        return reply({ brands: recommended, heading: { title: 'Good picks', subtitle: 'For seeds.' } }, { promptTokenCount: 2500, toolUsePromptTokenCount: 3000, candidatesTokenCount: 4000 });
+      },
+      catalog: async (domain) => json({ status: 'shopify', domain, count: 1, products: [{ id: 1, title: 'P', image: 'https://x/p.jpg', price: 5, url: `https://${domain}/p` }] }),
+      socials: async () => json({ socials: {} }),
+      opengraph: async () => json({ imageUrl: 'https://seed.test/og.jpg', title: 'Seed' }),
+      serp: async () => json({ shopping_results: [] })
+    };
+
+    let readyWith = null;
+    const results = await discoverComplementaryBrands('seed.test', { api, onBrandsReady: ({ brands }) => { readyWith = brands.length; } });
+    expect(results.brands.map(b => b.name)).toEqual(['One', 'Two', 'Three', 'Four', 'Five', 'Sprout']);
+    expect(readyWith).toBe(6);
+    expect(results.searchedBrand.imageUrl).toBe('https://seed.test/og.jpg');
+
+    const { metrics } = results;
+    expect(Object.keys(metrics.steps).sort()).toEqual(['analysis', 'catalogs', 'facts', 'grading', 'recommendations', 'serpFallback', 'topUp', 'unexpected']);
+    expect(metrics.brandsReadyMs).toBeLessThanOrEqual(metrics.durationMs);
+    expect(metrics.gemini).toMatchObject({ calls: 4, groundedPrompts: 3, inputTokens: 6300, outputTokens: 4600 });
+    // One opengraph read: the facts', reused for the cover.
+    expect(metrics.calls).toMatchObject({ opengraph: 1, serp: 0, catalog: 8, socials: 7 });
+    expect(metrics.cost.totalUsd).toBeGreaterThan(0.1);
+  });
+
+  it('does not hold the list for a stalled unexpected lane or emerging top-up', async () => {
+    const api = {
+      gemini: async (body) => {
+        const prompt = body.contents[0].parts[0].text;
+        if (/comprehensive analysis/.test(prompt)) return reply({ brandProfile: { name: 'Seed', url: 'https://seed.test' } });
+        if (/creative director/.test(body.systemInstruction.parts[0].text) || /EMERGING brands/.test(prompt)) return new Promise(() => {});
+        return reply({ brands: recommended });
+      },
+      catalog: async () => json({ products: [] }),
+      socials: async () => json({ socials: {} }),
+      opengraph: async () => json({}),
+      serp: async () => json({ shopping_results: [] })
+    };
+    const started = Date.now();
+    const results = await discoverComplementaryBrands('seed.test', { api, config: { sideCallsGraceMs: 50 } });
+    expect(results.brands.map(b => b.name)).toEqual(['One', 'Two', 'Three', 'Four', 'Five']);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it('hands its reading on with the error when the search fails', async () => {
+    const api = { gemini: async () => json({ error: 'quota', status: 429 }), catalog: async () => json({ products: [] }), opengraph: async () => json({}) };
+    const error = await discoverComplementaryBrands('seed.test', { api }).catch(err => err);
+    expect(error.message).toContain('Brand analysis failed');
+    expect(error.metrics.gemini.calls).toBe(1);
+    expect(error.metrics.steps.analysis).toBeDefined();
   });
 });
