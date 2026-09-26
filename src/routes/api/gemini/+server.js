@@ -1,5 +1,6 @@
 /**
- * Gemini proxy: the key stays on the server. The model is a query parameter.
+ * Gemini proxy: the key stays on the server. The model is a query parameter, one of the models
+ * the finder uses; the body is capped at what a photo of a pack and a long prompt come to.
  *
  * `?keepalive=1` answers at once and streams: a space every few seconds while Gemini works, then
  * the JSON. A grounded recommendation call can run past the 100 seconds Cloudflare allows an
@@ -7,7 +8,7 @@
  * silent. JSON.parse reads past the leading spaces, so a caller reads it as before, except that a
  * Gemini failure arrives as a 200 whose body carries { error, status }.
  */
-import { json, preflight, readJson, env, forwardUpstream, CORS } from '$lib/server/api.js';
+import { json, env, forwardUpstream } from '$lib/server/api.js';
 import { foldStream } from '$lib/server/gemini-stream.js';
 
 // How long one Gemini call may take before the proxy answers 504 instead. The browser gives up
@@ -20,6 +21,11 @@ const KEEPALIVE_EVERY_MS = 10_000;
 // first attempt on the kept-alive path gets this long to start, then is asked again with the
 // full budget. Gemini's answers are not billed until they are produced.
 const FIRST_ANSWER_MS = 60_000;
+// The models the finder asks for (search.js, pitch-api.js, photo.js, picker-prompt.js). Any other
+// is a caller spending the key on something the finder never does.
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
+// A pack photo is a 1280px JPEG, under a megabyte as base64; a prompt is tens of kilobytes.
+const MAX_BODY_CHARS = 4_000_000;
 
 // The kept-alive path streams from Google too, or the Worker's own fetch is the silent leg.
 async function askGemini(endpoint, body, { stream = false, timeoutMs = UPSTREAM_TIMEOUT_MS } = {}) {
@@ -68,12 +74,8 @@ function streamed(endpoint, body) {
   })();
   return new Response(readable, {
     status: 200,
-    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
-}
-
-export function OPTIONS() {
-  return preflight();
 }
 
 export async function POST(event) {
@@ -86,8 +88,16 @@ export async function POST(event) {
     return json({ error: 'Server misconfiguration' }, { status: 500 });
   }
 
-  const body = await readJson(event.request);
   const model = event.url.searchParams.get('model') || 'gemini-2.5-flash';
+  if (!MODELS.includes(model)) return json({ error: `Unsupported model: ${model}` }, { status: 400 });
+  const text = await event.request.text();
+  if (text.length > MAX_BODY_CHARS) return json({ error: 'Request too large' }, { status: 413 });
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return json({ error: 'Expected a JSON body' }, { status: 400 });
+  }
   const base = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`;
   if (event.url.searchParams.get('keepalive') === '1') return streamed(`${base}:streamGenerateContent?alt=sse&key=${apiKey}`, body);
   const endpoint = `${base}:generateContent?key=${apiKey}`;

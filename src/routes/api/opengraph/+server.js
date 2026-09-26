@@ -3,17 +3,13 @@
  * the site's own title, description and name, which ground the brand analysis in what the site
  * says about itself.
  */
-import { json, preflight, env, forwardUpstream } from '$lib/server/api.js';
+import { json, env, forwardUpstream } from '$lib/server/api.js';
 import { usableCover } from '$lib/server/opengraph.js';
 
 function imageOf(graph) {
   const img = graph?.image;
   if (!img) return null;
   return typeof img === 'string' ? img : img?.url || null;
-}
-
-export function OPTIONS() {
-  return preflight();
 }
 
 export async function GET(event) {

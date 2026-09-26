@@ -182,10 +182,6 @@ export async function publishedUrlFor(stackId) {
   return page?.url || null;
 }
 
-export function forgetDrafts(searchedDomain) {
-  return store.clearDrafts(searchedDomain);
-}
-
 /* -------------------------------------------------------------------------- */
 /* OAuth: authorization code with PKCE, public client                          */
 /* -------------------------------------------------------------------------- */

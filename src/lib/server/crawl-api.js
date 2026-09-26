@@ -9,6 +9,11 @@
  */
 import { enqueueSeeds, claimNext, runStep, crawlStatus, crawlSettings } from './crawl.js';
 import { httpApi } from '$lib/shared/search.js';
+import { isStaffRequest } from './gate.js';
+
+function withBearer(secret) {
+  return (url, init = {}) => fetch(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${secret}` } });
+}
 
 /**
  * @param {object} req
@@ -25,7 +30,7 @@ import { httpApi } from '$lib/shared/search.js';
  */
 export async function handleCrawlRequest({ method, path, authorization, body, db, env, origin, fetchImpl = (...args) => fetch(...args) }) {
   if (!env.CRAWL_SECRET) return { status: 503, body: { error: 'The crawl is off: CRAWL_SECRET is not set' } };
-  if (authorization !== `Bearer ${env.CRAWL_SECRET}`) return { status: 401, body: { error: 'Unauthorized' } };
+  if (!isStaffRequest(authorization, env)) return { status: 401, body: { error: 'Unauthorized' } };
   if (!db) return { status: 503, body: { error: 'No database bound' } };
 
   const settings = crawlSettings(env);
@@ -43,7 +48,9 @@ export async function handleCrawlRequest({ method, path, authorization, body, db
     const row = await claimNext(db, settings);
     if (!row) return { status: 200, body: { idle: true } };
     if (row.capped) return { status: 200, body: { capped: true, dailyLimit: settings.dailyLimit } };
-    const api = env.CRAWL_API_ORIGIN ? httpApi(env.CRAWL_API_ORIGIN) : httpApi(origin, fetchImpl);
+    // In-process, SvelteKit's fetch carries this request's bearer to the proxies' gate; another
+    // origin's gate is shown the same bearer by hand.
+    const api = env.CRAWL_API_ORIGIN ? httpApi(env.CRAWL_API_ORIGIN, withBearer(env.CRAWL_SECRET)) : httpApi(origin, fetchImpl);
     return { status: 200, body: await runStep(row, { db, api, jevKey: env.TYPESAFE_API_KEY || null, settings }) };
   }
 

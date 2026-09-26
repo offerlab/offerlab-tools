@@ -33,7 +33,9 @@ export default {
 };
 
 async function syncLibrary(env, ctx) {
-  const response = await app.fetch(new Request(`${INTERNAL_ORIGIN}/api/library?sync=1`), env, ctx);
+  // The API's gate lets the cron in on CRAWL_SECRET (src/lib/server/gate.js).
+  const headers = env.CRAWL_SECRET ? { Authorization: `Bearer ${env.CRAWL_SECRET}` } : {};
+  const response = await app.fetch(new Request(`${INTERNAL_ORIGIN}/api/library?sync=1`, { headers }), env, ctx);
   const body = await response.json().catch(() => ({}));
   console.log(JSON.stringify({ cron: 'library', status: response.status, bundles: body.bundles?.length ?? null }));
 }

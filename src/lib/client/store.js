@@ -104,10 +104,6 @@ export function removeHistory(domain) {
   return attempt(false, () => call(`history/${encodeURIComponent(domain)}`, { method: 'DELETE' }));
 }
 
-export function clearHistory() {
-  return attempt(false, () => call('history', { method: 'DELETE' }));
-}
-
 /* -------------------------------------------------------------------------- */
 /* Feedback                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -135,8 +131,4 @@ export function saveDraft(searchedDomain, draft) {
 
 export function markDraftPublished(searchedDomain, stackId, publishedUrl) {
   return attempt(false, () => call(`drafts/${encodeURIComponent(searchedDomain)}/${encodeURIComponent(stackId)}`, { method: 'PATCH', body: { publishedUrl } }));
-}
-
-export function clearDrafts(searchedDomain) {
-  return attempt(false, () => call(searchedDomain ? `drafts/${encodeURIComponent(searchedDomain)}` : 'drafts', { method: 'DELETE' }));
 }

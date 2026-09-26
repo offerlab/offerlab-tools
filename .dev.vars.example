@@ -7,6 +7,11 @@ TYPESAFE_API_KEY=
 CRAWL_SECRET=
 # OFFERLAB_HOST=https://shoptalk.offerlab.com
 
+# With CRAWL_SECRET (or SESSION_SECRET) set, /api/* asks for the session cookie the page sets,
+# as in production; without either, the local API runs open.
+
 # Without the keys above, the Gemini, SerpAPI and OpenGraph proxies forward to this origin's
-# /api/* so a real search still runs locally. Leave unset in production.
+# /api/* so a real search still runs locally, shown UPSTREAM_API_TOKEN (that origin's
+# CRAWL_SECRET) to get past its gate. Leave both unset in production.
 # UPSTREAM_API_ORIGIN=https://collabfinder.offerlab.com
+# UPSTREAM_API_TOKEN=

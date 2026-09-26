@@ -11,7 +11,8 @@
 import { callMcp, isDeveloper, DEFAULT_OFFERLAB_HOST } from '$lib/shared/offerlab.js';
 import { hideProducts, showProducts, removeRecommendation } from './moderation.js';
 
-async function isOfferLabDeveloper(token, host, fetchImpl) {
+/** Whether OfferLab grants this token a developer's tools. data-api.js asks the same before a wipe. */
+export async function isOfferLabDeveloper(token, host = DEFAULT_OFFERLAB_HOST, fetchImpl = (...args) => fetch(...args)) {
   const { status, data } = await callMcp({
     token, host, fetchImpl,
     payload: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }

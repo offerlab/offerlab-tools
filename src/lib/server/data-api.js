@@ -10,15 +10,21 @@
  *   GET    frequent?limit=N              the brands recommended most across recent searches
  *   GET    history?limit=N               recent searches, newest first
  *   POST   history        { domain }     a search just ran for this domain
- *   DELETE history/:domain               drop one; DELETE history drops them all
+ *   DELETE history/:domain               drop one; DELETE history drops them all (staff)
  *   GET    feedback?limit=N              the recent feedback corpus, oldest first
  *   POST   feedback       { searchId, inputUrl, rating, results }
  *   GET    drafts/:domain                OfferLab drafts built for a searched brand
  *   PUT    drafts/:domain { ...draft }   remember a draft (same stackId replaces)
  *   PATCH  drafts/:domain/:stackId { publishedUrl }
- *   DELETE drafts/:domain                forget a brand's drafts; DELETE drafts forgets all
+ *   DELETE drafts/:domain                forget a brand's drafts; DELETE drafts forgets all (staff)
+ *
+ * "Staff" is an OfferLab developer's token (the check moderation makes) or the crawl's bearer:
+ * anyone with the page may add to the shared history, but emptying it, or forgetting the record
+ * of what was built on OfferLab, is not a visitor's call.
  */
 import * as store from './db.js';
+import { isOfferLabDeveloper } from './moderation-api.js';
+import { isStaffRequest } from './gate.js';
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -39,12 +45,20 @@ function needDomain(segment) {
   return domain;
 }
 
+async function needStaff({ authorization, vars = {}, host, fetchImpl }) {
+  if (isStaffRequest(authorization, vars)) return;
+  const token = String(authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) throw new HttpError(401, 'Sign in to OfferLab to do this');
+  if (!(await isOfferLabDeveloper(token, host, fetchImpl))) throw new HttpError(403, 'Only OfferLab developers can do this');
+}
+
 function needBody(body) {
   if (!body || typeof body !== 'object') throw new HttpError(400, 'Expected a JSON body');
   return body;
 }
 
-async function route({ method, segments, query, body, db }) {
+async function route(req) {
+  const { method, segments, query, body, db } = req;
   const [resource, first, second] = segments;
 
   switch (resource) {
@@ -78,7 +92,10 @@ async function route({ method, segments, query, body, db }) {
       }
       if (method === 'DELETE') {
         if (first) await store.removeHistory(db, needDomain(first));
-        else await store.clearHistory(db);
+        else {
+          await needStaff(req);
+          await store.clearHistory(db);
+        }
         return { status: 204 };
       }
       break;
@@ -108,7 +125,9 @@ async function route({ method, segments, query, body, db }) {
         return { status: 204 };
       }
       if (method === 'DELETE' && !second) {
-        await store.deleteDrafts(db, first ? needDomain(first) : '');
+        const domain = first ? needDomain(first) : '';
+        await needStaff(req);
+        await store.deleteDrafts(db, domain);
         return { status: 204 };
       }
       break;
@@ -130,6 +149,10 @@ const WRITES = ['POST', 'PUT', 'PATCH'];
  * @param {string} [req.contentType] the request's Content-Type header
  * @param {unknown} req.body       parsed JSON, or null
  * @param {object|null} req.db     the D1 binding; null when none is bound
+ * @param {string|null} [req.authorization] the caller's Authorization header, for the staff routes
+ * @param {object} [req.vars]      the Worker's env, for CRAWL_SECRET
+ * @param {string} [req.host]      the OfferLab host that vouches for a developer
+ * @param {Function} [req.fetchImpl] how to reach OfferLab
  * @returns {Promise<{status:number, body?:unknown}>}
  */
 export async function handleDataRequest(req) {

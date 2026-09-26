@@ -14,7 +14,7 @@ async function handle(event) {
     db: db(event.platform),
     host: env(event.platform).OFFERLAB_HOST || undefined
   });
-  return json(payload, { status, cache: 'no-store', cors: false });
+  return json(payload, { status, cache: 'no-store' });
 }
 
 export const GET = handle;

@@ -4,11 +4,7 @@
  * given and never stored.
  */
 import { DEFAULT_OFFERLAB_HOST, callMcp } from '$lib/shared/offerlab.js';
-import { json, preflight, readJson, env } from '$lib/server/api.js';
-
-export function OPTIONS() {
-  return preflight();
-}
+import { json, readJson, env } from '$lib/server/api.js';
 
 export async function POST({ request, platform }) {
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
